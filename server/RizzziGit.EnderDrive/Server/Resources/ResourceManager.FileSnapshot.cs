@@ -6,8 +6,6 @@ using MongoDB.Bson;
 namespace RizzziGit.EnderDrive.Server.Resources;
 
 using MongoDB.Driver;
-using Shared.Resources;
-
 public class FileSnapshot : ResourceData
 {
     public required ObjectId FileId;

@@ -11,8 +11,6 @@ using Newtonsoft.Json;
 namespace RizzziGit.EnderDrive.Server.Resources;
 
 using Services;
-using Shared.Resources;
-
 
 public enum UserAuthenticationType
 {

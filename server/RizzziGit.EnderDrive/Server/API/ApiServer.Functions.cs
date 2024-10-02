@@ -8,7 +8,4 @@ namespace RizzziGit.EnderDrive.Server.API;
 
 public sealed partial class ApiServer
 {
-    private void RegsiterHandlers(List<ApiRequestHook> handlers)
-    {
-    }
 }

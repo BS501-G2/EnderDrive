@@ -8,32 +8,52 @@ using Newtonsoft.Json;
 namespace RizzziGit.EnderDrive.Server.Resources;
 
 using Services;
-using Shared.Resources;
 
-public class UnlockedFile : File
+public enum FileType
 {
-    public static UnlockedFile Unlock(File file, UnlockedUserAuthentication userAuthentication)
+    File,
+    Folder,
+}
+
+public class File : ResourceData
+{
+    public required ObjectId? ParentId;
+    public required ObjectId UserId;
+
+    public required string Name;
+    public required FileType Type;
+
+    [JsonIgnore]
+    public required byte[] EncryptedAesKey;
+
+    [JsonIgnore]
+    public required byte[] AesIv;
+
+    public UnlockedFile Unlock(UnlockedUserAuthentication userAuthentication)
     {
-        byte[] aesKey = KeyManager.Decrypt(userAuthentication, file.EncryptedAesKey);
+        byte[] aesKey = KeyManager.Decrypt(userAuthentication, EncryptedAesKey);
 
         return new()
         {
-            Original = file,
+            Original = this,
 
-            Id = file.Id,
-            ParentId = file.ParentId,
+            Id = Id,
+            ParentId = ParentId,
             UserId = userAuthentication.UserId,
 
-            Name = file.Name,
-            Type = file.Type,
+            Name = Name,
+            Type = Type,
 
-            EncryptedAesKey = file.EncryptedAesKey,
-            AesIv = file.AesIv,
+            EncryptedAesKey = EncryptedAesKey,
+            AesIv = AesIv,
 
             AesKey = aesKey,
         };
     }
+}
 
+public class UnlockedFile : File
+{
     public static implicit operator Aes(UnlockedFile file) =>
         KeyManager.DeserializeSymmetricKey([.. file.AesKey, .. file.AesIv]);
 
