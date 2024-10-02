@@ -32,7 +32,7 @@ public static partial class Program
             try
             {
                 // await UserTest(server);
-                await ScanVirus(server);
+                // await ScanVirus(server);
 
                 await server.Join();
             }

@@ -72,17 +72,11 @@ public sealed partial class ApiServer(Server server, int httpPort, int httpsPort
 
         await StartServices([sessionManager], cancellationToken);
 
-        Data.WebApplication.Use(
-            (HttpContext context, Func<Task> next) => Handle(context, cancellationToken)
-        );
+        app.Use((HttpContext context, Func<Task> next) => Handle(context, cancellationToken));
 
         await app.StartAsync(cancellationToken);
 
-        return new()
-        {
-            WebApplication = app,
-            SessionManager = sessionManager,
-        };
+        return new() { WebApplication = app, SessionManager = sessionManager, };
     }
 
     protected override async Task OnRun(ApiServerParams data, CancellationToken cancellationToken)
@@ -99,13 +93,16 @@ public sealed partial class ApiServer(Server server, int httpPort, int httpsPort
 
     private async Task Handle(HttpContext context, CancellationToken cancellationToken)
     {
-        if (context.WebSockets.IsWebSocketRequest)
+        if (context.WebSockets.IsWebSocketRequest && context.Request.Path == "/ws") { }
+        // else if (context.Request.Path) {
+
+        // }
+        else
         {
-            if (context.Request.Path == "/ws")
-            {
-                await Handle(await context.WebSockets.AcceptWebSocketAsync(), cancellationToken);
-            }
+            context.Response.StatusCode = 400;
         }
+
+        await Handle(await context.WebSockets.AcceptWebSocketAsync(), cancellationToken);
     }
 
     private async Task Handle(WebSocket webSocket, CancellationToken cancellationToken)

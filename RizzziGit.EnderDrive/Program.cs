@@ -11,6 +11,7 @@ public static class Program
         MainMethod main = args[0] switch
         {
             "server" => Server.Program.Main,
+            "client" => Client.Program.Main,
 
             _ => throw new System.NotImplementedException(),
         };
