@@ -9,6 +9,8 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 using Commons.Memory;
 using Services;
 
+using Shared.Resources;
+
 public class FileData : ResourceData
 {
     public required ObjectId FileId;

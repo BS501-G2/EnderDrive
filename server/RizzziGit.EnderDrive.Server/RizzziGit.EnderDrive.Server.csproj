@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
-    <ProjectReference Include="..\..\RizzziGit.Commons\RizzziGit.Commons.csproj" />
     <ProjectReference Include="..\RizzziGit.EnderDrive.Shared\RizzziGit.EnderDrive.Shared.csproj" />
   </ItemGroup>
 
@@ -9,6 +8,7 @@
     <PackageReference Include="ClamAV.Net" Version="0.1.166" />
     <PackageReference Include="MongoDB.Driver" Version="2.29.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="RizzziGit.Commons" Version="0.0.5" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
   </ItemGroup>
 

@@ -11,6 +11,8 @@ using Newtonsoft.Json;
 namespace RizzziGit.EnderDrive.Server.Resources;
 
 using Services;
+using Shared.Resources;
+
 public class Group : ResourceData
 {
     public static implicit operator RSA(Group groupMembership) =>

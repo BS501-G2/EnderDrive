@@ -7,6 +7,8 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 
 using MongoDB.Driver;
 
+using Shared.Resources;
+
 public class FileContent : ResourceData
 {
     public required ObjectId FileId;

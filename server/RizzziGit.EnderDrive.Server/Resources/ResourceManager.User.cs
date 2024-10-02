@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 namespace RizzziGit.EnderDrive.Server.Resources;
 
 using Services;
+using Shared.Resources;
 
 [Flags]
 public enum UserRole
@@ -165,7 +166,7 @@ public sealed partial class ResourceManager
             )
         )
         {
-            await DeleteFile(transaction, file.Unlock(userAuthentication));
+            await DeleteFile(transaction, UnlockedFile.Unlock(file, userAuthentication));
         }
 
         await Delete(transaction, user);

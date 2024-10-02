@@ -13,12 +13,7 @@ using Commons.Logging;
 using Commons.Services;
 using Core;
 using Services;
-
-
-public abstract class ResourceData
-{
-    public required ObjectId Id;
-}
+using Shared.Resources;
 
 public sealed class MainResourceManagerData
 {

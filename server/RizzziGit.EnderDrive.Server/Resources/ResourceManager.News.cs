@@ -5,6 +5,8 @@ using MongoDB.Bson;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
+using Shared.Resources;
+
 public class News : ResourceData
 {
     public required string Title;

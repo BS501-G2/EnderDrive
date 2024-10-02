@@ -9,6 +9,8 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 using System;
 using System.Linq;
 using Services;
+using Shared.Resources;
+
 
 public class Key : ResourceData;
 

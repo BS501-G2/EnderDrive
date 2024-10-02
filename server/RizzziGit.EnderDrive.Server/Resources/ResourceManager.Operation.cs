@@ -8,6 +8,8 @@ using MongoDB.Driver;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
+using Shared.Resources;
+
 public sealed partial class ResourceManager
 {
     private delegate IQueryable<T> QueryBuilder<T>(IQueryable<T> query)
