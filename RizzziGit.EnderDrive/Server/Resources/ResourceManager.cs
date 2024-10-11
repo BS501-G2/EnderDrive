@@ -14,24 +14,39 @@ using Commons.Services;
 using Core;
 using Services;
 
-
-public abstract class ResourceData
+public abstract record class ResourceData
 {
     public required ObjectId Id;
 }
 
-public sealed class MainResourceManagerData
+public sealed class MainResourceManagerContext
 {
     public required ILoggerFactory LoggerFactory;
     public required IMongoClient Client;
     public required RandomNumberGenerator RandomNumberGenerator;
-    public required Logger Logger;
+}
+
+public sealed class Resource<D>(Func<D> getData, Func<ResourceTransaction, Task> update, Func<ResourceTransaction, Task> reset)
+    where D : ResourceData
+{
+    public static implicit operator D(Resource<D> resource) => resource.Data;
+
+    public static explicit operator Resource<D>(Resource<ResourceData> v)
+    {
+        throw new NotImplementedException();
+    }
+
+    public D Data => getData();
+
+    public Task Save(ResourceTransaction transaction) => update(transaction);
+
+    public Task Reset(ResourceTransaction transaction) => reset(transaction);
 }
 
 public sealed partial class ResourceManager(Server server)
-    : Service2<MainResourceManagerData>("Resource Manager", server)
+    : Service2<MainResourceManagerContext>("Resource Manager", server)
 {
-    private IMongoClient Client => Data.Client;
+    private IMongoClient Client => Context.Client;
     private IMongoDatabase Database => Client.GetDatabase("EnderDrive");
 
     private IMongoCollection<D> GetCollection<D>()
@@ -39,7 +54,7 @@ public sealed partial class ResourceManager(Server server)
 
     private KeyManager KeyManager => server.KeyManager;
 
-    protected override async Task<MainResourceManagerData> OnStart(
+    protected override async Task<MainResourceManagerContext> OnStart(
         CancellationToken cancellationToken
     )
     {
@@ -47,9 +62,6 @@ public sealed partial class ResourceManager(Server server)
             (options) =>
                 options.AddProvider(new LoggerProvider((category) => new LoggerInstance(this)))
         );
-
-        Logger logger = new("Mongo Client");
-        ((IService2)this).Logger.Subscribe(logger);
 
         MongoClient client =
             new(
@@ -71,13 +83,7 @@ public sealed partial class ResourceManager(Server server)
         {
             LoggerFactory = loggerFactory,
             Client = client,
-            Logger = logger,
             RandomNumberGenerator = randomNumberGenerator,
         };
-    }
-
-    protected override async Task OnStop(MainResourceManagerData data, Exception? exception)
-    {
-        ((IService2)this).Logger.Unsubscribe(data.Logger);
     }
 }

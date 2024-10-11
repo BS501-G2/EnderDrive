@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -8,8 +9,36 @@ using MongoDB.Driver;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
+using Commons.Collections;
+
 public sealed partial class ResourceManager
 {
+    private sealed record ResourceHolderKey(ObjectId Id, Type Type);
+
+    // private readonly WeakDictionary<ResourceHolderKey, dynamic> Resources = [];
+
+    // private Resource<T> CreateResource<T>(T data)
+    //     where T : ResourceData
+    // {
+    //     if (Resources.TryGetValue(new ResourceHolderKey(data.Id, typeof(T)), out dynamic? resource))
+    //     {
+    //         return (Resource<T>)resource;
+    //     }
+
+    //     T getData() => data;
+    //     async Task update(ResourceTransaction transaction)
+    //     {
+    //         await Update(
+    //             transaction,
+    //             Query<T>(transaction, (query) => query.Where((item) => item.Id == data.Id)),
+    //             Builders<T>.Update.
+    //         );
+    //     }
+    //     async Task reset(ResourceTransaction transaction) { }
+
+    //     resource = new Resource<T>(getData, update, reset);
+    // }
+
     private delegate IQueryable<T> QueryBuilder<T>(IQueryable<T> query)
         where T : ResourceData;
 

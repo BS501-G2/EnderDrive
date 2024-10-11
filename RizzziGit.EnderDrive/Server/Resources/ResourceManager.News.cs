@@ -5,7 +5,7 @@ using MongoDB.Bson;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
-public class News : ResourceData
+public record class News : ResourceData
 {
     public required string Title;
     public required ObjectId[] ImageFiles;

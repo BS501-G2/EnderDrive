@@ -144,12 +144,12 @@ public sealed partial class VirusScanner
             CancellationToken cancellationToken
         )
         {
-            await ListenTcp(data.InternalTcpListener, cancellationToken);
+            await ListenTcp(Context.InternalTcpListener, cancellationToken);
         }
 
         protected override Task OnStop(TcpForwarderParams data, Exception? exception)
         {
-            data.InternalTcpListener.Stop();
+            Context.InternalTcpListener.Stop();
             return Task.CompletedTask;
         }
     }

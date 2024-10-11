@@ -4,8 +4,16 @@
     <PackageReference Include="ClamAV.Net" Version="0.1.166" />
     <PackageReference Include="MongoDB.Driver" Version="2.29.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="RizzziGit.Commons" Version="0.0.6" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(Configuration) == 'Debug'">
+    <ProjectReference Include="..\..\RizzziGit.Commons\RizzziGit.Commons.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(Configuration) == 'Release'">
+
+    <PackageReference Include="RizzziGit.Commons" Version="0.0.6" />
   </ItemGroup>
 
   <PropertyGroup>

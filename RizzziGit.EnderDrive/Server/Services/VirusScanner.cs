@@ -14,6 +14,8 @@ using System.Collections.Generic;
 using Commons.Collections;
 using Commons.Services;
 using Core;
+using MongoDB.Bson;
+using RizzziGit.EnderDrive.Server.Resources;
 using Utilities;
 
 public sealed class VirusScannerParams
@@ -43,8 +45,8 @@ public sealed partial class VirusScanner(Server server, string unixSocketPath)
 
         VersionResult version = await client.GetVersionAsync(cancellationToken);
 
-        Info("Version", version.ProgramVersion);
-        Info("Version", $"Virus Database {version.VirusDbVersion}");
+        Info(version.ProgramVersion, "Version");
+        Info($"Virus Database {version.VirusDbVersion}", "Version");
 
         return new()
         {
@@ -54,21 +56,20 @@ public sealed partial class VirusScanner(Server server, string unixSocketPath)
         };
     }
 
-    private async Task RunScanQueue(
-        IClamAvClient client,
-        CancellationToken serviceCancellationToken
-    )
+    private async Task RunScanQueue(CancellationToken serviceCancellationToken)
     {
         while (true)
         {
             serviceCancellationToken.ThrowIfCancellationRequested();
 
             await foreach (
-                var (source, stream, cancellationToken) in Data.WaitQueue.WithCancellation(
+                var (source, stream, cancellationToken) in Context.WaitQueue.WithCancellation(
                     serviceCancellationToken
                 )
             )
             {
+                Debug($"Received Scan Request.");
+
                 using CancellationTokenSource linked =
                     CancellationTokenSource.CreateLinkedTokenSource(
                         serviceCancellationToken,
@@ -77,13 +78,17 @@ public sealed partial class VirusScanner(Server server, string unixSocketPath)
 
                 try
                 {
-                    ScanResult result = await Data.Client.ScanDataAsync(stream, linked.Token);
+                    ScanResult result = await Context.Client.ScanDataAsync(stream, linked.Token);
 
                     source.SetResult(result);
+
+                    Debug($"Scan Request Completed.");
                 }
                 catch (Exception exception)
                 {
                     source.SetException(exception);
+
+                    Error(exception);
                 }
             }
         }
@@ -95,25 +100,58 @@ public sealed partial class VirusScanner(Server server, string unixSocketPath)
     )
     {
         await Task.WhenAll(
-            [
-                RunScanQueue(data.Client, cancellationToken),
-                data.TcpForwarder.Join(cancellationToken),
-            ]
+            [RunScanQueue(cancellationToken), Context.TcpForwarder.Join(cancellationToken),]
         );
     }
 
     protected override async Task OnStop(VirusScannerParams data, Exception? exception)
     {
-        data.Client.Dispose();
+        Context.Client.Dispose();
 
-        await StopServices(data.TcpForwarder);
+        await StopServices(Context.TcpForwarder);
     }
 
     public async Task<ScanResult> Scan(Stream stream, CancellationToken cancellationToken = default)
     {
         TaskCompletionSource<ScanResult> source = new();
 
-        await Data.WaitQueue.Enqueue((source, stream, cancellationToken), cancellationToken);
+        await Context.WaitQueue.Enqueue((source, stream, cancellationToken), cancellationToken);
         return await source.Task;
+    }
+
+    public async Task<string[]> Scan(
+        ResourceTransaction transaction,
+        UnlockedFile file,
+        FileContent fileContent,
+        FileSnapshot fileSnapshot,
+        CancellationToken cancellationToken = default
+    )
+    {
+        VirusReport? virusReport = await server.ResourceManager.GetVirusReport(
+            transaction,
+            file,
+            fileContent,
+            fileSnapshot
+        );
+
+        if (virusReport == null)
+        {
+            using Stream stream = await server.ResourceManager.CreateReadStream(
+                transaction,
+                file,
+                fileContent,
+                fileSnapshot
+            );
+
+            virusReport = await server.ResourceManager.SetVirusReport(
+                transaction,
+                file,
+                fileContent,
+                fileSnapshot,
+                [(await Scan(stream, cancellationToken)).VirusName]
+            );
+        }
+
+        return virusReport.Viruses;
     }
 }

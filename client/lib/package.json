@@ -28,11 +28,12 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.5.0",
-    "@types/mmmagic": "^0.4.33",
     "@types/clamscan": "^2.0.8",
+    "@types/mmmagic": "^0.4.33",
     "@types/node": "^20.14.6",
     "@types/wicg-file-system-access": "^2023.10.5",
     "eslint": "^9.5.0",
+    "svelte-commons": "file:../../../svelte-commons",
     "typescript-eslint": "^7.13.1"
   },
   "dependencies": {
@@ -44,4 +45,4 @@
     "socket.io-client": "^4.7.5",
     "sqlite3": "^5.1.7"
   }
-} 
+}

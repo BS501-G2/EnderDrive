@@ -11,7 +11,7 @@ using Newtonsoft.Json;
 namespace RizzziGit.EnderDrive.Server.Resources;
 
 using Services;
-public class Group : ResourceData
+public record class Group : ResourceData
 {
     public static implicit operator RSA(Group groupMembership) =>
         KeyManager.DeserializeAsymmetricKey(groupMembership.RsaPublicKey);
@@ -30,7 +30,7 @@ public enum GroupMembershipRole
     Owner,
 }
 
-public class GroupMembership : ResourceData
+public record class GroupMembership : ResourceData
 {
     public static implicit operator RSA(GroupMembership groupMembership) =>
         KeyManager.DeserializeAsymmetricKey(groupMembership.RsaPublicKey);
@@ -68,7 +68,7 @@ public class GroupMembership : ResourceData
     }
 }
 
-public class UnlockedGroupMembership : GroupMembership
+public record class UnlockedGroupMembership : GroupMembership
 {
     public UnlockedGroupMembership() { }
 

@@ -10,9 +10,9 @@ using System;
 using System.Linq;
 using Services;
 
-public class Key : ResourceData;
+public record class Key : ResourceData;
 
-public class KeyAccess : ResourceData
+public record class KeyAccess : ResourceData
 {
     public required ObjectId KeyId;
     public required ObjectId UserId;
@@ -38,7 +38,7 @@ public class KeyAccess : ResourceData
     }
 }
 
-public class UnlockedKeyAccess : KeyAccess
+public record class UnlockedKeyAccess : KeyAccess
 {
     public required KeyAccess Original;
 

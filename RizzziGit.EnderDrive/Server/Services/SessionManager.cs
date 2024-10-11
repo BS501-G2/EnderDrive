@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.WebSockets;
@@ -12,11 +13,11 @@ using Microsoft.Extensions.Logging;
 
 namespace RizzziGit.EnderDrive.Server.Services;
 
-using System.Collections.Generic;
+using API;
 using Commons.Memory;
 using Commons.Services;
 using Core;
-using API;
+using Resources;
 
 public sealed class SessionManagerParams
 {
@@ -26,6 +27,7 @@ public sealed class SessionManagerParams
 public sealed class Session
 {
     public required ulong Id;
+    public required UnlockedUserAuthentication? User;
 }
 
 public sealed class SessionManager(Server server, ApiServer apiServer)
@@ -38,7 +40,7 @@ public sealed class SessionManager(Server server, ApiServer apiServer)
         return new() { Sessions = sessions };
     }
 
-    protected override async Task OnStop(SessionManagerParams data, Exception? exception)
-    {
+    protected override async Task OnStop(SessionManagerParams data, Exception? exception) {
+        
     }
 }

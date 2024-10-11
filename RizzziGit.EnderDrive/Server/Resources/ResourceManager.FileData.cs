@@ -9,7 +9,7 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 using Commons.Memory;
 using Services;
 
-public class FileData : ResourceData
+public record class FileData : ResourceData
 {
     public required ObjectId FileId;
     public required ObjectId FileContentId;
@@ -20,7 +20,7 @@ public class FileData : ResourceData
     public required long Index;
 }
 
-public class FileBuffer : ResourceData
+public record class FileBuffer : ResourceData
 {
     public required ObjectId FileId;
     public required ObjectId FileContentId;
@@ -53,7 +53,7 @@ public sealed partial class ResourceManager
             data != null
                 ? await Query<FileBuffer>(
                         transaction,
-                        (query) => query.Where((item) => data.BufferId == item.Id)
+                        (query) => query.Where((item) => item.Id == data.BufferId)
                     )
                     .FirstAsync(transaction.CancellationToken)
                 : null;
@@ -126,13 +126,16 @@ public sealed partial class ResourceManager
     public async Task<CompositeBuffer> ReadFile(
         ResourceTransaction transaction,
         UnlockedFile file,
+        FileContent fileContent,
         FileSnapshot fileSnapshot,
         long position,
         long size
     )
     {
+        long totalSize = await GetFileSize(transaction, fileSnapshot);
+
         long readStart = position;
-        long readEnd = long.Min(readStart + size, fileSnapshot.Size);
+        long readEnd = long.Min(readStart + size, totalSize);
 
         long bytesRead = 0;
         long indexStart = Math.DivRem(position, FILE_BUFFER_SIZE, out long indexStartOffset);
@@ -144,7 +147,7 @@ public sealed partial class ResourceManager
             long bufferEnd = long.Clamp(
                 bufferStart + long.Min(size - bytesRead, FILE_BUFFER_SIZE),
                 0,
-                fileSnapshot.Size - readStart
+                totalSize - readStart
             );
 
             if (bufferEnd - bufferStart > 0)
@@ -215,13 +218,10 @@ public sealed partial class ResourceManager
             }
         }
 
-        long newSize = long.Max(position + bytes.Length, fileSnapshot.Size);
-        await Update(
+        await SetSize(
             transaction,
             fileSnapshot,
-            Builders<FileSnapshot>.Update.Set((item) => item.Size, newSize)
+            long.Max(position + bytes.Length, await GetFileSize(transaction, fileSnapshot))
         );
-
-        fileSnapshot.Size = newSize;
     }
 }

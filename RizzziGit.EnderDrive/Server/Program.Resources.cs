@@ -22,10 +22,15 @@ public static partial class Program
                 (User user, UnlockedUserAuthentication userAuthentication) =
                     await resources.CreateUser(transaction, "as", "ti", null, "A", null, "test");
 
+                UnlockedFile rootFile = (await resources.GetUserRootFile(transaction, user)).Unlock(
+                    userAuthentication
+                );
+
                 UnlockedFile file = await resources.CreateFile(
                     transaction,
-                    userAuthentication,
-                    null,
+                    user,
+                    rootFile,
+                    FileType.File,
                     ""
                 );
 
@@ -40,7 +45,7 @@ public static partial class Program
                 );
 
                 await using FileStream input = System.IO.File.Open(
-                    "/home/carl/input.mp4",
+                    "/run/media/cool/Buffalo/MC-Worlds.7z",
                     FileMode.Open,
                     System.IO.FileAccess.Read,
                     FileShare.None
@@ -62,30 +67,40 @@ public static partial class Program
                     );
                 }
 
-                await using FileStream output = System.IO.File.Open(
-                    "/home/carl/output.mp4",
-                    FileMode.OpenOrCreate,
-                    System.IO.FileAccess.Write,
-                    FileShare.None
+                string[] a = await server.VirusScanner.Scan(
+                    transaction,
+                    file,
+                    fileContent,
+                    fileSnapshot
                 );
 
-                output.SetLength(0);
+                Console.WriteLine(a);
 
-                for (long position = 0; position < input.Length; )
-                {
-                    CompositeBuffer bytes = await resources.ReadFile(
-                        transaction,
-                        file,
-                        fileSnapshot,
-                        position,
-                        ResourceManager.FILE_BUFFER_SIZE
-                    );
+                // await using FileStream output = System.IO.File.Open(
+                //     "/home/carl/output.mp4",
+                //     FileMode.OpenOrCreate,
+                //     System.IO.FileAccess.Write,
+                //     FileShare.None
+                // );
 
-                    await output.WriteAsync(bytes.ToArray(), CancellationToken.None);
+                // output.SetLength(0);
 
-                    position += bytes.Length;
-                    Console.Write($"\r Write: {position} MaxSize: {input.Length}");
-                }
+                // for (long position = 0; position < input.Length; )
+                // {
+                //     CompositeBuffer bytes = await resources.ReadFile(
+                //         transaction,
+                //         file,
+                //         fileContent,
+                //         fileSnapshot,
+                //         position,
+                //         ResourceManager.FILE_BUFFER_SIZE
+                //     );
+
+                //     await output.WriteAsync(bytes.ToArray(), CancellationToken.None);
+
+                //     position += bytes.Length;
+                //     Console.Write($"\r Write: {position} MaxSize: {input.Length}");
+                // }
 
                 return (user, userAuthentication);
             },

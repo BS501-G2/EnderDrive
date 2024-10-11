@@ -6,12 +6,18 @@ using MongoDB.Bson;
 namespace RizzziGit.EnderDrive.Server.Resources;
 
 using MongoDB.Driver;
-public class FileSnapshot : ResourceData
+
+public record class FileSnapshot : ResourceData
 {
     public required ObjectId FileId;
     public required ObjectId FileContentId;
     public required ObjectId AuthorUserId;
     public required ObjectId? BaseFileSnapshotId;
+}
+
+public record class FileSize : ResourceData
+{
+    public required ObjectId FileSnapshotId;
 
     public required long Size;
 }
@@ -35,13 +41,61 @@ public sealed partial class ResourceManager
                 FileContentId = fileContent.Id,
                 AuthorUserId = userAuthentication.UserId,
                 BaseFileSnapshotId = baseFileSnapshot?.Id,
-
-                Size = 0,
             };
 
         await Insert(transaction, [fileSnapshot]);
 
         return fileSnapshot;
+    }
+
+    public async Task<long> GetFileSize(
+        ResourceTransaction transaction,
+        FileSnapshot fileSnapshot
+    ) =>
+        (
+            await Query<FileSize>(
+                    transaction,
+                    (query) => query.Where((item) => item.FileSnapshotId == fileSnapshot.Id)
+                )
+                .FirstOrDefaultAsync(transaction.CancellationToken)
+        )?.Size ?? 0;
+
+    public async Task<long> SetSize(
+        ResourceTransaction transaction,
+        FileSnapshot fileSnapshot,
+        long newSize
+    )
+    {
+        await foreach (
+            FileSize entry in Query<FileSize>(
+                transaction,
+                (query) => query.Where((item) => item.FileSnapshotId == fileSnapshot.Id)
+            )
+        )
+        {
+            await Update(
+                transaction,
+                entry,
+                Builders<FileSize>.Update.Set(nameof(FileSize.Size), newSize)
+            );
+
+            return newSize;
+        }
+
+        await Insert<FileSize>(
+            transaction,
+            [
+                new()
+                {
+                    Id = ObjectId.GenerateNewId(),
+
+                    FileSnapshotId = fileSnapshot.Id,
+                    Size = newSize
+                }
+            ]
+        );
+
+        return newSize;
     }
 
     public ValueTask<FileSnapshot?> GetLatestFileSnapshot(
@@ -59,4 +113,17 @@ public sealed partial class ResourceManager
                         .OrderByDescending((item) => item.Id)
             )
             .FirstOrDefaultAsync(transaction.CancellationToken);
+
+    public async Task DeleteSnapshot(ResourceTransaction transaction, FileSnapshot fileSnapshot)
+    {
+        await foreach (
+            VirusReport virusReport in Query<VirusReport>(
+                transaction,
+                (query) => query.Where((item) => item.FileSnapshotId == fileSnapshot.Id)
+            )
+        )
+        {
+            await Delete(transaction, virusReport);
+        }
+    }
 }

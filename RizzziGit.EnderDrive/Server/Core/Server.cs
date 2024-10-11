@@ -16,6 +16,7 @@ public sealed class ServerData
     public required KeyManager KeyGenerator;
     public required VirusScanner VirusScanner;
     public required ApiServer ApiServer;
+    public required ConnectionManager ConnectionManager;
 }
 
 public sealed class Server(
@@ -33,6 +34,7 @@ public sealed class Server(
         KeyManager keyGenerator = new(this);
         VirusScanner virusScanner = new(this, clamAvSocketPath);
         ApiServer apiServer = new(this, httpPort, httpsPort);
+        ConnectionManager connectionManager = new(this);
 
         await StartServices(
             [keyGenerator, virusScanner, resourceManager, apiServer],
@@ -45,12 +47,15 @@ public sealed class Server(
             KeyGenerator = keyGenerator,
             VirusScanner = virusScanner,
             ApiServer = apiServer,
+            ConnectionManager = connectionManager
         };
     }
 
-    public ResourceManager ResourceManager => Data.ResourceManager;
-    public KeyManager KeyManager => Data.KeyGenerator;
-    public VirusScanner Scanner => Data.VirusScanner;
+    public ResourceManager ResourceManager => Context.ResourceManager;
+    public KeyManager KeyManager => Context.KeyGenerator;
+    public VirusScanner VirusScanner => Context.VirusScanner;
+    public ApiServer ApiServer => Context.ApiServer;
+    public ConnectionManager ConnectionManager => Context.ConnectionManager;
 
     public new Task Start(CancellationToken cancellationToken = default) =>
         base.Start(cancellationToken);
@@ -58,20 +63,22 @@ public sealed class Server(
     protected override async Task OnRun(ServerData data, CancellationToken cancellationToken)
     {
         await await Task.WhenAny(
-            data.KeyGenerator.Join(cancellationToken),
-            data.VirusScanner.Join(cancellationToken),
-            data.ResourceManager.Join(cancellationToken),
-            data.ApiServer.Join(cancellationToken)
+            Context.KeyGenerator.Join(cancellationToken),
+            Context.VirusScanner.Join(cancellationToken),
+            Context.ResourceManager.Join(cancellationToken),
+            Context.ApiServer.Join(cancellationToken),
+            Context.ConnectionManager.Join(cancellationToken)
         );
     }
 
     protected override async Task OnStop(ServerData data, Exception? exception)
     {
         await StopServices(
-            data.ApiServer,
-            data.ResourceManager,
-            data.VirusScanner,
-            data.KeyGenerator
+            Context.ConnectionManager,
+            Context.ApiServer,
+            Context.ResourceManager,
+            Context.VirusScanner,
+            Context.KeyGenerator
         );
     }
 }

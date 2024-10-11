@@ -13,7 +13,7 @@ public static partial class Program
 {
     public static async Task ScanVirus(Server server)
     {
-        VirusScanner scanner = server.Scanner;
+        VirusScanner scanner = server.VirusScanner;
 
         // FileStream stream = File.OpenRead()
 

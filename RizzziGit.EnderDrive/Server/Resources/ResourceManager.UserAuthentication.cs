@@ -18,7 +18,7 @@ public enum UserAuthenticationType
     Google,
 }
 
-public class UserAuthentication : ResourceData
+public record class UserAuthentication : ResourceData
 {
     public static implicit operator RSA(UserAuthentication user) =>
         KeyManager.DeserializeAsymmetricKey(user.RsaPublicKey);
@@ -80,7 +80,7 @@ public class UserAuthentication : ResourceData
     }
 }
 
-public class UnlockedUserAuthentication : UserAuthentication
+public record class UnlockedUserAuthentication : UserAuthentication
 {
     public static implicit operator RSA(UnlockedUserAuthentication user) =>
         KeyManager.DeserializeAsymmetricKey(user.RsaPrivateKey);
@@ -117,10 +117,10 @@ public sealed partial class ResourceManager
         int iterations = 10000;
 
         byte[] salt = new byte[16];
-        Data.RandomNumberGenerator.GetBytes(salt);
+        Context.RandomNumberGenerator.GetBytes(salt);
 
         byte[] iv = new byte[16];
-        Data.RandomNumberGenerator.GetBytes(iv);
+        Context.RandomNumberGenerator.GetBytes(iv);
 
         byte[] aesKey = HashPayload(salt, iterations, payload);
 
@@ -180,10 +180,10 @@ public sealed partial class ResourceManager
         int iterations = 10000;
 
         byte[] salt = new byte[16];
-        Data.RandomNumberGenerator.GetBytes(salt);
+        Context.RandomNumberGenerator.GetBytes(salt);
 
         byte[] iv = new byte[16];
-        Data.RandomNumberGenerator.GetBytes(iv);
+        Context.RandomNumberGenerator.GetBytes(iv);
 
         byte[] aesKey = HashPayload(salt, iterations, payload);
 

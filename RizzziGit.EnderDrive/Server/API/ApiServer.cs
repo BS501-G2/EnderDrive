@@ -1,23 +1,14 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Net;
-using System.Net.Sockets;
 using System.Net.WebSockets;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using MongoDB.Bson;
-using MongoDB.Bson.IO;
-using MongoDB.Bson.Serialization;
-using Newtonsoft.Json.Linq;
 
 namespace RizzziGit.EnderDrive.Server.API;
 
@@ -66,12 +57,13 @@ public sealed partial class ApiServer(Server server, int httpPort, int httpsPort
             }
         );
 
+        builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+
         WebApplication app = builder.Build();
 
         app.UseWebSockets(new() { KeepAliveInterval = TimeSpan.FromMinutes(2) });
 
         await StartServices([sessionManager], cancellationToken);
-
         app.Use((HttpContext context, Func<Task> next) => Handle(context, cancellationToken));
 
         await app.StartAsync(cancellationToken);
@@ -86,27 +78,45 @@ public sealed partial class ApiServer(Server server, int httpPort, int httpsPort
 
     protected override async Task OnStop(ApiServerParams data, Exception? exception)
     {
-        await Data.WebApplication.StopAsync(CancellationToken.None);
+        await Context.WebApplication.StopAsync(CancellationToken.None);
 
-        await StopServices(Data.SessionManager);
+        await StopServices(Context.SessionManager);
     }
 
     private async Task Handle(HttpContext context, CancellationToken cancellationToken)
     {
-        if (context.WebSockets.IsWebSocketRequest && context.Request.Path == "/ws") { }
-        // else if (context.Request.Path) {
-
-        // }
+        if (context.WebSockets.IsWebSocketRequest && context.Request.Path == "/ws")
+        {
+            HandleWebSocket(await context.WebSockets.AcceptWebSocketAsync(), cancellationToken);
+        }
+        else if ($"{context.Request.Path}".StartsWith("/res"))
+        {
+            await HandleWebRequest(context, cancellationToken);
+        }
         else
         {
-            context.Response.StatusCode = 400;
+            context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+            await context.Response.CompleteAsync();
         }
-
-        await Handle(await context.WebSockets.AcceptWebSocketAsync(), cancellationToken);
     }
 
-    private async Task Handle(WebSocket webSocket, CancellationToken cancellationToken)
+    private async void HandleWebSocket(WebSocket webSocket, CancellationToken cancellationToken)
     {
-        CompositeBuffer message = [];
+        Connection connection = await server.ConnectionManager.Connect(
+            webSocket,
+            cancellationToken
+        );
+
+        try
+        {
+            await connection.Join(cancellationToken);
+        }
+        catch { }
+    }
+
+    private async Task HandleWebRequest(HttpContext context, CancellationToken cancellationToken)
+    {
+        context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+        await context.Response.CompleteAsync();
     }
 }

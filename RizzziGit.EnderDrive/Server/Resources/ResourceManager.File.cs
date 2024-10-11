@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
+using MongoDB.Driver;
 using Services;
 
 public enum FileType
@@ -15,10 +16,10 @@ public enum FileType
     Folder,
 }
 
-public class File : ResourceData
+public record class File : ResourceData
 {
     public required ObjectId? ParentId;
-    public required ObjectId UserId;
+    public required ObjectId OwnerUserId;
 
     public required string Name;
     public required FileType Type;
@@ -39,7 +40,7 @@ public class File : ResourceData
 
             Id = Id,
             ParentId = ParentId,
-            UserId = userAuthentication.UserId,
+            OwnerUserId = userAuthentication.UserId,
 
             Name = Name,
             Type = Type,
@@ -52,7 +53,7 @@ public class File : ResourceData
     }
 }
 
-public class UnlockedFile : File
+public record class UnlockedFile : File
 {
     public static implicit operator Aes(UnlockedFile file) =>
         KeyManager.DeserializeSymmetricKey([.. file.AesKey, .. file.AesIv]);
@@ -66,10 +67,59 @@ public sealed partial class ResourceManager
 {
     public const int FILE_BUFFER_SIZE = 1024 * 256;
 
+    public async Task<File> GetUserRootFile(ResourceTransaction transaction, User user)
+    {
+        File? file = await Query<File>(
+                transaction,
+                (query) => query.Where((item) => item.Id == user.RootFileId)
+            )
+            .FirstOrDefaultAsync(transaction.CancellationToken);
+
+        if (file == null)
+        {
+            file = (await CreateFile(transaction, user, file, FileType.Folder, ".ROOT")).Original;
+
+            await UpdateReturn(
+                transaction,
+                user,
+                Builders<User>.Update.Set((item) => item.RootFileId, file.Id)
+            );
+
+            user.TrashFileId = file.Id;
+        }
+
+        return file;
+    }
+
+    public async Task<File> GetUserRootTrash(ResourceTransaction transaction, User user)
+    {
+        File? file = await Query<File>(
+                transaction,
+                (query) => query.Where((item) => item.Id == user.TrashFileId)
+            )
+            .FirstOrDefaultAsync(transaction.CancellationToken);
+
+        if (file == null)
+        {
+            file = (await CreateFile(transaction, user, file, FileType.Folder, ".TRASH")).Original;
+
+            await UpdateReturn(
+                transaction,
+                user,
+                Builders<User>.Update.Set((item) => item.TrashFileId, file.Id)
+            );
+
+            user.TrashFileId = file.Id;
+        }
+
+        return file;
+    }
+
     public async Task<UnlockedFile> CreateFile(
         ResourceTransaction transaction,
-        UserAuthentication userAuthentication,
+        User user,
         File? parent,
+        FileType type,
         string name
     )
     {
@@ -77,17 +127,17 @@ public sealed partial class ResourceManager
 
         byte[] aesIv = aes.IV;
         byte[] aesKey = aes.Key;
-        byte[] encryptedAesKey = KeyManager.Encrypt(userAuthentication, aesKey);
+        byte[] encryptedAesKey = KeyManager.Encrypt(user, aesKey);
 
         File file =
             new()
             {
                 Id = ObjectId.GenerateNewId(),
                 ParentId = parent?.Id,
-                UserId = userAuthentication.UserId,
+                OwnerUserId = user.Id,
 
                 Name = name,
-                Type = FileType.File,
+                Type = type,
 
                 EncryptedAesKey = encryptedAesKey,
                 AesIv = aesIv,
@@ -102,7 +152,7 @@ public sealed partial class ResourceManager
 
                 Id = file.Id,
                 ParentId = file.ParentId,
-                UserId = userAuthentication.UserId,
+                OwnerUserId = user.Id,
 
                 Name = file.Name,
                 Type = file.Type,
@@ -135,7 +185,7 @@ public sealed partial class ResourceManager
             )
         )
         {
-            await Delete(transaction, snapshot);
+            await DeleteSnapshot(transaction, snapshot);
         }
 
         await foreach (
@@ -192,7 +242,7 @@ public sealed partial class ResourceManager
                                 System.StringComparison.CurrentCultureIgnoreCase
                             )
                         )
-                        && (user == null || user.Id == item.UserId)
+                        && (user == null || user.Id == item.OwnerUserId)
                 )
         );
 }

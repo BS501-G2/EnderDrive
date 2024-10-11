@@ -1,6 +1,6 @@
 using System;
 
-namespace RizzziGit.EnderDrive.Server.Utilities;
+namespace RizzziGit.EnderDrive.Utilities;
 
 public static class ExceptionExtensions
 {

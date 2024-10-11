@@ -10,10 +10,29 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 using Commons.Collections;
 using Commons.Logging;
 using Commons.Services;
+using RizzziGit.EnderDrive.Utilities;
 
 public sealed partial class ResourceManager
 {
     private ulong TransactionId = 0;
+
+    public Task Transact(
+        ResourceTransaction? existing,
+        ResourceTransactionCallback callback,
+        CancellationToken cancellationToken = default
+    ) =>
+        existing != null
+            ? callback(existing with { CancellationToken = cancellationToken })
+            : Transact(callback, cancellationToken);
+
+    public Task<T> Transact<T>(
+        ResourceTransaction? exception,
+        ResourceTransactionCallback<T> callback,
+        CancellationToken cancellationToken = default
+    ) =>
+        exception != null
+            ? callback(exception with { CancellationToken = cancellationToken })
+            : Transact<T>(callback, cancellationToken);
 
     public async Task Transact(
         ResourceTransactionCallback callback,
@@ -22,9 +41,12 @@ public sealed partial class ResourceManager
     {
         async Task transactInner(ulong transactionId, Logger logger)
         {
+            using CancellationTokenSource linkedCancellationTokenSource = cancellationToken.Link(
+                CancellationToken
+            );
             using IClientSessionHandle session = await Client.StartSessionAsync(
                 null,
-                cancellationToken
+                linkedCancellationTokenSource.Token
             );
 
             session.StartTransaction();
@@ -36,18 +58,18 @@ public sealed partial class ResourceManager
                     {
                         TransactionId = transactionId,
                         Session = session,
-                        CancellationToken = cancellationToken,
+                        CancellationToken = linkedCancellationTokenSource.Token,
                         Logger = logger,
                     }
                 );
 
-                await session.CommitTransactionAsync(cancellationToken);
+                await session.CommitTransactionAsync(linkedCancellationTokenSource.Token);
             }
             catch (Exception exception)
             {
                 try
                 {
-                    await session.AbortTransactionAsync(cancellationToken);
+                    await session.AbortTransactionAsync(linkedCancellationTokenSource.Token);
                 }
                 catch (Exception abortException)
                 {
@@ -148,7 +170,7 @@ public sealed partial class ResourceManager
     }
 }
 
-public sealed class ResourceTransaction
+public sealed record class ResourceTransaction
 {
     public required ulong TransactionId;
     public required Logger Logger;

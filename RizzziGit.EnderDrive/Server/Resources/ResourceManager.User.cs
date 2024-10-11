@@ -22,7 +22,7 @@ public enum UserRole
     NewsEditor = 1 << 1,
 }
 
-public class User : ResourceData
+public record class User : ResourceData
 {
     public static implicit operator RSA(User user) =>
         KeyManager.DeserializeAsymmetricKey(user.RsaPublicKey);
@@ -37,6 +37,10 @@ public class User : ResourceData
 
     [JsonIgnore]
     public required byte[] RsaPublicKey;
+
+    public required ObjectId? RootFileId;
+    public required ObjectId? TrashFileId;
+    public required ObjectId? ProfilePictureId;
 }
 
 [Flags]
@@ -119,6 +123,10 @@ public sealed partial class ResourceManager
                 Role = role,
 
                 RsaPublicKey = rsaPublicKey,
+
+                TrashFileId = null,
+                RootFileId = null,
+                ProfilePictureId = null
             };
 
         await Insert(transaction, [user]);
@@ -134,6 +142,21 @@ public sealed partial class ResourceManager
                 rsaPrivateKey
             )
         );
+    }
+
+    public async Task SetUserProfilePictureId(
+        ResourceTransaction transaction,
+        User user,
+        UnlockedFile? file
+    )
+    {
+        await Update(
+            transaction,
+            user,
+            Builders<User>.Update.Set((item) => item.ProfilePictureId, file?.Id)
+        );
+
+        user.ProfilePictureId = file?.Id;
     }
 
     public async Task DeleteUser(
@@ -161,7 +184,7 @@ public sealed partial class ResourceManager
         await foreach (
             File file in Query<File>(
                 transaction,
-                (query) => query.Where((file) => file.UserId == user.Id)
+                (query) => query.Where((file) => file.OwnerUserId == user.Id)
             )
         )
         {

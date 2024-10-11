@@ -71,21 +71,21 @@ public sealed class KeyManager(Server server) : Service2<KeyGeneratorParams>("Ke
         await await Task.WhenAny(
             [
                 Task.Run(
-                    () => RunAsymmetricKeyGenerator(data.AsymmetricKeys, cancellationToken),
+                    () => RunAsymmetricKeyGenerator(Context.AsymmetricKeys, cancellationToken),
                     CancellationToken.None
                 ),
                 Task.Run(
-                    () => RunSymmetricKeyGenerator(data.SymmetricKeys, cancellationToken),
+                    () => RunSymmetricKeyGenerator(Context.SymmetricKeys, cancellationToken),
                     CancellationToken.None
                 ),
             ]
         );
 
     public Task<RSA> GenerateAsymmetricKey(CancellationToken cancellationToken = default) =>
-        Data.AsymmetricKeys.Dequeue(cancellationToken);
+        Context.AsymmetricKeys.Dequeue(cancellationToken);
 
     public Task<Aes> GenerateSymmetricKey(CancellationToken cancellationToken = default) =>
-        Data.SymmetricKeys.Dequeue(cancellationToken);
+        Context.SymmetricKeys.Dequeue(cancellationToken);
 
     public static byte[] SerializeAsymmetricKey(RSA key, bool includePrivate)
     {

@@ -7,10 +7,12 @@ using Newtonsoft.Json;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
+using System;
 using Services;
 
 public enum FileAccessLevel
 {
+    None,
     Read,
     ReadWrite,
     Manage,
@@ -23,12 +25,16 @@ public enum FileAccessTargetEntityType
     Group,
 }
 
-public class FileAccess : ResourceData
+public record class FileTargetEntity
+{
+    public required FileAccessTargetEntityType EntityType;
+    public required ObjectId EntityId;
+}
+
+public record class FileAccess : ResourceData
 {
     public required ObjectId FileId;
-    public required ObjectId FileContentId;
-    public required FileAccessTargetEntityType TargetEntityType;
-    public required ObjectId TargetEntityId;
+    public required FileTargetEntity? TargetEntity;
 
     [JsonIgnore]
     public required byte[] EncryptedAesKey;
@@ -40,8 +46,6 @@ public class FileAccess : ResourceData
 
     public UnlockedFileAccess Unlock(UnlockedUserAuthentication userAuthentication)
     {
-        byte[] aesKey = KeyManager.Decrypt(userAuthentication, EncryptedAesKey);
-
         return new()
         {
             Original = this,
@@ -49,21 +53,22 @@ public class FileAccess : ResourceData
             Id = Id,
 
             FileId = FileId,
-            FileContentId = FileContentId,
-            TargetEntityType = TargetEntityType,
-            TargetEntityId = TargetEntityId,
+            TargetEntity = TargetEntity,
 
             EncryptedAesKey = EncryptedAesKey,
             AesIv = AesIv,
 
-            AesKey = aesKey,
+            AesKey =
+                TargetEntity != null
+                    ? KeyManager.Decrypt(userAuthentication, EncryptedAesKey)
+                    : EncryptedAesKey,
 
             Level = Level,
         };
     }
 }
 
-public class UnlockedFileAccess : FileAccess
+public record class UnlockedFileAccess : FileAccess
 {
     public static implicit operator Aes(UnlockedFileAccess file) =>
         KeyManager.DeserializeSymmetricKey([.. file.AesKey, .. file.AesIv]);
@@ -78,7 +83,50 @@ public sealed partial class ResourceManager
     public async Task<UnlockedFileAccess> CreateFileAccess(
         ResourceTransaction transaction,
         UnlockedFile file,
-        FileContent fileContent,
+        FileAccessLevel level
+    )
+    {
+        if (level >= FileAccessLevel.Manage)
+        {
+            throw new ArgumentException(
+                $"Level must be lower than {FileAccessLevel.Manage}.",
+                nameof(level)
+            );
+        }
+
+        FileAccess access =
+            new()
+            {
+                Id = ObjectId.GenerateNewId(),
+                FileId = file.Id,
+                TargetEntity = null,
+                EncryptedAesKey = file.AesKey,
+                AesIv = file.AesIv,
+                Level = level
+            };
+
+        await Insert(transaction, access);
+
+        return new()
+        {
+            Original = access,
+
+            Id = access.Id,
+            FileId = access.FileId,
+
+            TargetEntity = access.TargetEntity,
+
+            EncryptedAesKey = access.EncryptedAesKey,
+            AesIv = access.AesIv,
+
+            Level = access.Level,
+            AesKey = access.EncryptedAesKey
+        };
+    }
+
+    public async Task<UnlockedFileAccess> CreateFileAccess(
+        ResourceTransaction transaction,
+        UnlockedFile file,
         UserAuthentication userAuthentication,
         FileAccessLevel level
     )
@@ -90,9 +138,12 @@ public sealed partial class ResourceManager
                 Id = ObjectId.GenerateNewId(),
 
                 FileId = file.Id,
-                FileContentId = fileContent.Id,
-                TargetEntityType = FileAccessTargetEntityType.User,
-                TargetEntityId = userAuthentication.UserId,
+
+                TargetEntity = new()
+                {
+                    EntityType = FileAccessTargetEntityType.User,
+                    EntityId = userAuthentication.UserId
+                },
 
                 EncryptedAesKey = encryptedAesKey,
                 AesIv = file.AesIv,
@@ -109,9 +160,11 @@ public sealed partial class ResourceManager
             Id = access.Id,
 
             FileId = access.FileId,
-            FileContentId = fileContent.Id,
-            TargetEntityType = FileAccessTargetEntityType.User,
-            TargetEntityId = userAuthentication.UserId,
+            TargetEntity = new()
+            {
+                EntityType = FileAccessTargetEntityType.User,
+                EntityId = userAuthentication.UserId
+            },
 
             EncryptedAesKey = access.EncryptedAesKey,
             AesIv = access.AesIv,
@@ -125,7 +178,6 @@ public sealed partial class ResourceManager
     public async Task<UnlockedFileAccess> CreateFileAccess(
         ResourceTransaction transaction,
         UnlockedFile file,
-        FileContent fileContent,
         Group group,
         FileAccessLevel level
     )
@@ -137,9 +189,11 @@ public sealed partial class ResourceManager
                 Id = ObjectId.GenerateNewId(),
 
                 FileId = file.Id,
-                FileContentId = fileContent.Id,
-                TargetEntityType = FileAccessTargetEntityType.Group,
-                TargetEntityId = group.Id,
+                TargetEntity = new()
+                {
+                    EntityType = FileAccessTargetEntityType.Group,
+                    EntityId = group.Id
+                },
 
                 EncryptedAesKey = encryptedAesKey,
                 AesIv = file.AesIv,
@@ -156,9 +210,11 @@ public sealed partial class ResourceManager
             Id = access.Id,
 
             FileId = access.FileId,
-            FileContentId = fileContent.Id,
-            TargetEntityType = FileAccessTargetEntityType.Group,
-            TargetEntityId = group.Id,
+            TargetEntity = new()
+            {
+                EntityType = FileAccessTargetEntityType.Group,
+                EntityId = group.Id
+            },
 
             EncryptedAesKey = access.EncryptedAesKey,
             AesIv = access.AesIv,
@@ -183,18 +239,80 @@ public sealed partial class ResourceManager
                         (
                             user == null
                             || (
-                                item.TargetEntityType == FileAccessTargetEntityType.User
-                                && user.Id == item.TargetEntityId
+                                item.TargetEntity != null
+                                && item.TargetEntity.EntityType == FileAccessTargetEntityType.User
+                                && user.Id == item.TargetEntity.EntityId
                             )
                         )
                         && (
                             group == null
                             || (
-                                item.TargetEntityType == FileAccessTargetEntityType.Group
-                                && group.Id == item.TargetEntityId
+                                item.TargetEntity != null
+                                && item.TargetEntity.EntityType == FileAccessTargetEntityType.Group
+                                && group.Id == item.TargetEntity.EntityId
                             )
                         )
                         && (file == null || file.Id == item.FileId)
                 )
         );
+
+    public async Task<FileAccessResult?> FindFileAccess(
+        ResourceTransaction transaction,
+        File file,
+        User user
+    )
+    {
+        if (file.OwnerUserId == user.Id)
+        {
+            return new(user, file, null);
+        }
+
+        FileAccess? access = await GetFileAccesses(transaction, user: user, file: file)
+            .FirstOrDefaultAsync(transaction.CancellationToken);
+
+        if (access == null)
+        {
+            if (file.ParentId == null)
+            {
+                return null;
+            }
+
+            File? parentFile = await Query<File>(
+                    transaction,
+                    (query) => query.Where((item) => item.Id == file.ParentId)
+                )
+                .FirstOrDefaultAsync(transaction.CancellationToken);
+
+            if (parentFile == null)
+            {
+                return null;
+            }
+
+            return await FindFileAccess(transaction, parentFile, user);
+        }
+
+        return new(user, file, access);
+    }
+}
+
+public sealed record FileAccessResult(User User, File File, FileAccess? FileAccess)
+{
+    public FileAccessLevel AccessLevel =>
+        File.OwnerUserId == User.Id
+            ? FileAccessLevel.Full
+            : FileAccess?.Level ?? FileAccessLevel.None;
+
+    public Aes Unlock(UnlockedUserAuthentication userAuthentication)
+    {
+        if (File.OwnerUserId == userAuthentication.UserId)
+        {
+            return File.Unlock(userAuthentication);
+        }
+        else if (FileAccess != null)
+        {
+            return FileAccess.Unlock(userAuthentication);
+        }
+
+        throw new InvalidOperationException("Failed to unlock file access.");
+    }
 }
