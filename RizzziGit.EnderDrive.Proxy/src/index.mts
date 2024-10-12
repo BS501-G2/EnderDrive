@@ -4,7 +4,7 @@ import HTTP from "http";
 
 export async function main() {
   const httpServer = HTTP.createServer();
-  const socketServer = new SocketIO.Server({
+  const externalServer = new SocketIO.Server({
     cors: {
       origin: "*",
     },
@@ -44,50 +44,75 @@ export async function main() {
     );
   });
 
-  socketServer.on("connection", (socket) => {
-    const webSocket = new WebSocket("ws://localhost:8083/ws");
+  externalServer.on("connection", (externalSocket) => {
+    const internalWebSocket = new WebSocket("ws://localhost:8083/ws");
 
-    webSocket.binaryType = "arraybuffer";
+    internalWebSocket.binaryType = "arraybuffer";
 
     let webSocketConnected = true;
     let socketConnected = true;
 
-    webSocket.onclose = (event) => {
+    internalWebSocket.onclose = (event) => {
       webSocketConnected = false;
 
       if (socketConnected) {
-        socket.disconnect(true);
+        externalSocket.disconnect(true);
       }
     };
 
-    socket.once("disconnect", () => {
+    externalSocket.once("disconnect", () => {
       socketConnected = false;
 
       if (webSocketConnected) {
-        webSocket.close();
+        internalWebSocket.close();
       }
     });
 
-    webSocket.onmessage = (event) =>
-      socket.emit(
-        "message",
-        BSON.deserialize(new Uint8Array(event.data)).Packet
-      );
+    internalWebSocket.onmessage = (event) => {
+      const data: Uint8Array = new Uint8Array(event.data);
 
-    socket.on("message", (message) =>
-      webSocket.send(
-        BSON.serialize({
-          Signature: "RizzziGit HybridWebSocketPacket2",
-          Packet: message,
-        })
+      externalSocket.emit("message", {
+        type: data[0],
+        packet: BSON.deserialize(data.slice(1)),
+      });
+    };
+
+    externalSocket.on("message", (message: { type: number; packet: any }) =>
+      internalWebSocket.send(
+        new Uint8Array(
+          concat(
+            new Uint8Array([message.type]),
+            BSON.serialize({
+              Signature: "RizzziGit HybridWebSocketPacket2",
+              Packet: BSON.serialize(message.packet),
+            })
+          )
+        )
       )
     );
   });
 
   httpServer.listen(8082);
-  socketServer.listen(httpServer, {
+  externalServer.listen(httpServer, {
     path: "/ws",
   });
+}
+
+function concat(...arrays: Uint8Array[]) {
+  let totalLength = 0;
+  for (const array of arrays) {
+    totalLength += array.length;
+  }
+
+  const buffer = new Uint8Array(totalLength);
+
+  let offset = 0;
+  for (const array of arrays) {
+    buffer.set(array, offset);
+    offset += array.length;
+  }
+
+  return buffer;
 }
 
 await main();
