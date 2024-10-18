@@ -2,10 +2,10 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using RizzziGit.Commons.Services;
 
 namespace RizzziGit.EnderDrive.Server.Core;
 
+using Commons.Services;
 using Resources;
 using RizzziGit.EnderDrive.Server.API;
 using Services;
@@ -37,7 +37,7 @@ public sealed class Server(
         ConnectionManager connectionManager = new(this);
 
         await StartServices(
-            [keyGenerator, virusScanner, resourceManager, apiServer],
+            [keyGenerator, virusScanner, resourceManager, apiServer, connectionManager],
             cancellationToken
         );
 
@@ -63,11 +63,11 @@ public sealed class Server(
     protected override async Task OnRun(ServerData data, CancellationToken cancellationToken)
     {
         await await Task.WhenAny(
-            Context.KeyGenerator.Join(cancellationToken),
-            Context.VirusScanner.Join(cancellationToken),
-            Context.ResourceManager.Join(cancellationToken),
-            Context.ApiServer.Join(cancellationToken),
-            Context.ConnectionManager.Join(cancellationToken)
+            WatchService(Context.KeyGenerator, cancellationToken),
+            WatchService(Context.VirusScanner, cancellationToken),
+            WatchService(Context.ResourceManager, cancellationToken),
+            WatchService(Context.ApiServer, cancellationToken),
+            WatchService(Context.ConnectionManager, cancellationToken)
         );
     }
 

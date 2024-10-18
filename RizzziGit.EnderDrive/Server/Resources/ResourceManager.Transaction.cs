@@ -89,6 +89,8 @@ public sealed partial class ResourceManager
                 transactionLogger.Info("Started");
 
                 await transactInner(transactionId, transactionLogger);
+
+                transactionLogger.Info("Completed");
             }
             catch (Exception exception)
             {

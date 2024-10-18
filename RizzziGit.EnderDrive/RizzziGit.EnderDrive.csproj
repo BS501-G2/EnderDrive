@@ -12,7 +12,6 @@
   </ItemGroup>
 
   <ItemGroup Condition="$(Configuration) == 'Release'">
-
     <PackageReference Include="RizzziGit.Commons" Version="0.0.6" />
   </ItemGroup>
 

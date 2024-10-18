@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace RizzziGit.EnderDrive.Server;
 
+using Commons.Logging;
 using Commons.Memory;
 using Core;
 using Resources;
@@ -20,29 +21,16 @@ public static partial class Program
             ConsoleCancelEventHandler? handler = null;
             Console.CancelKeyPress += handler = (origin, args) =>
             {
+                Console.WriteLine();
                 server.Stop().Wait();
 
                 Console.CancelKeyPress -= handler;
             };
 
             server.Logged += (level, scope, message, time) =>
-                Console.WriteLine($"[{time}] [{level}] [{scope}]: {message}");
+                Console.WriteLine($"[{time}] [{level}] [{string.Join('/', scope)}] {message}");
 
             await server.Start();
-            try
-            {
-                // await UserTest(server);
-                // await ScanVirus(server);
-
-                await server.Join();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-            }
-            finally
-            {
-                await server.Stop();
-            }
+            await server.Watch();
         });
 }

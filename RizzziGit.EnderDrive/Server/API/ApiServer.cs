@@ -21,6 +21,7 @@ public sealed partial class ApiServerParams
 {
     public required WebApplication WebApplication;
     public required SessionManager SessionManager;
+    public required SocketIoBridge SocketIoBridge;
 }
 
 public sealed partial class ApiServer(Server server, int httpPort, int httpsPort)
@@ -28,7 +29,8 @@ public sealed partial class ApiServer(Server server, int httpPort, int httpsPort
 {
     protected override async Task<ApiServerParams> OnStart(CancellationToken cancellationToken)
     {
-        SessionManager sessionManager = new(server, this);
+        SessionManager sessionManager = new(this);
+        SocketIoBridge socketIoBridge = new(this);
 
         WebApplicationBuilder builder = WebApplication.CreateBuilder();
 
@@ -63,24 +65,32 @@ public sealed partial class ApiServer(Server server, int httpPort, int httpsPort
 
         app.UseWebSockets(new() { KeepAliveInterval = TimeSpan.FromMinutes(2) });
 
-        await StartServices([sessionManager], cancellationToken);
+        await StartServices([sessionManager, socketIoBridge], cancellationToken);
         app.Use((HttpContext context, Func<Task> next) => Handle(context, cancellationToken));
 
         await app.StartAsync(cancellationToken);
 
-        return new() { WebApplication = app, SessionManager = sessionManager, };
+        return new()
+        {
+            WebApplication = app,
+            SessionManager = sessionManager,
+            SocketIoBridge = socketIoBridge
+        };
     }
 
     protected override async Task OnRun(ApiServerParams data, CancellationToken cancellationToken)
     {
-        await base.OnRun(data, cancellationToken);
+        await await Task.WhenAny(
+            WatchService(Context.SocketIoBridge, cancellationToken),
+            WatchService(Context.SessionManager, cancellationToken)
+        );
     }
 
     protected override async Task OnStop(ApiServerParams data, Exception? exception)
     {
         await Context.WebApplication.StopAsync(CancellationToken.None);
 
-        await StopServices(Context.SessionManager);
+        await StopServices(Context.SocketIoBridge, Context.SessionManager);
     }
 
     private async Task Handle(HttpContext context, CancellationToken cancellationToken)
@@ -109,7 +119,7 @@ public sealed partial class ApiServer(Server server, int httpPort, int httpsPort
 
         try
         {
-            await connection.Join(cancellationToken);
+            await WatchService(connection, cancellationToken);
         }
         catch { }
     }

@@ -349,7 +349,7 @@
 {#if $drag != null}
 	<Overlay
 		position={['offset', $drag![0], $drag![1]]}
-		on:dismiss={() => {
+		onDismiss={() => {
 			$drag = null;
 		}}
 	>
@@ -391,7 +391,7 @@
 			class:limited={isWindowWIdthLimited}
 			bind:this={innerList}
 		>
-			{#each files as file(file.id)}
+			{#each files as file (file.id)}
 				<FileManagerFileEntry
 					listViewMode={$listViewMode}
 					{file}

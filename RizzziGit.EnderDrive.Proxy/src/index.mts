@@ -1,28 +1,23 @@
-import SocketIO from "socket.io";
-import BSON from "bson";
+import * as SocketIO from "socket.io";
+import * as BSON from "bson";
 import HTTP from "http";
 
 export async function main() {
-  const httpServer = HTTP.createServer();
-  const externalServer = new SocketIO.Server({
+  const externalHttpServer = HTTP.createServer();
+  const externalWebSocketServer = new SocketIO.Server({
     cors: {
       origin: "*",
     },
     path: "/ws",
   });
 
-  httpServer.on("request", (request, response) => {
-    if (request.url == null) {
-      return;
-    }
-
-    const url = new URL(request.url);
-    if (url.pathname == "/ws") {
+  externalHttpServer.on("request", (request, response) => {
+    if (request.url == null || request.url == "/ws") {
       return;
     }
 
     HTTP.request(
-      new URL(`http://localhost:8083${request.url}`),
+      new URL(`http://localhost:8082${request.url}`),
       request,
       (internalResponse) => {
         response.statusCode = internalResponse.statusCode ?? 200;
@@ -44,8 +39,8 @@ export async function main() {
     );
   });
 
-  externalServer.on("connection", (externalSocket) => {
-    const internalWebSocket = new WebSocket("ws://localhost:8083/ws");
+  externalWebSocketServer.on("connection", (externalSocket) => {
+    const internalWebSocket = new WebSocket("ws://localhost:8082/ws");
 
     internalWebSocket.binaryType = "arraybuffer";
 
@@ -73,7 +68,7 @@ export async function main() {
 
       externalSocket.emit("message", {
         type: data[0],
-        packet: BSON.deserialize(data.slice(1)),
+        packet: BSON.deserialize(data.slice(1)).Packet,
       });
     };
 
@@ -92,8 +87,8 @@ export async function main() {
     );
   });
 
-  httpServer.listen(8082);
-  externalServer.listen(httpServer, {
+  externalHttpServer.listen(8083);
+  externalWebSocketServer.listen(externalHttpServer, {
     path: "/ws",
   });
 }

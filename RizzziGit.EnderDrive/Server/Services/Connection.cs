@@ -58,6 +58,7 @@ public sealed class Connection(ConnectionManager manager, ulong connectionId, We
         CancellationToken cancellationToken
     )
     {
+        await Task.Delay(10, cancellationToken);
         while (true) { }
     }
 
@@ -67,18 +68,17 @@ public sealed class Connection(ConnectionManager manager, ulong connectionId, We
         CancellationToken cancellationToken
     )
     {
-        CompositeBuffer bytes = [];
-
         while (true)
         {
             CompositeBuffer? buffer = await request.Shift(cancellationToken);
 
             if (buffer == null)
             {
+                await response.Finish(cancellationToken);
                 break;
             }
 
-            bytes.Append(buffer);
+            await response.Push(buffer, cancellationToken);
         }
     }
 

@@ -30,17 +30,15 @@ public record class File : ResourceData
     [JsonIgnore]
     public required byte[] AesIv;
 
-    public UnlockedFile Unlock(UnlockedUserAuthentication userAuthentication)
+    public UnlockedFile WithAesKey(byte[] aesKey)
     {
-        byte[] aesKey = KeyManager.Decrypt(userAuthentication, EncryptedAesKey);
-
         return new()
         {
             Original = this,
 
             Id = Id,
             ParentId = ParentId,
-            OwnerUserId = userAuthentication.UserId,
+            OwnerUserId = OwnerUserId,
 
             Name = Name,
             Type = Type,
@@ -50,6 +48,13 @@ public record class File : ResourceData
 
             AesKey = aesKey,
         };
+    }
+
+    public UnlockedFile Unlock(UnlockedUserAuthentication userAuthentication)
+    {
+        byte[] aesKey = KeyManager.Decrypt(userAuthentication, EncryptedAesKey);
+
+        return WithAesKey(aesKey);
     }
 }
 

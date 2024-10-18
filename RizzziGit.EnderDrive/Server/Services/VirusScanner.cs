@@ -34,7 +34,7 @@ public sealed partial class VirusScanner(Server server, string unixSocketPath)
 {
     protected override async Task<VirusScannerParams> OnStart(CancellationToken cancellationToken)
     {
-        IPEndPoint ipEndPoint = new(IPAddress.Loopback, 9000);
+        IPEndPoint ipEndPoint = new(IPAddress.Loopback, Random.Shared.Next(1025, 65535));
         TcpForwarder tcpForwarder = new(this, ipEndPoint, unixSocketPath);
 
         await StartServices([tcpForwarder], cancellationToken);
@@ -99,16 +99,13 @@ public sealed partial class VirusScanner(Server server, string unixSocketPath)
         CancellationToken cancellationToken
     )
     {
-        await Task.WhenAll(
-            [RunScanQueue(cancellationToken), Context.TcpForwarder.Join(cancellationToken),]
-        );
+        await Task.WhenAll([RunScanQueue(cancellationToken),]);
     }
 
-    protected override async Task OnStop(VirusScannerParams data, Exception? exception)
+    protected override Task OnStop(VirusScannerParams data, Exception? exception)
     {
         Context.Client.Dispose();
-
-        await StopServices(Context.TcpForwarder);
+        return Task.CompletedTask;
     }
 
     public async Task<ScanResult> Scan(Stream stream, CancellationToken cancellationToken = default)

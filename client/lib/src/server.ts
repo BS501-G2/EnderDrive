@@ -5,6 +5,7 @@ export * from "./server/resource.js";
 export * from "./server/resource.js";
 export * from "./server/api/connection-manager.js";
 export * from "./server/api/connection.js";
+export * from './server/api/connection-functions.js'
 export * from "./server/core/server.js";
 export * from "./server/db/file-access.js";
 export * from "./server/db/file-buffer.js";

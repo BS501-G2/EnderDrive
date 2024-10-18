@@ -13,6 +13,10 @@ export class WaitQueue<T> {
 	readonly #insert: PromiseSource<PromiseSource<T>>[];
 	readonly #take: PromiseSource<T>[];
 
+	public get count() {
+		return this.#backlog.length + this.#insert.length;
+	}
+
 	public async dequeue(): Promise<T> {
 		const source: PromiseSource<T> = new PromiseSource();
 

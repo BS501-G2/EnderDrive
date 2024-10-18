@@ -76,6 +76,11 @@ public record class UnlockedFileAccess : FileAccess
     public required FileAccess Original;
 
     public required byte[] AesKey;
+
+    public UnlockedFile UnlockFile(File file)
+    {
+        return file.WithAesKey(AesKey);
+    }
 }
 
 public sealed partial class ResourceManager

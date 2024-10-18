@@ -43,15 +43,15 @@ public sealed partial class ResourceManager
                 {
                     MLogLevel.Error => LogLevel.Error,
                     MLogLevel.Trace => LogLevel.Debug,
-                    MLogLevel.Information => LogLevel.Info,
+                    MLogLevel.Information => LogLevel.Debug,
                     MLogLevel.Warning => LogLevel.Warn,
                     MLogLevel.Critical => LogLevel.Fatal,
-                    MLogLevel.None => LogLevel.Info,
+                    MLogLevel.None => LogLevel.Debug,
 
                     _ => throw new NotImplementedException(),
                 },
-                "Database Log",
-                $"{formatter(state, exception)}"
+                $"{formatter(state, exception)}",
+                "Database Log"
             );
         }
     }

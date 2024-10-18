@@ -16,6 +16,12 @@ import { FileResource } from "../db/file.js";
 import { UnlockedUserAuthentication } from "../db/user-authentication.js";
 import { UserResource } from "../db/user.js";
 
+export interface News {
+  title: string;
+  banner: Uint8Array;
+  link?: string;
+}
+
 export interface ServerFunctions extends ConnectionFunctions {
   restore: (authentication: Authentication) => Promise<Authentication>;
 
@@ -157,9 +163,17 @@ export interface ServerFunctions extends ConnectionFunctions {
 
   truncateFile: (fileHandleId: number, length: number) => Promise<void>;
 
-  readFile: (fileHandleId: number, position: number, length: number) => Promise<Uint8Array>
+  readFile: (
+    fileHandleId: number,
+    position: number,
+    length: number
+  ) => Promise<Uint8Array>;
 
-  writeFile: (fileHandleId: number, position: number, data: Uint8Array) => Promise<void>;
+  writeFile: (
+    fileHandleId: number,
+    position: number,
+    data: Uint8Array
+  ) => Promise<void>;
 
   closeFile: (fileHandleId: number) => Promise<void>;
 
@@ -203,4 +217,12 @@ export interface ServerFunctions extends ConnectionFunctions {
   isFileStarred: (fileId: number) => Promise<boolean>;
 
   setFileStar: (fileId: number, starred: boolean) => Promise<boolean>;
+
+  createNews: (news: News) => Promise<void>;
+
+  deleteNews: (newsIndex: number) => Promise<void>;
+
+  getNewsCount: () => Promise<number>
+
+  getNews: (index: number) => Promise<News>
 }

@@ -27,13 +27,15 @@ public sealed partial class VirusScanner
         VirusScanner scanner,
         IPEndPoint ipEndPoint,
         string unixSocketPath
-    ) : Service2<TcpForwarderParams>("Tcp Forwarder", scanner)
+    ) : Service2<TcpForwarderParams>("TCP Forwarder", scanner)
     {
         protected override Task<TcpForwarderParams> OnStart(CancellationToken cancellationToken)
         {
             TcpListener internalTcpListener = new(ipEndPoint);
 
             internalTcpListener.Start();
+
+            Debug($"{ipEndPoint}", "EndPoint");
 
             return Task.FromResult<TcpForwarderParams>(
                 new() { InternalTcpListener = internalTcpListener }
@@ -87,6 +89,7 @@ public sealed partial class VirusScanner
 
                             try
                             {
+                                Info($"Waiting for ClamAV client...");
                                 client = await listener.AcceptTcpClientAsync(cancellationToken);
 
                                 source.SetResult();
@@ -122,13 +125,15 @@ public sealed partial class VirusScanner
                                     connections.Remove(task);
                                 }
 
-                                Error("TCP", $"Handler Exception: {exception.ToPrintable()}");
+                                Error($"Handler Exception: {exception.ToPrintable()}");
                             }
                         },
                         CancellationToken.None
                     );
 
                     await source.Task;
+                    Info($"ClamAV client connected. Stopping the service...");
+                    break;
                 }
             }
             catch

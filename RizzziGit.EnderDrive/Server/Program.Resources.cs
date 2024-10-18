@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace RizzziGit.EnderDrive.Server;
 
+using System.Text;
 using Commons.Memory;
 using Core;
 using Resources;
@@ -44,70 +45,41 @@ public static partial class Program
                     null
                 );
 
-                await using FileStream input = System.IO.File.Open(
-                    "/run/media/cool/Buffalo/MC-Worlds.7z",
-                    FileMode.Open,
-                    System.IO.FileAccess.Read,
-                    FileShare.None
+                byte[] eicar = Encoding.UTF8.GetBytes(
+                    "X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
                 );
 
-                while (input.Position < input.Length)
-                {
-                    byte[] buffer = new byte[ResourceManager.FILE_BUFFER_SIZE];
-                    int bufferSize = await input.ReadAsync(buffer, CancellationToken.None);
-
-                    await resources.WriteFile(
-                        transaction,
-                        file,
-                        fileContent,
-                        fileSnapshot,
-                        userAuthentication,
-                        input.Position - bufferSize,
-                        buffer[..bufferSize]
-                    );
-                }
-
-                string[] a = await server.VirusScanner.Scan(
+                await resources.WriteFile(
                     transaction,
                     file,
                     fileContent,
-                    fileSnapshot
+                    fileSnapshot,
+                    userAuthentication,
+                    0,
+                    eicar
                 );
 
-                Console.WriteLine(a);
+                UnlockedFileAccess fileAccess = await resources.CreateFileAccess(
+                    transaction,
+                    file,
+                    FileAccessLevel.Read
+                );
 
-                // await using FileStream output = System.IO.File.Open(
-                //     "/home/carl/output.mp4",
-                //     FileMode.OpenOrCreate,
-                //     System.IO.FileAccess.Write,
-                //     FileShare.None
-                // );
-
-                // output.SetLength(0);
-
-                // for (long position = 0; position < input.Length; )
-                // {
-                //     CompositeBuffer bytes = await resources.ReadFile(
-                //         transaction,
-                //         file,
-                //         fileContent,
-                //         fileSnapshot,
-                //         position,
-                //         ResourceManager.FILE_BUFFER_SIZE
-                //     );
-
-                //     await output.WriteAsync(bytes.ToArray(), CancellationToken.None);
-
-                //     position += bytes.Length;
-                //     Console.Write($"\r Write: {position} MaxSize: {input.Length}");
-                // }
+                Console.WriteLine(
+                    await resources.ReadFile(
+                        transaction,
+                        fileAccess.UnlockFile(file),
+                        fileContent,
+                        fileSnapshot,
+                        0,
+                        eicar.Length
+                    )
+                );
 
                 return (user, userAuthentication);
             },
             CancellationToken.None
         );
-
-        await Task.Delay(10000);
 
         await resources.Transact(
             async (transaction) =>

@@ -99,7 +99,7 @@ public sealed partial class ConnectionManager(Server server)
 
         try
         {
-            await connection.Join(serviceCancellationToken);
+            await WatchService(connection, serviceCancellationToken);
         }
         catch { }
         finally

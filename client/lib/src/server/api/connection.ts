@@ -31,12 +31,14 @@ import { FileDataManager } from "../db/file-data.js";
 import { FileLogManager, FileLogResource } from "../db/file-log.js";
 import { FileAccessManager, FileAccessResource } from "../db/file-access.js";
 import { FileStarManager } from "../db/file-star.js";
-import { ServerFunctions } from "./connection-functions.js";
+import { News, ServerFunctions } from "./connection-functions.js";
 import { ClientFunctions } from "../../client/core/connection-functions.js";
 
 export interface ServerConnectionContext {
   updateTime: number;
 }
+
+export const newsArray: News[] = [];
 
 export class ServerConnection {
   public constructor(
@@ -1245,6 +1247,20 @@ export class ServerConnection {
         await fileStarManager.setStar(user, file, starred);
         return starred;
       },
+
+      createNews: async (news) => {
+        await requireRole(requireAuthenticated(true), "SiteAdmin");
+        newsArray.push(news);
+      },
+
+      deleteNews: async (index) => {
+        await requireRole(requireAuthenticated(true), "SiteAdmin");
+        newsArray.splice(index, 1);
+      },
+
+      getNewsCount: async () => newsArray.length,
+
+      getNews: async (index) => newsArray[index],
     };
 
     return serverFunctions;

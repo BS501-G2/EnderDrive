@@ -19,7 +19,7 @@ using Commons.Services;
 using Core;
 using Resources;
 
-public sealed class SessionManagerParams
+public sealed class SessionManagerContext
 {
     public required List<Session> Sessions;
 }
@@ -30,17 +30,13 @@ public sealed class Session
     public required UnlockedUserAuthentication? User;
 }
 
-public sealed class SessionManager(Server server, ApiServer apiServer)
-    : Service2<SessionManagerParams>("Sessions", server)
+public sealed class SessionManager(ApiServer apiServer)
+    : Service2<SessionManagerContext>("Sessions", apiServer)
 {
-    protected override async Task<SessionManagerParams> OnStart(CancellationToken cancellationToken)
+    protected override Task<SessionManagerContext> OnStart(CancellationToken cancellationToken)
     {
         List<Session> sessions = [];
 
-        return new() { Sessions = sessions };
-    }
-
-    protected override async Task OnStop(SessionManagerParams data, Exception? exception) {
-        
+        return Task.FromResult<SessionManagerContext>(new() { Sessions = sessions });
     }
 }

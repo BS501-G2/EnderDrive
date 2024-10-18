@@ -1,7 +1,7 @@
 {
   "name": "rizzzigit.enderdrive.proxy",
   "version": "1.0.0",
-  "main": "dist/index.js",
+  "main": "dist/index.mjs",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

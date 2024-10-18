@@ -11,6 +11,7 @@ using Newtonsoft.Json;
 namespace RizzziGit.EnderDrive.Server.Resources;
 
 using Services;
+
 public record class Group : ResourceData
 {
     public static implicit operator RSA(Group groupMembership) =>
@@ -184,6 +185,8 @@ public sealed partial class ResourceManager
                 Role = GroupMembershipRole.Member,
                 Accepted = false,
             };
+
+        await Insert(transaction, [membership]);
 
         return new()
         {

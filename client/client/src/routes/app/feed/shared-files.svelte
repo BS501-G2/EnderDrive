@@ -40,7 +40,7 @@
 {:else if fileAccesses.length > -1}
 	<div class="file-accesses">
 		<div class="header">
-			<h2>Recently Shared Files</h2>
+			<b>Recently Shared Files</b>
 			<Button onClick={() => goto('/app/shared')}>See More</Button>
 		</div>
 		<div class="list">

@@ -11,7 +11,8 @@ import { FileMimeManager } from "../db/file-mime.js";
 import { FileSnapshotResource } from "../db/file-snapshot.js";
 import { UnlockedFileResource } from "../db/file.js";
 import { Server } from "./server.js";
-import mmm, { Magic } from "mmmagic";
+
+type Magic = any;
 
 export interface MimeDetectorData {
   mimeDetector: Magic;
@@ -56,10 +57,13 @@ export class MimeDetector extends Service<
     setData: ServiceSetDataCallback<MimeDetectorData>,
     onReady: ServiceReadyCallback
   ): Promise<void> {
-    const descriptionDetector = new Magic();
-    const mimeDetector = new Magic(
-      mmm.MAGIC_MIME_TYPE | mmm.MAGIC_MIME_ENCODING
-    );
+    // const descriptionDetector = new Magic();
+    // const mimeDetector = new Magic(
+    //   mmm.MAGIC_MIME_TYPE | mmm.MAGIC_MIME_ENCODING
+    // );
+
+    const descriptionDetector = {};
+    const mimeDetector = {};
 
     setData({ mimeDetector, descriptionDetector });
 
@@ -70,18 +74,22 @@ export class MimeDetector extends Service<
     buffer: Buffer,
     description: boolean = false
   ): Promise<string> {
-    return new Promise<string>((resolve, reject) => {
-      (description ? this.#descriptionDetector : this.#mimeDetector).detect(
-        buffer,
-        (error, result) => {
-          if (error != null) {
-            reject(error);
-          } else {
-            resolve(Array.isArray(result) ? result[0] : result);
-          }
-        }
-      );
-    });
+    return Promise.resolve(
+      description ? "Binary Data" : "application/octet-stream"
+    );
+
+    // return new Promise<string>((resolve, reject) => {
+    //   (description ? this.#descriptionDetector : this.#mimeDetector).detect(
+    //     buffer,
+    //     (error, result) => {
+    //       if (error != null) {
+    //         reject(error);
+    //       } else {
+    //         resolve(Array.isArray(result) ? result[0] : result);
+    //       }
+    //     }
+    //   );
+    // });
   }
 
   async getFileMime(
