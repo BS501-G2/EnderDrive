@@ -1,9 +1,11 @@
 <script lang="ts">
-	import { ViewMode, viewMode, Button, Dialog } from '@rizzzi/svelte-commons';
 	import { type Writable, writable } from 'svelte/store';
 	import { type Snippet } from 'svelte';
 	import Bulletin from './bulletin.svelte';
 	import LoginForm from './login-form.svelte';
+	import Dialog from '$lib/widgets/dialog.svelte';
+	import Button from '$lib/widgets/button.svelte';
+	import { ViewMode, viewMode } from '$lib/responsive-layout.svelte';
 
 	const {}: {} = $props();
 

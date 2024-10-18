@@ -1,12 +1,6 @@
 <script lang="ts">
 	import { getConnection } from '$lib/client/client';
 	import { type FileAccessResource } from '@rizzzi/enderdrive-lib/server';
-	import { Button, LoadingSpinner } from '@rizzzi/svelte-commons';
-	import FileManagerFileEntry from '../files/file-manager-file-entry.svelte';
-	import User from '$lib/client/user.svelte';
-	import { goto } from '$app/navigation';
-	import Icon from '$lib/ui/icon.svelte';
-	import { FileManagerViewMode } from '../files/file-manager-folder-list';
 	import SharedFiles from './shared-files.svelte';
 
 	const {

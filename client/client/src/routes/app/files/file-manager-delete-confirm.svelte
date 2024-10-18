@@ -34,8 +34,9 @@
 </script>
 
 <script lang="ts">
-  import { Button, Dialog } from '@rizzzi/svelte-commons';
   import { type Snippet } from 'svelte';
+	import Button from '$lib/widgets/button.svelte';
+	import Dialog from '$lib/widgets/dialog.svelte';
 </script>
 
 {#snippet buttonContainer(view: Snippet)}

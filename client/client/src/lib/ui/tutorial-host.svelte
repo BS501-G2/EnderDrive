@@ -47,11 +47,9 @@
 </script>
 
 <script lang="ts">
-	import { Overlay } from '@rizzzi/svelte-commons';
 	import type { Snippet } from 'svelte';
 	import type { Readable } from 'svelte/motion';
 	import { derived, writable, type Writable } from 'svelte/store';
-	import TutorialEntry from './tutorial-entry.svelte';
 	import { persisted } from 'svelte-persisted-store';
 
 	const { id, title, message }: { id: string; title: string; message: string } = $props();

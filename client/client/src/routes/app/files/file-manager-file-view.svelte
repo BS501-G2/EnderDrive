@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ViewMode, viewMode } from '@rizzzi/svelte-commons';
+	import { ViewMode, viewMode } from '$lib/responsive-layout.svelte';
 	import { scale } from 'svelte/transition';
 
 	const { fileId }: { fileId: number } = $props();

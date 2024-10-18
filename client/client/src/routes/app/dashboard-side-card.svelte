@@ -7,7 +7,8 @@
   } from './dashboard';
   import { getConnection } from '$lib/client/client';
   import User from '$lib/client/user.svelte';
-  import { Button, ViewMode, viewMode } from '@rizzzi/svelte-commons';
+	import { ViewMode, viewMode } from '$lib/responsive-layout.svelte';
+	import Button from '$lib/widgets/button.svelte';
 
   const { isWidthLimited, openSettings, openLogoutConfirm } =
     getContext<DashboardContext>(DashboardContextName);

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { getConnection } from '$lib/client/client';
 	import type { FileResource } from '@rizzzi/enderdrive-lib/server';
-	import { Overlay } from '@rizzzi/svelte-commons';
 	import { getContext, onMount } from 'svelte';
 	import { type FileManagerProps, FileManagerPropsName } from './file-manager.svelte';
 	import { fly } from 'svelte/transition';
+	import Overlay from '$lib/widgets/overlay.svelte';
 
 	const { onFileId } = getContext<FileManagerProps>(FileManagerPropsName);
 	const {

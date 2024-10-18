@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { getContext, onMount } from 'svelte';
 	import { FileViewerContextName, type FileViewerContext } from './file-view.svelte';
-	import { Button } from '@rizzzi/svelte-commons';
 	import Icon from '$lib/ui/icon.svelte';
+	import Button from '$lib/widgets/button.svelte';
 
 	const { pushTopContent } = getContext<FileViewerContext>(FileViewerContextName);
 

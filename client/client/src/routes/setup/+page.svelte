@@ -1,19 +1,13 @@
 <script lang="ts">
-	import {
-		Awaiter,
-		Tab,
-		Input,
-		Dialog,
-		Button,
-		type TabItem,
-		createTabId
-	} from '@rizzzi/svelte-commons';
-
 	import { type Writable, writable } from 'svelte/store';
 
 	import { goto } from '$app/navigation';
 	import { getConnection } from '$lib/client/client';
 	import type { Snippet } from 'svelte';
+	import Button from '$lib/widgets/button.svelte';
+	import Dialog from '$lib/widgets/dialog.svelte';
+	import Input from '$lib/widgets/input.svelte';
+	import Tab, { type TabItem, createTabId } from '$lib/widgets/tab.svelte';
 
 	const tabs: TabItem[] = [
 		{

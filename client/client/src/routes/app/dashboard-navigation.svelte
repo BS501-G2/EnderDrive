@@ -3,11 +3,11 @@
 
 	import { page } from '$app/stores';
 	import { getConnection } from '$lib/client/client';
-	import { viewMode, ViewMode } from '@rizzzi/svelte-commons';
 	import { getContext, onMount } from 'svelte';
 	import { type DashboardContext, DashboardContextName } from './dashboard';
 	import type { UserResource } from '@rizzzi/enderdrive-lib/server';
 	import { serializeUserRole } from '@rizzzi/enderdrive-lib/shared';
+	import { ViewMode, viewMode } from '$lib/responsive-layout.svelte';
 
 	const { isWidthLimited } = getContext<DashboardContext>(DashboardContextName);
 

@@ -3,7 +3,6 @@
 	import { type AdminContext, AdminContextName } from '../+layout.svelte';
 	import { getConnection } from '$lib/client/client';
 	import type { FileLogResource } from '@rizzzi/enderdrive-lib/server';
-	import { Input, Overlay, Button } from '@rizzzi/svelte-commons';
 	import User from '$lib/client/user.svelte';
 	import Action from './action.svelte';
 	import { writable, type Writable } from 'svelte/store';
@@ -11,6 +10,9 @@
 	import Paginator from '$lib/ui/paginator.svelte';
 	import type { UIEventHandler } from 'svelte/elements';
 	import type { FileLogType } from '@rizzzi/enderdrive-lib/shared';
+	import Input from '$lib/widgets/input.svelte';
+	import Button from '$lib/widgets/button.svelte';
+	import Overlay from '$lib/widgets/overlay.svelte';
 
 	const { setMainContent, pushTopContent, pushToolboxContext } =
 		getContext<AdminContext>(AdminContextName);

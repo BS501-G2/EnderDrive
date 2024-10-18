@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { getConnection } from '$lib/client/client';
 	import Icon from '$lib/ui/icon.svelte';
+	import Button from '$lib/widgets/button.svelte';
 	import type { News } from '@rizzzi/enderdrive-lib/server';
-	import { Button } from '@rizzzi/svelte-commons';
 	import { onMount } from 'svelte';
 
 	const { refresh, index }: { refresh: () => void; index: number } = $props();

@@ -4,10 +4,9 @@
 	import { type UserResolvePayload } from '@rizzzi/enderdrive-lib/shared';
 	import { DashboardContextName, type DashboardContext } from '../dashboard';
 
-	import { Title } from '@rizzzi/svelte-commons';
-
 	import ProfilePage from './profile-page.svelte';
 	import { authentication } from '$lib/client/client';
+	import Title from '$lib/widgets/title.svelte';
 
 	const parse = (): UserResolvePayload | null => {
 		const idenfierString = $page.url.searchParams.get('id');

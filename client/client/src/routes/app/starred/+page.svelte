@@ -6,9 +6,9 @@
 		type FileManagerOnPageCallback,
 		type FileManagerOnFileIdCallback
 	} from '../files/file-manager.svelte';
-	import { Title } from '@rizzzi/svelte-commons';
 	import { goto } from '$app/navigation';
 	import type { ScanFolderSortType } from '@rizzzi/enderdrive-lib/shared';
+	import Title from '$lib/widgets/title.svelte';
 
 	const { setMainContent } = getContext<DashboardContext>(DashboardContextName);
 

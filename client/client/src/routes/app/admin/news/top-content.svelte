@@ -1,7 +1,6 @@
 <script lang="ts">
 	import Icon from '$lib/ui/icon.svelte';
-
-	import { Button } from '@rizzzi/svelte-commons';
+	import Button from '$lib/widgets/button.svelte';
 
 	const { create }: { create: () => void } = $props();
 </script>

@@ -15,19 +15,16 @@
 
 <script lang="ts">
 	import User from '$lib/client/user.svelte';
-	import {
-		Awaiter,
-		Button,
-		Dialog,
-		Input,
-		LoadingSpinner,
-		Overlay,
-		ViewMode,
-		viewMode
-	} from '@rizzzi/svelte-commons';
 	import { writable, type Writable } from 'svelte/store';
 	import { type Snippet } from 'svelte';
 	import Icon from '$lib/ui/icon.svelte';
+	import Dialog from '$lib/widgets/dialog.svelte';
+	import { ViewMode, viewMode } from '$lib/responsive-layout.svelte';
+	import Awaiter from '$lib/awaiter.svelte';
+	import Button from '$lib/widgets/button.svelte';
+	import Input from '$lib/widgets/input.svelte';
+	import LoadingSpinner from '$lib/widgets/loading-spinner.svelte';
+	import Overlay from '$lib/widgets/overlay.svelte';
 
 	const {
 		serverFunctions: { listFileAccess, listUsers, setUserAccess, getUser, whoAmI, getMyAccess }

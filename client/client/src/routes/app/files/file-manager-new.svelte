@@ -12,16 +12,18 @@
 </script>
 
 <script lang="ts">
+	import { ViewMode, viewMode } from '$lib/responsive-layout.svelte';
+
+	import Button from '$lib/widgets/button.svelte';
+
+	import Dialog from '$lib/widgets/dialog.svelte';
+
+	import Input from '$lib/widgets/input.svelte';
+
+	import Overlay from '$lib/widgets/overlay.svelte';
+
 	import { byteUnit } from '@rizzzi/enderdrive-lib/shared';
 
-	import {
-		Button,
-		Dialog,
-		Input,
-		Overlay,
-		ViewMode,
-		viewMode
-	} from '@rizzzi/svelte-commons';
 	import { onMount, type Snippet } from 'svelte';
 	import { writable, type Writable } from 'svelte/store';
 	import { fly } from 'svelte/transition';

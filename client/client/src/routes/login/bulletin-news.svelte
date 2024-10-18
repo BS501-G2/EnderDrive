@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { News } from '@rizzzi/enderdrive-lib/server';
-	import { LoadingSpinner } from '@rizzzi/svelte-commons';
 
 	const { news }: { news: News } = $props();
 </script>

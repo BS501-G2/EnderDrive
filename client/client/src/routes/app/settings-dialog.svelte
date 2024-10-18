@@ -1,21 +1,13 @@
 <script lang="ts">
+	import { currentColorScheme, registeredColors, setColorScheme } from '$lib/color-scheme.svelte';
 	import { LocaleKey, LocaleType } from '$lib/locale';
 	import Locale, { getLocale, setLocale } from '$lib/locale.svelte';
+	import { ViewMode, viewMode } from '$lib/responsive-layout.svelte';
+	import Banner from '$lib/widgets/banner.svelte';
+	import Button from '$lib/widgets/button.svelte';
+	import Dialog from '$lib/widgets/dialog.svelte';
+	import Tab, { createTabId, type SetTabFunction, type TabItem } from '$lib/widgets/tab.svelte';
 
-	import {
-		Banner,
-		Button,
-		Dialog,
-		Tab,
-		ViewMode,
-		createTabId,
-		currentColorScheme,
-		viewMode,
-		setColorScheme,
-		type TabItem,
-		type SetTabFunction,
-		registeredColors
-	} from '@rizzzi/svelte-commons';
 	import { writable, type Writable } from 'svelte/store';
 
 	const { onDismiss }: { onDismiss: () => void } = $props();

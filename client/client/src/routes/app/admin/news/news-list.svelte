@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { getConnection } from '$lib/client/client';
-	import type { News } from '@rizzzi/enderdrive-lib/server';
 	import NewsEntry from './news-entry.svelte';
-	import { LoadingSpinner } from '@rizzzi/svelte-commons';
 	import { range } from '$lib/range';
+	import LoadingSpinner from '$lib/widgets/loading-spinner.svelte';
 
 	const {
 		serverFunctions: { getNewsCount, getNews }

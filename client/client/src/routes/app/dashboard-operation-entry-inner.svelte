@@ -1,8 +1,9 @@
 <script lang="ts" generics="T extends any">
-	import { Button, LoadingBar } from '@rizzzi/svelte-commons';
 	import { DashboardContextName, type DashboardContext } from './dashboard';
 	import { getContext, onMount, type Snippet } from 'svelte';
 	import { BackgroundTaskStatus, type BackgroundTask } from '$lib/background-task';
+	import Button from '$lib/widgets/button.svelte';
+	import LoadingBar from '$lib/widgets/loading-bar.svelte';
 
 	const {
 		task,

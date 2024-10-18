@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Overlay } from '@rizzzi/svelte-commons';
+	import Overlay from '$lib/widgets/overlay.svelte';
 	import { useTutorial } from './tutorial-host.svelte';
 
 	const {

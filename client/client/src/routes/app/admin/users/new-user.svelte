@@ -15,8 +15,9 @@
 	import { goto } from '$app/navigation';
 
 	import { getConnection } from '$lib/client/client';
-
-	import { Button, Dialog, Input } from '@rizzzi/svelte-commons';
+	import Button from '$lib/widgets/button.svelte';
+	import Dialog from '$lib/widgets/dialog.svelte';
+	import Input from '$lib/widgets/input.svelte';
 	import { writable, type Writable } from 'svelte/store';
 
 	const { onDismiss }: { onDismiss: () => void } = $props();

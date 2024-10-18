@@ -1,7 +1,7 @@
 # Progress Report
 
 - Login (2024-01 - 2024-02)
-  - News (2024-01 -)
+  - News (2024-01 - 2024-10s)
 - Dashboard
   - Admin
     - ✔️ User Logs (2024-07 - 2024-08)

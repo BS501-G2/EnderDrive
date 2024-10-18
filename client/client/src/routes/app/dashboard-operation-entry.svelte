@@ -1,5 +1,5 @@
 <script lang="ts" generics="T extends any">
-  import { AnimationFrame } from '@rizzzi/svelte-commons';
+	import AnimationFrame from '$lib/animation-frame.svelte';
   import { BackgroundTaskStatus, type BackgroundTask } from '$lib/background-task';
   import DashboardOperationEntryInner from './dashboard-operation-entry-inner.svelte';
 

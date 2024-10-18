@@ -1,12 +1,13 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import DashboardOperations from './dashboard-operations.svelte';
-	import { Overlay, ViewMode, viewMode } from '@rizzzi/svelte-commons';
 	import { fly } from 'svelte/transition';
+	import { ViewMode, viewMode } from '$lib/responsive-layout.svelte';
 
 	const { children }: { children: Snippet[] } = $props();
 
 	let width: number = $state(0);
+	
 </script>
 
 <svelte:window bind:innerWidth={width} />

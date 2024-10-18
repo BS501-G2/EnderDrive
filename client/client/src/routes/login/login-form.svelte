@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { authenticateWithPassword } from '$lib/client/client';
-	import { Button, Input, ViewMode, viewMode } from '@rizzzi/svelte-commons';
+	import { ViewMode, viewMode } from '$lib/responsive-layout.svelte';
+	import Button from '$lib/widgets/button.svelte';
+	import Input from '$lib/widgets/input.svelte';
 	import { type Snippet } from 'svelte';
 	import { writable, type Writable } from 'svelte/store';
 

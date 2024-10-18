@@ -3,7 +3,7 @@
 	import BulletinCarousel from './bulletin-carousel.svelte';
 	import BulletinOverlay from './bulletin-overlay.svelte';
 	import { getConnection } from '$lib/client/client';
-	import { LoadingSpinner } from '@rizzzi/svelte-commons';
+	import LoadingSpinner from '$lib/widgets/loading-spinner.svelte';
 
 	const currentIndex: Writable<number> = writable(0);
 

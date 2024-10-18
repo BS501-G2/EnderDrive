@@ -3,8 +3,9 @@
 </script>
 
 <script lang="ts">
+	import Overlay from '$lib/widgets/overlay.svelte';
+
 	import type { UserResource } from '@rizzzi/enderdrive-lib/server';
-	import { Overlay } from '@rizzzi/svelte-commons';
 	import { fade } from 'svelte/transition';
 
 	const {

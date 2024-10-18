@@ -3,7 +3,6 @@
   import { getLocale } from '$lib/locale.svelte';
 
   import LogoutConfirmationDialog from './dashboard-logout-confirm.svelte';
-  import { Keyboard, ViewMode, currentColorScheme, viewMode } from '@rizzzi/svelte-commons';
   import SettingsDialog from './settings-dialog.svelte';
   import { onMount, setContext, type Snippet } from 'svelte';
   import { type Writable, writable } from 'svelte/store';
@@ -13,6 +12,8 @@
   import DashboardSideCard from './dashboard-side-card.svelte';
   import ExtraContextMenu from './extra-context-menu.svelte';
 	import { DashboardContextName, type DashboardContext, type DashboardContextMenuEntry } from './dashboard';
+	import { viewMode, ViewMode } from '$lib/responsive-layout.svelte';
+	import { currentColorScheme } from '$lib/color-scheme.svelte';
 
   const { children }: { children: Snippet } = $props();
 
@@ -81,6 +82,7 @@
   });
 
   onMount(() => addContextMenuEntry('Test', 'fa-solid fa-bug', () => {}));
+  
 </script>
 
 <svelte:head>

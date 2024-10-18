@@ -6,9 +6,12 @@
 		type FileManagerProps,
 		FileManagerPropsName
 	} from './file-manager.svelte';
-	import { Button, Dialog, Overlay, ViewMode, viewMode } from '@rizzzi/svelte-commons';
 	import { fly } from 'svelte/transition';
 	import { FileManagerViewMode } from './file-manager-folder-list';
+	import { ViewMode, viewMode } from '$lib/responsive-layout.svelte';
+	import Button from '$lib/widgets/button.svelte';
+	import Overlay from '$lib/widgets/overlay.svelte';
+	import Dialog from '$lib/widgets/dialog.svelte';
 
 	const {} = getContext<FileManagerProps>(FileManagerPropsName);
 	const { resolved, showSideBar, listViewMode, refreshKey } =

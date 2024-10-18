@@ -14,8 +14,8 @@
 	import { byteUnit, type ScanFolderSortType } from '@rizzzi/enderdrive-lib/shared';
 	import { getContext, onMount, type Snippet } from 'svelte';
 	import { DashboardContextName, type DashboardContext } from '../dashboard';
-	import { Title } from '@rizzzi/svelte-commons';
 	import type { FileResource } from '@rizzzi/enderdrive-lib/server';
+	import Title from '$lib/widgets/title.svelte';
 
 	const { setMainContent } = getContext<DashboardContext>(DashboardContextName);
 

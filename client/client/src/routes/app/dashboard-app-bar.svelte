@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Button, Input, titleStack, ViewMode, viewMode } from '@rizzzi/svelte-commons';
 	import { writable } from 'svelte/store';
 	import {
 		DashboardContextName,
@@ -7,6 +6,10 @@
 		type DashboardContextMenuEntry
 	} from './dashboard';
 	import { getContext, type Snippet } from 'svelte';
+	import { viewMode, ViewMode } from '$lib/responsive-layout.svelte';
+	import Button from '$lib/widgets/button.svelte';
+	import { titleStack } from '$lib/svelte-commons';
+	import Input from '$lib/widgets/input.svelte';
 
 	const { openExtraContextMenuOverlay } = getContext<DashboardContext>(DashboardContextName);
 

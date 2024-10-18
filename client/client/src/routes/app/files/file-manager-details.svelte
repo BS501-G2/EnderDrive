@@ -8,17 +8,14 @@
 		UserResource
 	} from '@rizzzi/enderdrive-lib/server';
 	import { byteUnit, deserializeFileAccessLevel } from '@rizzzi/enderdrive-lib/shared';
-	import {
-		Awaiter,
-		Button,
-		Dialog,
-		LoadingSpinner,
-		ViewMode,
-		viewMode
-	} from '@rizzzi/svelte-commons';
 	import { getContext, onMount, type Snippet } from 'svelte';
 	import { type FileManagerContext, FileManagerContextName } from './file-manager.svelte';
 	import Action from '../admin/logs/action.svelte';
+	import Awaiter from '$lib/awaiter.svelte';
+	import { viewMode, ViewMode } from '$lib/responsive-layout.svelte';
+	import Button from '$lib/widgets/button.svelte';
+	import Dialog from '$lib/widgets/dialog.svelte';
+	import LoadingSpinner from '$lib/widgets/loading-spinner.svelte';
 
 	const { accessDialogs } = getContext<FileManagerContext>(FileManagerContextName);
 

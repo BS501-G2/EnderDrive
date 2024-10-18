@@ -5,8 +5,9 @@
     type DashboardContext,
     type DashboardContextMenuEntry
   } from './dashboard';
-  import { Overlay, ViewMode, viewMode } from '@rizzzi/svelte-commons';
   import { fly } from 'svelte/transition';
+	import { ViewMode, viewMode } from '$lib/responsive-layout.svelte';
+	import Overlay from '$lib/widgets/overlay.svelte';
 
   const {} = getContext<DashboardContext>(DashboardContextName);
 

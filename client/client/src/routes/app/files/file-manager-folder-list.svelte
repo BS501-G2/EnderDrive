@@ -3,7 +3,6 @@
 </script>
 
 <script lang="ts">
-	import { AnimationFrame, hasKeys, Overlay, ViewMode, viewMode } from '@rizzzi/svelte-commons';
 	import { getContext } from 'svelte';
 	import { scale } from 'svelte/transition';
 	import {
@@ -16,6 +15,10 @@
 	import FileManagerSeparator from './file-manager-separator.svelte';
 	import { writable, type Writable } from 'svelte/store';
 	import FileManagerFileEntry from './file-manager-file-entry.svelte';
+	import { ViewMode, viewMode } from '$lib/responsive-layout.svelte';
+	import { hasKeys } from '$lib/keyboard.svelte';
+	import AnimationFrame from '$lib/animation-frame.svelte';
+	import Overlay from '$lib/widgets/overlay.svelte';
 
 	const { resolved, listViewMode } = getContext<FileManagerContext>(FileManagerContextName);
 

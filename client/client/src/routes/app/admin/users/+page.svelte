@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { getContext, onMount, type Snippet } from 'svelte';
 	import { type AdminContext, AdminContextName } from '../+layout.svelte';
-	import { Input, Button } from '@rizzzi/svelte-commons';
 	import { writable, type Writable } from 'svelte/store';
 	import { getConnection } from '$lib/client/client';
 	import User from '$lib/client/user.svelte';
@@ -9,6 +8,8 @@
 	import UserOptions from './user-options.svelte';
 	import type { UserResource } from '@rizzzi/enderdrive-lib/server';
 	import SuspendConfirmation from './suspend-confirmation.svelte';
+	import Input from '$lib/widgets/input.svelte';
+	import Button from '$lib/widgets/button.svelte';
 
 	const { setMainContent, pushTopContent } = getContext<AdminContext>(AdminContextName);
 	const {

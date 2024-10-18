@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Button, LoadingSpinner, viewMode, ViewMode } from '@rizzzi/svelte-commons';
 	import { getContext, type Snippet } from 'svelte';
 	import {
 		FileManagerContextName,
@@ -10,6 +9,9 @@
 	} from './file-manager.svelte';
 	import FileManagerSeparator from './file-manager-separator.svelte';
 	import { getConnection } from '$lib/client/client';
+	import { ViewMode, viewMode } from '$lib/responsive-layout.svelte';
+	import LoadingSpinner from '$lib/widgets/loading-spinner.svelte';
+	import Button from '$lib/widgets/button.svelte';
 
 	const { onFileId } = getContext<FileManagerProps>(FileManagerPropsName);
 	const { resolved, addressBarMenu } = getContext<FileManagerContext>(FileManagerContextName);
@@ -74,6 +76,7 @@
 									await getFile(file.parentFileId)
 								];
 							}}
+							aria-label="Address-bar entry"
 						>
 							<i class="fa-solid fa-chevron-right"></i>
 						</button>

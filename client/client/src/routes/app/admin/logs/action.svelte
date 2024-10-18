@@ -2,8 +2,8 @@
 	import { goto } from '$app/navigation';
 	import { getConnection } from '$lib/client/client';
 	import User from '$lib/client/user.svelte';
+	import LoadingSpinner from '$lib/widgets/loading-spinner.svelte';
 	import type { FileLogResource } from '@rizzzi/enderdrive-lib/server';
-	import { LoadingSpinner } from '@rizzzi/svelte-commons';
 	import type { Snippet } from 'svelte';
 
 	const {

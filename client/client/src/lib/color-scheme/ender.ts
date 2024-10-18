@@ -1,4 +1,4 @@
-import { type ColorValues } from '@rizzzi/svelte-commons';
+import type { ColorValues } from "$lib/color-scheme.svelte";
 
 export const colors = (): ColorValues => ({
   'primary': 0x0f3031ff,

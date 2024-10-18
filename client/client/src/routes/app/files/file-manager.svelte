@@ -120,15 +120,6 @@
 </script>
 
 <script lang="ts">
-	import {
-		Awaiter,
-		Banner,
-		LoadingSpinner,
-		Title,
-		ViewMode,
-		viewMode
-	} from '@rizzzi/svelte-commons';
-
 	import { getConnection } from '$lib/client/client';
 	import { persisted } from 'svelte-persisted-store';
 	import FileManagerActionBar, { type FileManagerAction } from './file-manager-action-bar.svelte';
@@ -143,6 +134,11 @@
 	import FileManagerAccessDialog from './file-manager-access-dialog.svelte';
 	import FileManagerDetailsDialog from './file-manager-details-dialog.svelte';
 	import FileManagerAddressBarMenu from './file-manager-address-bar-menu.svelte';
+	import Awaiter from '$lib/awaiter.svelte';
+	import { viewMode, ViewMode } from '$lib/responsive-layout.svelte';
+	import Banner from '$lib/widgets/banner.svelte';
+	import LoadingSpinner from '$lib/widgets/loading-spinner.svelte';
+	import Title from '$lib/widgets/title.svelte';
 
 	const { ...props }: FileManagerProps = $props();
 	const { refresh, sort } = props;

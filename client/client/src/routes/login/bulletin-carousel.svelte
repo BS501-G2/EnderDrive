@@ -1,13 +1,12 @@
 <script lang="ts">
 	import { getConnection } from '$lib/client/client';
-	import type { News } from '@rizzzi/enderdrive-lib/server';
-	import { LoadingSpinner } from '@rizzzi/svelte-commons';
 	import BulletinNews from './bulletin-news.svelte';
-	import { writable, type Writable } from 'svelte/store';
+	import { type Writable } from 'svelte/store';
 	import { tweened } from 'svelte/motion';
-	import { onDestroy, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import { range } from '$lib/range';
 	import { quadInOut } from 'svelte/easing';
+	import LoadingSpinner from '$lib/widgets/loading-spinner.svelte';
 
 	const { currentIndex, count }: { currentIndex: Writable<number>; count: number } = $props();
 	const {

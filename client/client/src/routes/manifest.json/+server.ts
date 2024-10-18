@@ -1,8 +1,8 @@
 import { json } from '@sveltejs/kit';
 import { getString } from '$lib/locale.svelte';
 import { _sizes } from '../favicon.svg/+server';
-import { getColorHex } from '@rizzzi/svelte-commons';
 import { LocaleKey, LocaleType } from '$lib/locale';
+import { getColorHex } from '$lib/color-scheme.svelte';
 
 export const prerender = false;
 

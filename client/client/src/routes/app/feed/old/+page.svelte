@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { LoadingSpinner, Title } from '@rizzzi/svelte-commons';
 	import { MoreVerticalIcon } from 'svelte-feather-icons';
 	import { ShareIcon } from 'svelte-feather-icons';
 	import { StarIcon } from 'svelte-feather-icons';
@@ -9,6 +8,8 @@
 	import { getConnection } from '$lib/client/client';
 	import { FileManagerViewMode } from '../../files/file-manager-folder-list';
 	import { goto } from '$app/navigation';
+	import Title from '$lib/widgets/title.svelte';
+	import LoadingSpinner from '$lib/widgets/loading-spinner.svelte';
 
 	const { setMainContent } = getContext<DashboardContext>(DashboardContextName);
 

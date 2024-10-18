@@ -5,7 +5,7 @@
 	import type { Snippet } from 'svelte';
 	import { derived } from 'svelte/store';
 	import FileView from './file-view.svelte';
-	import { LoadingSpinnerPage } from '@rizzzi/svelte-commons';
+	import LoadingSpinnerPage from '$lib/widgets/loading-spinner-page.svelte';
 
 	const { children }: { children: Snippet } = $props();
 	const fileId = derived(page, ({ url: { searchParams } }) => {

@@ -1,6 +1,7 @@
 <script lang="ts">
+	import Button from '$lib/widgets/button.svelte';
+	import Dialog from '$lib/widgets/dialog.svelte';
   import type { UserResource } from '@rizzzi/enderdrive-lib/server';
-  import { Button, Dialog } from '@rizzzi/svelte-commons';
 
   const {
     user,

@@ -12,7 +12,6 @@
 </script>
 
 <script lang="ts">
-	import { LoadingSpinner, ViewMode, viewMode } from '@rizzzi/svelte-commons';
 	import FileManagerSeparator from './file-manager-separator.svelte';
 	import { getContext, onMount } from 'svelte';
 	import {
@@ -26,6 +25,8 @@
 	import { getConnection } from '$lib/client/client';
 	import { deleteConfirm } from './file-manager-delete-confirm.svelte';
 	import { openDetails } from './file-manager-details-dialog.svelte';
+	import { ViewMode, viewMode } from '$lib/responsive-layout.svelte';
+	import LoadingSpinner from '$lib/widgets/loading-spinner.svelte';
 
 	const props = getContext<FileManagerProps>(FileManagerPropsName);
 	const { refresh } = props;

@@ -1,5 +1,6 @@
 <script>
-  import { viewMode, ViewMode } from '@rizzzi/svelte-commons';
+	import { ViewMode, viewMode } from "$lib/responsive-layout.svelte";
+
 </script>
 
 <div
@@ -157,7 +158,7 @@
       background-color: #86c24fff;
       opacity: 0.5;
       margin: 20px auto;
-      width: 75%; 
+      width: 75%;
     }
   div.secondGrid-Container{
     display:grid;

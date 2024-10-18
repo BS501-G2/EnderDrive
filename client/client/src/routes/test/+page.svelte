@@ -1,14 +1,10 @@
 <script lang="ts">
-  import {
-    Button,
-    LoadingSpinner,
-    type ButtonCallback,
-    Dialog
-  } from '@rizzzi/svelte-commons';
   import { writable, type Writable } from 'svelte/store';
   import { testFunctions } from './test-functions';
   import { getConnection } from '$lib/client/client'
-  import { viewMode, ViewMode } from '@rizzzi/svelte-commons'
+	import Button, { type ButtonCallback } from '$lib/widgets/button.svelte';
+	import LoadingSpinner from '$lib/widgets/loading-spinner.svelte';
+	import Dialog from '$lib/widgets/dialog.svelte';
 
   const returnedData: Writable<any> = writable(null);
   const messages: Writable<any[]> = writable([]);

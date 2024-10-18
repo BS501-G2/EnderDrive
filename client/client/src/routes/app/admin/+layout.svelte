@@ -14,7 +14,7 @@
 	import { getContext, onMount, setContext, type Snippet } from 'svelte';
 	import { DashboardContextName, type DashboardContext } from '../dashboard';
 	import Navigation from './navigation.svelte';
-	import { Title } from '@rizzzi/svelte-commons';
+	import Title from '$lib/widgets/title.svelte';
 
 	const { setMainContent } = getContext<DashboardContext>(DashboardContextName);
 	const { children }: { children: Snippet } = $props();

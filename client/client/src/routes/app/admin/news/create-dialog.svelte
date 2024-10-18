@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { getConnection } from '$lib/client/client';
 	import Icon from '$lib/ui/icon.svelte';
-	import { Button, Dialog, Input } from '@rizzzi/svelte-commons';
+	import Button from '$lib/widgets/button.svelte';
+	import Dialog from '$lib/widgets/dialog.svelte';
+	import Input from '$lib/widgets/input.svelte';
 	import type { Readable } from 'svelte/motion';
 	import { derived, writable, type Writable } from 'svelte/store';
 
