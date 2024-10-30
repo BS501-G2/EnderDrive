@@ -1,1 +1,4 @@
-export type UserAuthenticationType = 'password' | 'session';
+export enum UserAuthenticationType {
+  Password,
+  Session,
+}

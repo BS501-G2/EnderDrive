@@ -11,6 +11,7 @@ using System;
 using Commons.Collections;
 using Commons.Services;
 using Core;
+using RizzziGit.EnderDrive.Utilities;
 
 public sealed class KeyGeneratorParams
 {
@@ -18,7 +19,7 @@ public sealed class KeyGeneratorParams
     public required WaitQueue<Aes> SymmetricKeys;
 }
 
-public sealed class KeyManager(Server server) : Service2<KeyGeneratorParams>("Key Manager", server)
+public sealed class KeyManager(Server server) : Service<KeyGeneratorParams>("Key Manager", server)
 {
     private static async Task RunAsymmetricKeyGenerator(
         WaitQueue<RSA> queue,
@@ -54,7 +55,10 @@ public sealed class KeyManager(Server server) : Service2<KeyGeneratorParams>("Ke
         }
     }
 
-    protected override Task<KeyGeneratorParams> OnStart(CancellationToken cancellationToken)
+    protected override Task<KeyGeneratorParams> OnStart(
+        CancellationToken startupCancellationToken,
+        CancellationToken serviceCancellationToken
+    )
     {
         WaitQueue<RSA> asymmetricKeys = new(1000);
         WaitQueue<Aes> symmetricKeys = new(1000);

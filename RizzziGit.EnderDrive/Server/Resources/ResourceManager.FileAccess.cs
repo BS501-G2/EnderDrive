@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 namespace RizzziGit.EnderDrive.Server.Resources;
 
 using System;
+using MongoDB.Bson.Serialization.Attributes;
 using Services;
 
 public enum FileAccessLevel
@@ -36,9 +37,11 @@ public record class FileAccess : ResourceData
     public required ObjectId FileId;
     public required FileTargetEntity? TargetEntity;
 
+    [BsonIgnore]
     [JsonIgnore]
     public required byte[] EncryptedAesKey;
 
+    [BsonIgnore]
     [JsonIgnore]
     public required byte[] AesIv;
 

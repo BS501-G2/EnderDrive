@@ -6,8 +6,8 @@
 	import { getContext, onMount } from 'svelte';
 	import { type DashboardContext, DashboardContextName } from './dashboard';
 	import type { UserResource } from '@rizzzi/enderdrive-lib/server';
-	import { serializeUserRole } from '@rizzzi/enderdrive-lib/shared';
 	import { ViewMode, viewMode } from '$lib/responsive-layout.svelte';
+	import { UserRole } from '@rizzzi/enderdrive-lib/shared';
 
 	const { isWidthLimited } = getContext<DashboardContext>(DashboardContextName);
 
@@ -110,7 +110,7 @@
 
 		{#if $viewMode & ViewMode.Desktop}
 			{#await (userPromise ??= whoAmI()) then user}
-				{#if user != null && user.role >= serializeUserRole('SiteAdmin')}
+				{#if user != null && user.role >= UserRole.SiteAdmin}
 					{@render navigationButton(
 						'Admin',
 						(selected) => `fa-${selected ? 'solid' : 'regular'} fa-user-shield`,

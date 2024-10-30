@@ -10,7 +10,8 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 using Commons.Collections;
 using Commons.Logging;
 using Commons.Services;
-using RizzziGit.EnderDrive.Utilities;
+using RizzziGit.Commons.Utilities;
+using Utilities;
 
 public sealed partial class ResourceManager
 {
@@ -82,7 +83,7 @@ public sealed partial class ResourceManager
         Logger transactionLogger = new($"Transaction #{transactionId}");
         try
         {
-            ((IService2)this).Logger.Subscribe(transactionLogger);
+            ((IService)this).Logger.Subscribe(transactionLogger);
 
             try
             {
@@ -102,7 +103,7 @@ public sealed partial class ResourceManager
         }
         finally
         {
-            ((IService2)this).Logger.Unsubscribe(transactionLogger);
+            ((IService)this).Logger.Unsubscribe(transactionLogger);
         }
     }
 

@@ -1,9 +1,5 @@
 <script lang="ts" module>
-	import {
-		serializeFileAccessLevel,
-		deserializeFileAccessLevel,
-		type FileAccessLevel
-	} from '@rizzzi/enderdrive-lib/shared';
+	import { FileAccessLevel } from '@rizzzi/enderdrive-lib/shared';
 
 	import { getConnection } from '$lib/client/client';
 	import type {
@@ -129,7 +125,7 @@
 							<div class="user-row">
 								<Button
 									onClick={async () => {
-										await setUserAccess(file.id, user.id, 'Read');
+										await setUserAccess(file.id, user.id, FileAccessLevel.Read);
 										$search = '';
 										refreshKey++;
 									}}
@@ -167,26 +163,25 @@
 		<div class="user-access">
 			{#if access != null}
 				{#await getMyAccess(access.fileId) then { level }}
-					{#if serializeFileAccessLevel(level) >= serializeFileAccessLevel('Manage')}
+					{#if level >= FileAccessLevel.Manage}
 						<select
 							onchange={async ({ currentTarget: { value } }) => {
-								const level: FileAccessLevel = value as FileAccessLevel;
+								const level: FileAccessLevel = Number(value) as FileAccessLevel;
 
 								await setUserAccess(file.id, user.id, level);
 								refreshKey++;
 							}}
 						>
-							{@render option('Read')}
-							{@render option('ReadWrite')}
-							{@render option('Manage')}
-							{@render option('Full')}
+							{@render option(FileAccessLevel.Read)}
+							{@render option(FileAccessLevel.ReadWrite)}
+							{@render option(FileAccessLevel.Manage)}
 						</select>
 
 						<Button
 							buttonClass="transparent"
 							outline={false}
 							onClick={async () => {
-								await setUserAccess(file.id, user.id, 'None');
+								await setUserAccess(file.id, user.id, FileAccessLevel.None);
 								refreshKey++;
 							}}
 							container={actionIconContainer}
@@ -194,7 +189,7 @@
 							<Icon icon="x" thickness="solid"></Icon>
 						</Button>
 					{:else}
-						<p><i>{deserializeFileAccessLevel(access.level)}</i></p>
+						<p><i>{access.level}</i></p>
 					{/if}
 				{/await}
 			{:else}
@@ -202,8 +197,8 @@
 			{/if}
 
 			{#snippet option(level: FileAccessLevel)}
-				<option value={level} selected={serializeFileAccessLevel(level) === access?.level}>
-					{level}
+				<option value={level} selected={level === access?.level}>
+					{FileAccessLevel[level]}
 				</option>
 			{/snippet}
 		</div>

@@ -11,6 +11,7 @@ using ClamAV.Net.Client.Results;
 namespace RizzziGit.EnderDrive.Server.Services;
 
 using System.Collections.Generic;
+using System.Runtime.ExceptionServices;
 using Commons.Collections;
 using Commons.Services;
 using Core;
@@ -30,9 +31,12 @@ public sealed class VirusScannerParams
 }
 
 public sealed partial class VirusScanner(Server server, string unixSocketPath)
-    : Service2<VirusScannerParams>("Virus Scanner", server)
+    : Service<VirusScannerParams>("Virus Scanner", server)
 {
-    protected override async Task<VirusScannerParams> OnStart(CancellationToken cancellationToken)
+    protected override async Task<VirusScannerParams> OnStart(
+        CancellationToken cancellationToken,
+        CancellationToken a
+    )
     {
         IPEndPoint ipEndPoint = new(IPAddress.Loopback, Random.Shared.Next(1025, 65535));
         TcpForwarder tcpForwarder = new(this, ipEndPoint, unixSocketPath);
@@ -102,7 +106,7 @@ public sealed partial class VirusScanner(Server server, string unixSocketPath)
         await Task.WhenAll([RunScanQueue(cancellationToken),]);
     }
 
-    protected override Task OnStop(VirusScannerParams data, Exception? exception)
+    protected override Task OnStop(VirusScannerParams data, ExceptionDispatchInfo? exception)
     {
         Context.Client.Dispose();
         return Task.CompletedTask;

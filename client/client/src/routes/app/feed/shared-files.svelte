@@ -4,7 +4,7 @@
 	import Icon from '$lib/ui/icon.svelte';
 	import type { FileAccessResource } from '@rizzzi/enderdrive-lib/server';
 	import FileManagerFileEntry from '../files/file-manager-file-entry.svelte';
-	import { FileManagerViewMode } from '../files/file-manager-folder-list';
+	import { FileManagerViewMode } from '../files/file-manager';
 	import { getConnection } from '$lib/client/client';
 	import LoadingSpinner from '$lib/widgets/loading-spinner.svelte';
 	import Button from '$lib/widgets/button.svelte';
@@ -114,6 +114,17 @@
 				border-radius: 8px;
 
 				> div.sharer {
+					display: flex;
+					flex-direction: row;
+
+					> p {
+						display: flex;
+						flex-direction: row;
+
+						align-items: center;
+
+						gap: 4px;
+					}
 				}
 
 				> div.entries {

@@ -1,17 +1,13 @@
 import { Knex } from "knex";
 import { Database } from "../database.js";
 import { ResourceManager, Resource } from "../resource.js";
-import {
-  deserializeFileAccessLevel,
-  FileAccessLevel,
-  serializeFileAccessLevel,
-} from "../../shared/db/file-access.js";
 import { FileManager, UnlockedFileResource } from "./file.js";
 import { UserManager, UserResource } from "./user.js";
 import {
   UnlockedUserAuthentication,
   UserAuthenticationManager,
 } from "./user-authentication.js";
+import { FileAccessLevel } from "../../shared/db/file-access.js";
 
 export interface FileAccessResource
   extends Resource<FileAccessResource, FileAccessManager> {
@@ -81,7 +77,7 @@ export class FileAccessManager extends ResourceManager<
     const fileAccess = await this.insert({
       fileId: unlockedFile.id,
       userId: targetUser.id,
-      level: serializeFileAccessLevel(level),
+      level,
       encryptedKey: userKeys.encrypt(userKey, fileKey),
       granterUserId: granterUser.id,
     });
@@ -111,7 +107,7 @@ export class FileAccessManager extends ResourceManager<
     user: UserResource
   ): Promise<FileAccessLevel> {
     if (file.ownerUserId === user.id) {
-      return "Full";
+      return FileAccessLevel.Full;
     }
 
     const fileAccess = await this.first({
@@ -121,7 +117,7 @@ export class FileAccessManager extends ResourceManager<
       ],
     });
 
-    return deserializeFileAccessLevel(fileAccess?.level ?? 0);
+    return fileAccess?.level ?? 0;
   }
 
   public async setUserAccess<T extends FileAccessLevel>(
@@ -145,7 +141,7 @@ export class FileAccessManager extends ResourceManager<
       await this.delete(targetFileAccess);
     }
 
-    if (serializeFileAccessLevel(level) > serializeFileAccessLevel("None")) {
+    if (level > FileAccessLevel.None) {
       await this.create(file, targetUser, level, granterUser);
     }
   }

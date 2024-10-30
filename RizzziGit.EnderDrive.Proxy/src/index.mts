@@ -12,31 +12,24 @@ export async function main() {
   });
 
   externalHttpServer.on("request", (request, response) => {
+    console.log(request.url);
+
     if (request.url == null || request.url == "/ws") {
       return;
     }
 
-    HTTP.request(
+    const internalRequest = HTTP.request(
       new URL(`http://localhost:8082${request.url}`),
-      request,
+      {
+        method: request.method,
+        headers: request.headers,
+      },
       (internalResponse) => {
-        response.statusCode = internalResponse.statusCode ?? 200;
-
-        if (internalResponse.headers) {
-          for (const [key, value] of Object.entries(internalResponse.headers)) {
-            if (Array.isArray(value)) {
-              for (const v of value) {
-                response.setHeader(key, v);
-              }
-            } else if (typeof value === "string") {
-              response.setHeader(key, value);
-            }
-          }
-        }
-
         internalResponse.pipe(response);
       }
     );
+
+    request.pipe(internalRequest);
   });
 
   externalWebSocketServer.on("connection", (externalSocket) => {
@@ -47,44 +40,46 @@ export async function main() {
     let webSocketConnected = true;
     let socketConnected = true;
 
-    internalWebSocket.onclose = (event) => {
+    internalWebSocket.onclose = () => {
+      console.log("Internal WebSocket connection has been closed.");
       webSocketConnected = false;
 
       if (socketConnected) {
+        console.log("Closing External WebSocket...");
         externalSocket.disconnect(true);
       }
     };
 
     externalSocket.once("disconnect", () => {
+      console.log("External WebSocket connection has been closed.");
       socketConnected = false;
 
       if (webSocketConnected) {
+        console.log("Closing Internal WebSocket...");
         internalWebSocket.close();
       }
     });
 
     internalWebSocket.onmessage = (event) => {
       const data: Uint8Array = new Uint8Array(event.data);
-
-      externalSocket.emit("message", {
+      const packet = {
         type: data[0],
-        packet: BSON.deserialize(data.slice(1)).Packet,
-      });
+        packet: BSON.deserialize(data.slice(1)),
+      };
+
+      console.log("<-", packet);
+      externalSocket.emit("message", packet);
     };
 
-    externalSocket.on("message", (message: { type: number; packet: any }) =>
+    externalSocket.on("message", (message: { type: number; packet: any }) => {
+      console.log("->", message);
+
       internalWebSocket.send(
         new Uint8Array(
-          concat(
-            new Uint8Array([message.type]),
-            BSON.serialize({
-              Signature: "RizzziGit HybridWebSocketPacket2",
-              Packet: BSON.serialize(message.packet),
-            })
-          )
+          concat(new Uint8Array([message.type]), BSON.serialize(message.packet))
         )
-      )
-    );
+      );
+    });
   });
 
   externalHttpServer.listen(8083);

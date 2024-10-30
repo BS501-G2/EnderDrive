@@ -1,6 +1,6 @@
 import { ClientConnection } from '@rizzzi/enderdrive-lib/client';
 import { get, writable, derived, type Writable } from 'svelte/store';
-import { type Authentication } from '@rizzzi/enderdrive-lib/shared';
+import { UserAuthenticationType, type Authentication } from '@rizzzi/enderdrive-lib/shared';
 import { persisted } from 'svelte-persisted-store';
 import { Buffer } from 'buffer';
 
@@ -40,7 +40,7 @@ export async function authenticateWithPassword(username: string, password: strin
 
 	const result = await authenticate(
 		['username', username],
-		'password',
+		UserAuthenticationType.Password,
 		Buffer.from(password, 'utf-8') as unknown as Uint8Array
 	);
 

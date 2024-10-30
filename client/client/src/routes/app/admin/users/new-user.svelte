@@ -18,6 +18,7 @@
 	import Button from '$lib/widgets/button.svelte';
 	import Dialog from '$lib/widgets/dialog.svelte';
 	import Input from '$lib/widgets/input.svelte';
+	import { UserRole } from '@rizzzi/enderdrive-lib/shared';
 	import { writable, type Writable } from 'svelte/store';
 
 	const { onDismiss }: { onDismiss: () => void } = $props();
@@ -60,7 +61,7 @@
 							$middleName || null,
 							$lastName,
 							$password,
-							'Member'
+							UserRole.Member
 						);
 
 						await goto(`/app/users?id=@${user.username}`);

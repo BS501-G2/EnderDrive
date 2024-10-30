@@ -26,7 +26,11 @@ public sealed class MainResourceManagerContext
     public required RandomNumberGenerator RandomNumberGenerator;
 }
 
-public sealed class Resource<D>(Func<D> getData, Func<ResourceTransaction, Task> update, Func<ResourceTransaction, Task> reset)
+public sealed class Resource<D>(
+    Func<D> getData,
+    Func<ResourceTransaction, Task> update,
+    Func<ResourceTransaction, Task> reset
+)
     where D : ResourceData
 {
     public static implicit operator D(Resource<D> resource) => resource.Data;
@@ -44,7 +48,7 @@ public sealed class Resource<D>(Func<D> getData, Func<ResourceTransaction, Task>
 }
 
 public sealed partial class ResourceManager(Server server)
-    : Service2<MainResourceManagerContext>("Resource Manager", server)
+    : Service<MainResourceManagerContext>("Resource Manager", server)
 {
     private IMongoClient Client => Context.Client;
     private IMongoDatabase Database => Client.GetDatabase("EnderDrive");
@@ -55,7 +59,8 @@ public sealed partial class ResourceManager(Server server)
     private KeyManager KeyManager => server.KeyManager;
 
     protected override async Task<MainResourceManagerContext> OnStart(
-        CancellationToken cancellationToken
+        CancellationToken startupCancellationToken,
+        CancellationToken serviceCancellationToken
     )
     {
         ILoggerFactory loggerFactory = LoggerFactory.Create(
@@ -76,7 +81,7 @@ public sealed partial class ResourceManager(Server server)
 
         if (Environment.GetCommandLineArgs().Contains("--delete-db"))
         {
-            await client.DropDatabaseAsync("EnderDrive", cancellationToken);
+            await client.DropDatabaseAsync("EnderDrive", startupCancellationToken);
         }
 
         return new()

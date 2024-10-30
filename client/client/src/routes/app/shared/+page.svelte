@@ -2,18 +2,19 @@
 	import { getContext, onMount } from 'svelte';
 	import { writable, type Writable } from 'svelte/store';
 	import { DashboardContextName, type DashboardContext } from '../dashboard';
-	import FileManager, {
-		type FileManagerOnPageCallback,
-		type FileManagerOnFileIdCallback
-	} from '../files/file-manager.svelte';
 	import { goto } from '$app/navigation';
-	import type { ScanFolderSortType } from '@rizzzi/enderdrive-lib/shared';
+	import { ScanFolderSortType } from '@rizzzi/enderdrive-lib/shared';
 	import Title from '$lib/widgets/title.svelte';
+	import type {
+		FileManagerOnFileIdCallback,
+		FileManagerOnPageCallback
+	} from '../files/file-manager';
+	import FileManager from '../files/file-manager.svelte';
 
 	const { setMainContent } = getContext<DashboardContext>(DashboardContextName);
 
 	const refresh: Writable<() => void> = writable(null as never);
-	const sort: Writable<ScanFolderSortType> = writable('fileName' as ScanFolderSortType);
+	const sort: Writable<[sort: ScanFolderSortType, desc: boolean]> = writable([ScanFolderSortType.FileName, false]);
 
 	const onPage: FileManagerOnPageCallback = (...[, page]) => {
 		goto(`/app/${page}`);
@@ -29,5 +30,8 @@
 <Title title="Shared Files" />
 
 {#snippet layout()}
-	<FileManager page="shared" {onPage} {onFileId} {refresh} {sort} />
+	<FileManager page="shared" {onPage} {onFileId} {refresh} {sort}
+		onSort={(event, column, desc) => {
+			$sort = [column, desc];
+		}}/>
 {/snippet}

@@ -1,8 +1,14 @@
-export type AuthenticationType = "password" | "token";
+export enum AuthenticationType {
+  Password,
+  Token,
+}
 
 export type AuthenticationPayload = [type: "password", password: string];
 
-export type ScanFolderSortType = "fileName" | "dateModified" | "contentSize";
+export enum ScanFolderSortType {
+  FileName, DateModified, ContentSize
+}
+
 
 export type FileThumbnailerStatusType =
   | "inQueue"
@@ -28,13 +34,14 @@ export type UserResolvePayload =
   | [type: "userId", id: number]
   | [type: "username", username: string];
 
-export type ApiErrorType =
-  | "Unknown"
-  | "InvalidRequest"
-  | "Unauthorized"
-  | "Forbidden"
-  | "Conflict"
-  | "NotFound";
+export enum ApiErrorType {
+  Unknown,
+  InvalidRequest,
+  Unauthorized,
+  Forbidden,
+  Conflict,
+  NotFound,
+}
 
 export class ApiError extends Error {
   public static throw(
@@ -50,7 +57,7 @@ export class ApiError extends Error {
 
   public static throwFrom(
     error: Error,
-    status: ApiErrorType = "Unknown",
+    status: ApiErrorType = ApiErrorType.Unknown,
     message?: string
   ): never {
     return ApiError.throw(status, message, {
@@ -65,7 +72,9 @@ export class ApiError extends Error {
     { stack, cause }: ApiErrorOptions = {}
   ) {
     super(
-      `${message} (code ${status}${message == status ? "" : ` ${status}`})`,
+      `${message} (code ${status}${
+        message == ApiErrorType[status] ? "" : ` ${ApiErrorType[status]}`
+      })`,
       { cause }
     );
 

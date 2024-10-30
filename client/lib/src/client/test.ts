@@ -1,5 +1,5 @@
 import { ClientConnection } from "../client.js";
-import { Authentication, fileBufferSize } from "../shared.js";
+import { Authentication, fileBufferSize, UserAuthenticationType } from "../shared.js";
 import FS from "fs";
 
 let currentAuthentication: Authentication | null = null;
@@ -26,7 +26,7 @@ export const testFunctions: Record<string, () => void> = {
 
     await authenticate(
       ["username", "testuser"],
-      "password",
+      UserAuthenticationType.Password,
       Buffer.from("testuser123;", "utf-8") as Uint8Array
     );
 

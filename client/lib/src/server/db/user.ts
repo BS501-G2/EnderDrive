@@ -2,7 +2,6 @@ import type { Knex } from "knex";
 import {
   UserRole,
   UsernameVerificationFlag,
-  serializeUserRole,
   usernameLength,
   usernameValidCharacters,
 } from "../../shared/db/user.js";
@@ -94,7 +93,7 @@ export class UserManager extends ResourceManager<UserResource, UserManager> {
     middleName: string | null,
     lastName: string,
     password: string = this.generateRandomPassword(16),
-    role: UserRole = 'Member'
+    role: UserRole = UserRole.Member
   ): Promise<
     [
       user: UserResource,
@@ -111,7 +110,7 @@ export class UserManager extends ResourceManager<UserResource, UserManager> {
       firstName,
       middleName,
       lastName,
-      role:  serializeUserRole(role),
+      role,
       isSuspended: false,
     });
 
@@ -119,7 +118,7 @@ export class UserManager extends ResourceManager<UserResource, UserManager> {
 
     const userKey = await userKeyManager.create(
       user,
-      'password',
+      UserAuthenticationType.Password,
       new TextEncoder().encode(password)
     );
 

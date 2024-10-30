@@ -7,15 +7,15 @@
 		FileResource,
 		UserResource
 	} from '@rizzzi/enderdrive-lib/server';
-	import { byteUnit, deserializeFileAccessLevel } from '@rizzzi/enderdrive-lib/shared';
+	import { byteUnit, FileAccessLevel, FileType } from '@rizzzi/enderdrive-lib/shared';
 	import { getContext, onMount, type Snippet } from 'svelte';
-	import { type FileManagerContext, FileManagerContextName } from './file-manager.svelte';
 	import Action from '../admin/logs/action.svelte';
 	import Awaiter from '$lib/awaiter.svelte';
 	import { viewMode, ViewMode } from '$lib/responsive-layout.svelte';
 	import Button from '$lib/widgets/button.svelte';
 	import Dialog from '$lib/widgets/dialog.svelte';
 	import LoadingSpinner from '$lib/widgets/loading-spinner.svelte';
+	import { type FileManagerContext, FileManagerContextName } from './file-manager';
 
 	const { accessDialogs } = getContext<FileManagerContext>(FileManagerContextName);
 
@@ -95,12 +95,12 @@
 			return logs;
 		})();
 
-		if (file.type === 'file') {
+		if (file.type === FileType.File) {
 			const size = await getFileSize(file.id);
 			const mime = await getFileMime(file.id);
 
 			return { file, type: 'file', size, time, accesses, owner, creator, mime, logs };
-		} else if (file.type === 'folder') {
+		} else if (file.type === FileType.Folder) {
 			return { file, type: 'folder', time, accesses, owner, creator, logs };
 		}
 
@@ -187,7 +187,7 @@
 		{#each data.accesses as access}
 			<p>
 				<i class="fa-solid fa-user"></i>
-				<User user={access[1]} hyperlink /> has {deserializeFileAccessLevel(access[0].level)} access
+				<User user={access[1]} hyperlink /> has {FileAccessLevel[access[0].level]} access
 			</p>
 		{/each}
 	</div>

@@ -95,6 +95,9 @@
 
 		padding: 16px;
 		gap: 16px;
+
+		min-height: 100vh;
+		max-height: 100vh;
 	}
 
 	div.container.mobile {

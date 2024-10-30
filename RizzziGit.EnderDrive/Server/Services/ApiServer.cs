@@ -10,27 +10,32 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace RizzziGit.EnderDrive.Server.API;
+namespace RizzziGit.EnderDrive.Server.Services;
 
+using System.Runtime.ExceptionServices;
 using Commons.Memory;
 using Commons.Services;
 using Core;
+using RizzziGit.EnderDrive.Utilities;
 using Services;
 
 public sealed partial class ApiServerParams
 {
     public required WebApplication WebApplication;
     public required SessionManager SessionManager;
-    public required SocketIoBridge SocketIoBridge;
+    // public required SocketIoBridge SocketIoBridge;
 }
 
 public sealed partial class ApiServer(Server server, int httpPort, int httpsPort)
-    : Service2<ApiServerParams>("API", server)
+    : Service<ApiServerParams>("API", server)
 {
-    protected override async Task<ApiServerParams> OnStart(CancellationToken cancellationToken)
+    protected override async Task<ApiServerParams> OnStart(
+        CancellationToken startupCancellationToken,
+        CancellationToken serviceCancellationToken
+    )
     {
         SessionManager sessionManager = new(this);
-        SocketIoBridge socketIoBridge = new(this);
+        // SocketIoBridge socketIoBridge = new(this);
 
         WebApplicationBuilder builder = WebApplication.CreateBuilder();
 
@@ -65,68 +70,79 @@ public sealed partial class ApiServer(Server server, int httpPort, int httpsPort
 
         app.UseWebSockets(new() { KeepAliveInterval = TimeSpan.FromMinutes(2) });
 
-        await StartServices([sessionManager, socketIoBridge], cancellationToken);
-        app.Use((HttpContext context, Func<Task> next) => Handle(context, cancellationToken));
+        await StartServices(
+            [
+                sessionManager,
+                //socketIoBridge
+            ],
+            startupCancellationToken
+        );
+        app.Use((HttpContext context, Func<Task> _) => Handle(context, serviceCancellationToken));
 
-        await app.StartAsync(cancellationToken);
+        await app.StartAsync(startupCancellationToken);
 
         return new()
         {
             WebApplication = app,
             SessionManager = sessionManager,
-            SocketIoBridge = socketIoBridge
+            // SocketIoBridge = socketIoBridge
         };
     }
 
     protected override async Task OnRun(ApiServerParams data, CancellationToken cancellationToken)
     {
         await await Task.WhenAny(
-            WatchService(Context.SocketIoBridge, cancellationToken),
+            // WatchService(Context.SocketIoBridge, cancellationToken),
             WatchService(Context.SessionManager, cancellationToken)
         );
     }
 
-    protected override async Task OnStop(ApiServerParams data, Exception? exception)
+    protected override async Task OnStop(ApiServerParams data, ExceptionDispatchInfo? exception)
     {
         await Context.WebApplication.StopAsync(CancellationToken.None);
 
-        await StopServices(Context.SocketIoBridge, Context.SessionManager);
+        // await StopServices(Context.SocketIoBridge, Context.SessionManager);
     }
 
     private async Task Handle(HttpContext context, CancellationToken cancellationToken)
     {
-        if (context.WebSockets.IsWebSocketRequest && context.Request.Path == "/ws")
+        if (!context.WebSockets.IsWebSocketRequest)
         {
-            HandleWebSocket(await context.WebSockets.AcceptWebSocketAsync(), cancellationToken);
-        }
-        else if ($"{context.Request.Path}".StartsWith("/res"))
-        {
-            await HandleWebRequest(context, cancellationToken);
-        }
-        else
-        {
-            context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+            context.Response.StatusCode = 400;
             await context.Response.CompleteAsync();
+            return;
         }
-    }
 
-    private async void HandleWebSocket(WebSocket webSocket, CancellationToken cancellationToken)
-    {
-        Connection connection = await server.ConnectionManager.Connect(
-            webSocket,
+        await server.ConnectionManager.Push(
+            await context.WebSockets.AcceptWebSocketAsync(),
             cancellationToken
         );
-
-        try
-        {
-            await WatchService(connection, cancellationToken);
-        }
-        catch { }
+        // if (context.WebSockets.IsWebSocketRequest && context.Request.Path == "/ws")
+        // {
+        //     HandleWebSocket(await context.WebSockets.AcceptWebSocketAsync(), cancellationToken);
+        // }
+        // else if ($"{context.Request.Path}".StartsWith("/res"))
+        // {
+        //     await HandleWebRequest(context, cancellationToken);
+        // }
+        // else
+        // {
+        //     context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+        //     await context.Response.CompleteAsync();
+        // }
     }
 
-    private async Task HandleWebRequest(HttpContext context, CancellationToken cancellationToken)
-    {
-        context.Response.StatusCode = (int)HttpStatusCode.NotFound;
-        await context.Response.CompleteAsync();
-    }
+    // private async void HandleWebSocket(WebSocket webSocket, CancellationToken cancellationToken)
+    // {
+    //     Connection connection = await server.ConnectionManager.Connect(
+    //         webSocket,
+    //         cancellationToken
+    //     );
+    // }
+
+    // private async Task HandleWebRequest(HttpContext context, CancellationToken cancellationToken)
+    // {
+    //     context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+    //     await context.Response.CompleteAsync();
+    // }
 }

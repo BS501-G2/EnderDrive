@@ -1,5 +1,6 @@
 import { authenticateWithPassword } from '$lib/client/client';
 import { ClientConnection } from '@rizzzi/enderdrive-lib/client';
+import { UserRole } from '@rizzzi/enderdrive-lib/shared';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type TestFunctions = [string, (log: (data: any) => void) => any | Promise<any>][];
@@ -57,7 +58,7 @@ export const testFunctions = ({
 	[
 		'Create Test User',
 		async () => {
-			const result = await createUser('testtest2', 'Test', 'Test', 'Test', 'test', 'Member');
+			const result = await createUser('testtest2', 'Test', 'Test', 'Test', 'test', UserRole.Member);
 
 			return result;
 		}

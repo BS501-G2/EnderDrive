@@ -8,8 +8,8 @@
 	import { getContext, type Snippet } from 'svelte';
 	import { viewMode, ViewMode } from '$lib/responsive-layout.svelte';
 	import Button from '$lib/widgets/button.svelte';
-	import { titleStack } from '$lib/svelte-commons';
 	import Input from '$lib/widgets/input.svelte';
+	import { titleStack } from '$lib/widgets/title.svelte';
 
 	const { openExtraContextMenuOverlay } = getContext<DashboardContext>(DashboardContextName);
 

@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { getContext, type Snippet } from 'svelte';
-	import {
-		type FileManagerContext,
-		FileManagerContextName,
-		type FileManagerProps,
-		FileManagerPropsName
-	} from './file-manager.svelte';
 	import { fly } from 'svelte/transition';
-	import { FileManagerViewMode } from './file-manager-folder-list';
+	import {
+		FileManagerContextName,
+		FileManagerPropsName,
+		FileManagerViewMode,
+		type FileManagerContext,
+		type FileManagerProps
+	} from './file-manager';
 	import { ViewMode, viewMode } from '$lib/responsive-layout.svelte';
 	import Button from '$lib/widgets/button.svelte';
 	import Overlay from '$lib/widgets/overlay.svelte';

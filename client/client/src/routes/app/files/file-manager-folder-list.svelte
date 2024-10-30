@@ -1,18 +1,15 @@
-<script lang="ts" module>
-	import { type FileManagerSelection, FileManagerViewMode } from './file-manager-folder-list';
-</script>
-
 <script lang="ts">
-	import { getContext } from 'svelte';
-	import { scale } from 'svelte/transition';
 	import {
 		type FileManagerContext,
 		FileManagerContextName,
 		type FileManagerProps,
-		FileManagerPropsName
-	} from './file-manager.svelte';
+		FileManagerPropsName,
+		type FileManagerSelection,
+		FileManagerViewMode
+	} from './file-manager';
+	import { getContext } from 'svelte';
+	import { scale } from 'svelte/transition';
 	import type { FileResource } from '@rizzzi/enderdrive-lib/server';
-	import FileManagerSeparator from './file-manager-separator.svelte';
 	import { writable, type Writable } from 'svelte/store';
 	import FileManagerFileEntry from './file-manager-file-entry.svelte';
 	import { ViewMode, viewMode } from '$lib/responsive-layout.svelte';

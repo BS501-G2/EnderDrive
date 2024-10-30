@@ -4,10 +4,11 @@ using System.Security.Cryptography;
 using System.Threading.Tasks;
 using MongoDB.Bson;
 using Newtonsoft.Json;
+using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Driver;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
-using MongoDB.Driver;
 using Services;
 
 public enum FileType
@@ -24,9 +25,11 @@ public record class File : ResourceData
     public required string Name;
     public required FileType Type;
 
+    [BsonIgnore]
     [JsonIgnore]
     public required byte[] EncryptedAesKey;
 
+    [BsonIgnore]
     [JsonIgnore]
     public required byte[] AesIv;
 

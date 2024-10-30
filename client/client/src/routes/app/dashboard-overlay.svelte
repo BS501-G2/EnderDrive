@@ -3,11 +3,12 @@
 	import DashboardOperations from './dashboard-operations.svelte';
 	import { fly } from 'svelte/transition';
 	import { ViewMode, viewMode } from '$lib/responsive-layout.svelte';
+	import Overlay from '$lib/widgets/overlay.svelte';
 
 	const { children }: { children: Snippet[] } = $props();
 
 	let width: number = $state(0);
-	
+
 </script>
 
 <svelte:window bind:innerWidth={width} />

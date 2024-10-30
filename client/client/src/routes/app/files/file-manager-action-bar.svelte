@@ -1,25 +1,6 @@
-<script lang="ts" module>
-	import { serializeFileAccessLevel } from '@rizzzi/enderdrive-lib/shared';
-
-	export type FileManagerAction = {
-		name: string;
-		icon: string;
-
-		type: 'new' | 'modify' | 'arrange';
-
-		action: (event: MouseEvent) => Promise<void>;
-	};
-</script>
-
 <script lang="ts">
 	import FileManagerSeparator from './file-manager-separator.svelte';
 	import { getContext, onMount } from 'svelte';
-	import {
-		FileManagerContextName,
-		FileManagerPropsName,
-		type FileManagerContext,
-		type FileManagerProps
-	} from './file-manager.svelte';
 	import { writable, type Writable } from 'svelte/store';
 	import { DashboardContextName, type DashboardContext } from '../dashboard';
 	import { getConnection } from '$lib/client/client';
@@ -27,6 +8,14 @@
 	import { openDetails } from './file-manager-details-dialog.svelte';
 	import { ViewMode, viewMode } from '$lib/responsive-layout.svelte';
 	import LoadingSpinner from '$lib/widgets/loading-spinner.svelte';
+	import {
+		type FileManagerAction,
+		type FileManagerProps,
+		FileManagerPropsName,
+		type FileManagerContext,
+		FileManagerContextName
+	} from './file-manager';
+	import { FileAccessLevel } from '@rizzzi/enderdrive-lib/shared';
 
 	const props = getContext<FileManagerProps>(FileManagerPropsName);
 	const { refresh } = props;
@@ -91,10 +80,7 @@
 				props.page === 'files' &&
 				$clipboard == null
 			) {
-				if (
-					$selected.length > 0 &&
-					serializeFileAccessLevel($resolved.myAccess.level) > serializeFileAccessLevel('Read')
-				) {
+				if ($selected.length > 0 && $resolved.myAccess.level > FileAccessLevel.Read) {
 					actions.push({
 						name: 'Copy',
 						icon: 'fa-solid fa-copy',
@@ -107,10 +93,7 @@
 						}
 					});
 
-					if (
-						serializeFileAccessLevel($resolved.myAccess.level) >
-						serializeFileAccessLevel('ReadWrite')
-					) {
+					if ($resolved.myAccess.level > FileAccessLevel.ReadWrite) {
 						actions.push({
 							name: 'Cut',
 							icon: 'fa-solid fa-scissors',
@@ -193,8 +176,7 @@
 				if (
 					$resolved.page === 'files' &&
 					$resolved.type === 'folder' &&
-					serializeFileAccessLevel($resolved.myAccess.level) >=
-						serializeFileAccessLevel('ReadWrite')
+					$resolved.myAccess.level >= FileAccessLevel.ReadWrite
 				) {
 					actions.push({
 						name: 'New',

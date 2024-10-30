@@ -1,7 +1,8 @@
-	<script lang="ts">
+<script lang="ts">
 	import type { FileResource } from '@rizzzi/enderdrive-lib/server';
-	import { FileManagerViewMode } from './file-manager-folder-list';
+	import { FileManagerViewMode } from './file-manager';
 	import FileManagerSeparator from './file-manager-separator.svelte';
+	import { FileType } from '@rizzzi/enderdrive-lib/shared';
 
 	const {
 		listViewMode,
@@ -40,16 +41,16 @@
 	onclick={onClick}
 >
 	<div class="thumbnail grid">
-		{#if file.type === 'folder'}
+		{#if file.type === FileType.Folder}
 			<i class="fa-regular fa-folder"></i>
-		{:else if file.type === 'file'}
+		{:else if file.type === FileType.File}
 			<img src="/favicon.svg" alt="Thumbnail" />
 		{/if}
 	</div>
 
 	<FileManagerSeparator orientation="horizontal" with-margin />
 	<div class="file-info grid">
-		<i class="fa-regular fa-{file.type}"></i>
+		<i class="fa-regular fa-{FileType[file.type].toLowerCase()}"></i>
 		<p>{file.name}</p>
 	</div>
 </button>

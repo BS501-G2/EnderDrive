@@ -1,43 +1,45 @@
-using System;
-using System.Net.WebSockets;
-using System.Threading;
-using System.Threading.Tasks;
+// using System;
+// using System.Net.WebSockets;
+// using System.Threading;
+// using System.Threading.Tasks;
 
-namespace RizzziGit.EnderDrive.Client.API;
+// namespace RizzziGit.EnderDrive.Client.API;
 
-using Commons.Net.HybridWebSocket2;
-using Commons.Services;
+// using Commons.Net.WebConnection;
+// using Commons.Services;
 
-public sealed class ApiClientParams
-{
-    public required HybridWebSocket HybridWebSocket;
-}
+// public sealed class ApiClientParams { }
 
-public sealed class ApiClient(IService2 downstream)
-    : Service2<ApiClientParams>("API Client", downstream)
-{
-    protected override async Task<ApiClientParams> OnStart(CancellationToken cancellationToken)
-    {
-        ClientWebSocket client = new();
-        await client.ConnectAsync(new Uri("ws://localhost:8080"), cancellationToken);
+// public sealed class ApiClient(IService downstream)
+//     : Service<ApiClientParams>("API Client", downstream)
+// {
+//     protected override async Task<ApiClientParams> OnStart(
+//         CancellationToken startupCancellationToken,
+//         CancellationToken serviceCancellationToken
+//     )
+//     {
+//         ClientWebSocket client = new();
+//         await client.ConnectAsync(new Uri("ws://localhost:8080"), startupCancellationToken);
 
-        HybridWebSocket hybridWebSocket = new(client, false, "WebSocket Port", this);
+//         // HybridWebSocket hybridWebSocket = new(client, false, "WebSocket Port", this);
 
-        await StartServices([hybridWebSocket], cancellationToken);
+//         // await StartServices([hybridWebSocket], startupCancellationToken);
 
-        return new() { HybridWebSocket = hybridWebSocket };
-    }
+//         // return new() { HybridWebSocket = hybridWebSocket };
 
-    protected override async Task OnRun(
-        ApiClientParams context,
-        CancellationToken cancellationToken
-    )
-    {
-        await Task.Delay(-1, cancellationToken);
-    }
+//         return new();
+//     }
 
-    protected override async Task OnStop(ApiClientParams context, Exception? exception)
-    {
-        await StopServices(context.HybridWebSocket);
-    }
-}
+//     protected override async Task OnRun(
+//         ApiClientParams context,
+//         CancellationToken cancellationToken
+//     )
+//     {
+//         await Task.Delay(-1, cancellationToken);
+//     }
+
+//     protected override async Task OnStop(ApiClientParams context, ExceptionDispatchInfo? exception)
+//     {
+//         // await StopServices(context.HybridWebSocket);
+//     }
+// }

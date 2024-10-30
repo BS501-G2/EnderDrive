@@ -13,11 +13,8 @@ import {
   FileSnapshotManager,
   FileSnapshotResource,
 } from "../db/file-snapshot.js";
-import { FileManager, FileResource, UnlockedFileResource } from "../db/file.js";
-import {
-  UnlockedUserAuthentication,
-  UserAuthentication,
-} from "../db/user-authentication.js";
+import { FileManager, UnlockedFileResource } from "../db/file.js";
+import { UnlockedUserAuthentication } from "../db/user-authentication.js";
 import { UserManager } from "../db/user.js";
 import { Server } from "./server.js";
 
@@ -167,7 +164,12 @@ export class FileManagerService extends Service<FileManagerServiceData, []> {
       FileContentManager
     );
 
-    const file = await fileManager.create(authentication, folder, name, "file");
+    const file = await fileManager.create(
+      authentication,
+      folder,
+      name,
+      FileType.File
+    );
 
     const fileContent = await fileContentManager.getMain(file);
 

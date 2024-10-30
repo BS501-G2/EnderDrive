@@ -1,17 +1,17 @@
 <script lang="ts">
 	import { getContext, type Snippet } from 'svelte';
-	import {
-		FileManagerContextName,
-		type FileManagerProps,
-		FileManagerPropsName,
-		type FileManagerContext,
-		type SourceEvent
-	} from './file-manager.svelte';
 	import FileManagerSeparator from './file-manager-separator.svelte';
 	import { getConnection } from '$lib/client/client';
 	import { ViewMode, viewMode } from '$lib/responsive-layout.svelte';
 	import LoadingSpinner from '$lib/widgets/loading-spinner.svelte';
 	import Button from '$lib/widgets/button.svelte';
+	import {
+		type FileManagerProps,
+		FileManagerPropsName,
+		type FileManagerContext,
+		FileManagerContextName,
+		type SourceEvent
+	} from './file-manager';
 
 	const { onFileId } = getContext<FileManagerProps>(FileManagerPropsName);
 	const { resolved, addressBarMenu } = getContext<FileManagerContext>(FileManagerContextName);
@@ -48,7 +48,13 @@
 		{/snippet}
 
 		<Button
-			onClick={(event: SourceEvent) => onFileId(event, null)}
+			onClick={(event: SourceEvent) => {
+				if (filePathChain.length == 0) {
+					return;
+				}
+
+				onFileId(event, root.id);
+			}}
 			buttonClass={isLocal ? 'transparent' : 'primary'}
 			outline={false}
 			container={buttonContainer}

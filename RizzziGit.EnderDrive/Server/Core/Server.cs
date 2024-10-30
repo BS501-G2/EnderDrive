@@ -5,9 +5,10 @@ using System.Threading.Tasks;
 
 namespace RizzziGit.EnderDrive.Server.Core;
 
+using System.Runtime.ExceptionServices;
 using Commons.Services;
 using Resources;
-using RizzziGit.EnderDrive.Server.API;
+using RizzziGit.EnderDrive.Utilities;
 using Services;
 
 public sealed class ServerData
@@ -24,11 +25,14 @@ public sealed class Server(
     string clamAvSocketPath = "/run/clamav/clamd.ctl",
     int httpPort = 8082,
     int httpsPort = 8442
-) : Service2<ServerData>("Server")
+) : Service<ServerData>("Server")
 {
     private string ServerFolder => Path.Join(workingPath, ".EnderDrive");
 
-    protected override async Task<ServerData> OnStart(CancellationToken cancellationToken)
+    protected override async Task<ServerData> OnStart(
+        CancellationToken startupCancellationToken,
+        CancellationToken serviceCancellationToken
+    )
     {
         ResourceManager resourceManager = new(this);
         KeyManager keyGenerator = new(this);
@@ -38,7 +42,7 @@ public sealed class Server(
 
         await StartServices(
             [keyGenerator, virusScanner, resourceManager, apiServer, connectionManager],
-            cancellationToken
+            startupCancellationToken
         );
 
         return new()
@@ -71,7 +75,7 @@ public sealed class Server(
         );
     }
 
-    protected override async Task OnStop(ServerData data, Exception? exception)
+    protected override async Task OnStop(ServerData data, ExceptionDispatchInfo? exception)
     {
         await StopServices(
             Context.ConnectionManager,

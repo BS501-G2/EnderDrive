@@ -1,21 +1,17 @@
 <script lang="ts">
 	import { derived, writable, type Writable } from 'svelte/store';
-	import FileManager, {
-		type FileManagerOnClipboardCallback,
-		type FileManagerOnFileIdCallback,
-		type FileManagerOnNewCallback,
-		type FileManagerOnPageCallback
-	} from './file-manager.svelte';
 	import FileManagerNew from './file-manager-new.svelte';
 	import { getConnection } from '$lib/client/client';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { executeBackgroundTask } from '$lib/background-task.svelte';
-	import { byteUnit, type ScanFolderSortType } from '@rizzzi/enderdrive-lib/shared';
+	import { byteUnit, ScanFolderSortType } from '@rizzzi/enderdrive-lib/shared';
 	import { getContext, onMount, type Snippet } from 'svelte';
 	import { DashboardContextName, type DashboardContext } from '../dashboard';
-	import type { FileResource } from '@rizzzi/enderdrive-lib/server';
+	import { type FileResource } from '@rizzzi/enderdrive-lib/server';
 	import Title from '$lib/widgets/title.svelte';
+	import type { FileManagerOnPageCallback, FileManagerOnFileIdCallback, FileManagerOnNewCallback, FileManagerOnClipboardCallback } from './file-manager';
+	import FileManager from './file-manager.svelte';
 
 	const { setMainContent } = getContext<DashboardContext>(DashboardContextName);
 
@@ -24,7 +20,7 @@
 	} = getConnection();
 
 	const refresh: Writable<() => void> = writable(null as never);
-	const sort: Writable<[sort: ScanFolderSortType, desc: boolean]> = writable(['fileName', false]);
+	const sort: Writable<[sort: ScanFolderSortType, desc: boolean]> = writable([ScanFolderSortType.FileName, false]);
 	const fileId = derived(page, ({ url: { searchParams } }) => {
 		try {
 			const fileId = Number.parseInt(searchParams.get('fileId') ?? '') || null;

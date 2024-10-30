@@ -13,10 +13,7 @@ import {
   UserAuthenticationManager,
 } from "./user-authentication.js";
 import { FileAccessManager } from "./file-access.js";
-import {
-  FileAccessLevel,
-  serializeFileAccessLevel,
-} from "../../shared/db/file-access.js";
+import { FileAccessLevel } from "../../shared/db/file-access.js";
 import { decryptSymmetric, encryptSymmetric, randomBytes } from "../crypto.js";
 
 export interface FileResource extends Resource {
@@ -82,7 +79,7 @@ export class FileManager extends ResourceManager<FileResource, FileManager> {
         .inTable(this.getManager(UserManager).recordTableName);
 
       table.string("name").collate("nocase").notNullable();
-      table.string("type").notNullable();
+      table.integer("type").notNullable();
 
       table.boolean("deleted").notNullable();
 
@@ -136,14 +133,14 @@ export class FileManager extends ResourceManager<FileResource, FileManager> {
         (entry) => entry.name.toLowerCase() === friendlyName().toLowerCase()
       ) != null
     ) {
-      if (type === "folder") {
+      if (type === FileType.Folder) {
         throw Error("Folder already exists.");
       }
 
       fnCount++;
     }
 
-    if (parent.type !== "folder") {
+    if (parent.type !== FileType.Folder) {
       throw new Error("Parent is not a folder.");
     }
 
@@ -209,7 +206,7 @@ export class FileManager extends ResourceManager<FileResource, FileManager> {
       creatorUserId: unlockedUserKey.userId,
       ownerUserId: unlockedUserKey.userId,
       name: "root",
-      type: "folder",
+      type: FileType.Folder,
 
       deleted: false,
 
@@ -227,9 +224,10 @@ export class FileManager extends ResourceManager<FileResource, FileManager> {
     accessLevel?: FileAccessLevel
   ): Promise<UnlockedFileResource> {
     const [userKeys] = this.getManagers(UserAuthenticationManager);
-    const parentFileid = file.parentFileId;
+    const parentFileId = file.parentFileId;
 
-    if (parentFileid != null) {
+    console.log(`unlocking file ${file.id}...`);
+    if (parentFileId != null) {
       if (file.ownerUserId !== unlockedUserAuthentication.userId) {
         if (accessLevel == null) {
           throw new Error(
@@ -244,7 +242,7 @@ export class FileManager extends ResourceManager<FileResource, FileManager> {
             where: [
               ["fileId", "=", file.id],
               ["userId", "=", unlockedUserAuthentication.userId],
-              ["level", ">=", serializeFileAccessLevel(accessLevel)],
+              ["level", ">=", accessLevel],
             ],
             orderBy: [["level", true]],
           })
@@ -256,6 +254,11 @@ export class FileManager extends ResourceManager<FileResource, FileManager> {
             fileAccess
           );
 
+          console.log(
+            `${unlockedUserAuthentication.userId}`,
+            `Successfully unlocked ${fileAccess.fileId}.`
+          );
+
           return {
             ...file,
             aesKey: unlockedFileAccess.key,
@@ -263,10 +266,19 @@ export class FileManager extends ResourceManager<FileResource, FileManager> {
         }
       }
 
-      const parentFile = (await this.getById(parentFileid))!;
+      console.log(
+        `${unlockedUserAuthentication.userId}`,
+        `Failed to unlock. Unlocking parent ${parentFileId}...`
+      );
+      const parentFile = (await this.getById(parentFileId))!;
       const unlockedParentFile = await this.unlock(
         parentFile,
         unlockedUserAuthentication
+      );
+
+      console.log(
+        `${unlockedUserAuthentication.userId}`,
+        "Successfully unlocked via parent."
       );
 
       const key = decryptSymmetric(
@@ -373,7 +385,7 @@ export class FileManager extends ResourceManager<FileResource, FileManager> {
         deleted: false,
       }),
       authentication,
-      "Manage"
+      FileAccessLevel.Manage
     );
 
     if (newFolder != null) {

@@ -1,32 +1,14 @@
-<script lang="ts" module>
-	export interface FileManagerNewProps {
-		element: HTMLElement;
-
-		presetFiles?: File[];
-
-		onDismiss: () => void;
-
-		uploadNewFiles: (files: File[]) => void;
-		createNewFolder: (name: string) => void;
-	}
-</script>
-
 <script lang="ts">
 	import { ViewMode, viewMode } from '$lib/responsive-layout.svelte';
-
 	import Button from '$lib/widgets/button.svelte';
-
 	import Dialog from '$lib/widgets/dialog.svelte';
-
 	import Input from '$lib/widgets/input.svelte';
-
 	import Overlay from '$lib/widgets/overlay.svelte';
-
 	import { byteUnit } from '@rizzzi/enderdrive-lib/shared';
-
 	import { onMount, type Snippet } from 'svelte';
 	import { writable, type Writable } from 'svelte/store';
 	import { fly } from 'svelte/transition';
+	import type { FileManagerNewProps } from './file-manager';
 
 	const { element, uploadNewFiles, createNewFolder, onDismiss, presetFiles }: FileManagerNewProps =
 		$props();

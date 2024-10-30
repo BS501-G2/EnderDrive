@@ -2,9 +2,10 @@
 	import { getConnection } from '$lib/client/client';
 	import type { FileResource } from '@rizzzi/enderdrive-lib/server';
 	import { getContext, onMount } from 'svelte';
-	import { type FileManagerProps, FileManagerPropsName } from './file-manager.svelte';
 	import { fly } from 'svelte/transition';
 	import Overlay from '$lib/widgets/overlay.svelte';
+	import { type FileManagerProps, FileManagerPropsName } from './file-manager';
+	import { FileType } from '@rizzzi/enderdrive-lib/shared';
 
 	const { onFileId } = getContext<FileManagerProps>(FileManagerPropsName);
 	const {
@@ -18,7 +19,7 @@
 	} = $props();
 
 	onMount(() => {
-		if (file.type !== 'folder') {
+		if (file.type !== FileType.Folder) {
 			onDismiss();
 		}
 	});
@@ -47,9 +48,9 @@
 						}}
 					>
 						<div class="file-icon">
-							{#if entry.type === 'file'}
+							{#if entry.type === FileType.File}
 								<i class="fa-solid fa-file"></i>
-							{:else if entry.type === 'folder'}
+							{:else if entry.type === FileType.Folder}
 								<i class="fa-solid fa-folder"></i>
 							{/if}
 						</div>

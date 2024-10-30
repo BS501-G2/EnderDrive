@@ -1,13 +1,12 @@
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
-
 using Newtonsoft.Json;
+
 namespace RizzziGit.EnderDrive.Server.Resources;
 
-using System;
-using System.Linq;
 using Services;
 
 public record class Key : ResourceData;
@@ -17,6 +16,7 @@ public record class KeyAccess : ResourceData
     public required ObjectId KeyId;
     public required ObjectId UserId;
 
+    [BsonIgnore]
     [JsonIgnore]
     public required byte[] EncryptedAesKey;
 

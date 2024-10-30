@@ -8,7 +8,7 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 public record class News : ResourceData
 {
     public required string Title;
-    public required ObjectId[] ImageFiles;
+    public required ObjectId[] ImageFileIds;
     public required ObjectId AuthorUserId;
 }
 
@@ -26,7 +26,7 @@ public sealed partial class ResourceManager
             {
                 Id = ObjectId.GenerateNewId(),
                 Title = title,
-                ImageFiles = images.Select((item) => item.Id).ToArray(),
+                ImageFileIds = images.Select((item) => item.Id).ToArray(),
                 AuthorUserId = newsAuthor.Id,
             };
 

@@ -1,6 +1,6 @@
 import { goto } from '$app/navigation';
 import { getConnection } from '$lib/client/client';
-import { serializeUserRole } from '@rizzzi/enderdrive-lib/shared';
+import { UserRole } from '@rizzzi/enderdrive-lib/shared';
 import type { LoadEvent } from '@sveltejs/kit';
 
 export async function load({ url }: LoadEvent): Promise<void> {
@@ -12,8 +12,9 @@ export async function load({ url }: LoadEvent): Promise<void> {
 		return;
 	}
 
-	const a = (await whoAmI())!;
-	if (!(a.role === serializeUserRole('SiteAdmin') || a.role === serializeUserRole('SystemAdmin'))) {
+	const user = (await whoAmI())!;
+
+	if (!(user.role === UserRole.SystemAdmin || user.role === UserRole.SiteAdmin)) {
 		await goto('/app/users?id=!me', { replaceState: true });
 	}
 }

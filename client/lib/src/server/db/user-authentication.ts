@@ -158,7 +158,7 @@ export class UserAuthenticationManager extends ResourceManager<
   ): Promise<UnlockedUserAuthentication> {
     for await (const userAuthentication of this.list(
       user,
-      'password'
+      UserAuthenticationType.Password
     )) {
       let unlockedUserKey: UnlockedUserAuthentication;
       try {

@@ -11,6 +11,7 @@ using ClamAV.Net.Client.Results;
 namespace RizzziGit.EnderDrive.Server.Services;
 
 using System.Collections.Generic;
+using System.Runtime.ExceptionServices;
 using Commons.Collections;
 using Commons.Services;
 using Core;
@@ -27,9 +28,12 @@ public sealed partial class VirusScanner
         VirusScanner scanner,
         IPEndPoint ipEndPoint,
         string unixSocketPath
-    ) : Service2<TcpForwarderParams>("TCP Forwarder", scanner)
+    ) : Service<TcpForwarderParams>("TCP Forwarder", scanner)
     {
-        protected override Task<TcpForwarderParams> OnStart(CancellationToken cancellationToken)
+        protected override Task<TcpForwarderParams> OnStart(
+            CancellationToken startupCancellationToken,
+            CancellationToken serviceCancellationToken
+        )
         {
             TcpListener internalTcpListener = new(ipEndPoint);
 
@@ -152,7 +156,7 @@ public sealed partial class VirusScanner
             await ListenTcp(Context.InternalTcpListener, cancellationToken);
         }
 
-        protected override Task OnStop(TcpForwarderParams data, Exception? exception)
+        protected override Task OnStop(TcpForwarderParams data, ExceptionDispatchInfo? exception)
         {
             Context.InternalTcpListener.Stop();
             return Task.CompletedTask;

@@ -14,6 +14,7 @@
 	import { DashboardContextName, type DashboardContext, type DashboardContextMenuEntry } from './dashboard';
 	import { viewMode, ViewMode } from '$lib/responsive-layout.svelte';
 	import { currentColorScheme } from '$lib/color-scheme.svelte';
+	import Keyboard from '$lib/keyboard.svelte';
 
   const { children }: { children: Snippet } = $props();
 
@@ -82,7 +83,7 @@
   });
 
   onMount(() => addContextMenuEntry('Test', 'fa-solid fa-bug', () => {}));
-  
+
 </script>
 
 <svelte:head>

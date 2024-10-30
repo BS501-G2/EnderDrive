@@ -1,128 +1,22 @@
 <script lang="ts" module>
-	import { FileManagerViewMode } from './file-manager-folder-list';
+	import {
+		FileManagerContextName,
+		FileManagerPropsName,
+		FileManagerViewMode,
+		type FileManagerContext,
+		type FileManagerProps
+	} from './file-manager';
 
-	import type {
-		FileAccessResource,
-		FileResource,
-		FileSnapshotResource,
-		UserResource
-	} from '@rizzzi/enderdrive-lib/server';
-	import { type FileAccessLevel, type ScanFolderSortType } from '@rizzzi/enderdrive-lib/shared';
+	import type { FileResource } from '@rizzzi/enderdrive-lib/server';
 	import { setContext } from 'svelte';
-	import { writable, type Readable, type Writable } from 'svelte/store';
-
-	export type SourceEvent = MouseEvent | TouchEvent;
-
-	export type FileManagerOnFileIdCallback = (event: SourceEvent, fileId: number | null) => void;
-	export type FileManagerOnPageCallback = (
-		event: SourceEvent,
-		page: 'files' | 'shared' | 'trashed' | 'starred'
-	) => void;
-	export type FileManagerOnNewCallback = (event: SourceEvent, presetFiles?: File[]) => void;
-	export type FileManagerOnViewCallback = (event: SourceEvent) => void;
-	export type FileManagerOnClipboardCallback = (
-		event: SourceEvent,
-		files: FileResource[] | null,
-		cut: boolean
-	) => void;
-	export type FileManagerOnSortCallback = (
-		event: SourceEvent,
-		sort: ScanFolderSortType,
-		desc: boolean
-	) => void;
-
-	export type FileManagerProps = {
-		refresh: Writable<() => void>;
-
-		onFileId: FileManagerOnFileIdCallback;
-		onPage: FileManagerOnPageCallback;
-		onSort: FileManagerOnSortCallback;
-
-		sort: Readable<[sort: ScanFolderSortType, desc: boolean]>;
-	} & (
-		| {
-				page: 'files';
-
-				onNew: FileManagerOnNewCallback;
-				onClipboard: FileManagerOnClipboardCallback;
-
-				fileId: Readable<number | null>;
-				clipboard: Readable<[files: FileResource[], cut: boolean] | null>;
-		  }
-		| {
-				page: 'shared' | 'starred' | 'trash';
-		  }
-	);
-
-	export type FileManagerResolved =
-		| {
-				status: 'loading';
-		  }
-		| {
-				status: 'error';
-				error: Error;
-		  }
-		| ({
-				status: 'success';
-				me: UserResource;
-		  } & (
-				| ({
-						page: 'files';
-
-						file: FileResource;
-						filePathChain: FileResource[];
-						myAccess: {
-							level: FileAccessLevel;
-							access: FileAccessResource | null;
-						};
-						accesses: FileAccessResource[];
-						isStarred: boolean;
-						// logs: FileLogResource[];
-						selection: Writable<FileResource[]>;
-				  } & (
-						| {
-								type: 'file';
-
-								viruses: string[];
-								snapshots: FileSnapshotResource[];
-						  }
-						| {
-								type: 'folder';
-
-								files: FileResource[];
-						  }
-				  ))
-				| {
-						page: 'shared' | 'starred' | 'trash';
-
-						files: FileResource[];
-						selection: Writable<FileResource[]>;
-				  }
-		  ));
-
-	export interface FileManagerContext {
-		refreshKey: Writable<number>;
-
-		resolved: Writable<FileManagerResolved>;
-
-		viewDialog: Writable<[element: HTMLElement] | null>;
-		accessDialogs: Writable<[file: FileResource] | null>;
-
-		listViewMode: Writable<FileManagerViewMode>;
-		showSideBar: Writable<boolean>;
-		addressBarMenu: Writable<[element: HTMLElement, file: FileResource] | null>;
-	}
-
-	export type FileManagerActionGenerator = () => FileManagerAction | null;
-
-	export const FileManagerPropsName = 'fm-props';
-	export const FileManagerContextName = 'fm-context';
+	import { writable } from 'svelte/store';
 </script>
 
 <script lang="ts">
 	import { getConnection } from '$lib/client/client';
 	import { persisted } from 'svelte-persisted-store';
-	import FileManagerActionBar, { type FileManagerAction } from './file-manager-action-bar.svelte';
+
+	import FileManagerActionBar from './file-manager-action-bar.svelte';
 	import FileManagerFolderList from './file-manager-folder-list.svelte';
 	import FileManagerSideBar from './file-manager-side-bar.svelte';
 	import FileManagerBottomBar from './file-manager-bottom-bar.svelte';
@@ -139,6 +33,7 @@
 	import Banner from '$lib/widgets/banner.svelte';
 	import LoadingSpinner from '$lib/widgets/loading-spinner.svelte';
 	import Title from '$lib/widgets/title.svelte';
+	import { FileType } from '@rizzzi/enderdrive-lib/shared';
 
 	const { ...props }: FileManagerProps = $props();
 	const { refresh, sort } = props;
@@ -200,8 +95,8 @@
 					// listFileLogs(file.id)
 				]);
 				const selection = writable<FileResource[]>([]);
-
-				if (file.type === 'file') {
+				
+				if (file.type === FileType.File) {
 					const [viruses, snapshots] = await Promise.all([
 						listFileViruses(file.id),
 						listFileSnapshots(file.id)
@@ -227,9 +122,10 @@
 						selection,
 						isStarred
 					};
-				} else if (file.type === 'folder') {
+				} else if (file.type === FileType.Folder) {
 					const files = await scanFolder(file.id, $sort);
 
+					console.log(files);
 					$resolved = {
 						me,
 						page: 'files',
@@ -296,7 +192,15 @@
 </script>
 
 {#key $refreshKey}
-	<Awaiter callback={load} />
+	<Awaiter
+		callback={async () => {
+			const result = await load();
+
+			console.log(result);
+
+			return result;
+		}}
+	/>
 {/key}
 
 <div

@@ -1,6 +1,6 @@
 import { goto } from '$app/navigation';
 import { getConnection } from '$lib/client/client';
-import { serializeUserRole } from '@rizzzi/enderdrive-lib/shared';
+import { UserRole } from '@rizzzi/enderdrive-lib/shared';
 
 export async function load(): Promise<void> {
 	const {
@@ -13,7 +13,7 @@ export async function load(): Promise<void> {
 		return;
 	}
 
-	if (user.role < serializeUserRole('SiteAdmin')) {
+	if (user.role < UserRole.SiteAdmin) {
 		await goto('/app', { replaceState: true });
 		return;
 	}

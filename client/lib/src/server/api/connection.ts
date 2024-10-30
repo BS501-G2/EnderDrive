@@ -1,14 +1,13 @@
 import { Socket } from "socket.io";
 import {
   ApiError,
+  ApiErrorType,
   baseConnectionFunctions,
-  deserializeFileAccessLevel,
   FileAccessLevel,
   fileIoSize,
+  FileLogType,
   FileType,
   ScanFolderSortType,
-  serializeFileAccessLevel,
-  serializeUserRole,
   SocketWrapper,
   UserResolvePayload,
   UserRole,
@@ -19,7 +18,7 @@ import {
   UserAuthenticationManager,
 } from "../db/user-authentication.js";
 import { UserManager, UserResource } from "../db/user.js";
-import { UserSessionManager } from "../db/user-session.js";
+import { UserSessionManager, UserSessionType } from "../db/user-session.js";
 import { ServerConnectionManager } from "./connection-manager.js";
 import { FileManager, FileResource, UnlockedFileResource } from "../db/file.js";
 import { FileContentManager, FileContentResource } from "../db/file-content.js";
@@ -124,7 +123,10 @@ export class ServerConnection {
 
     const feedUploadBuffer = (buffer: Uint8Array) => {
       if (getUploadSize() + buffer.length > bufferLimit) {
-        ApiError.throw("InvalidRequest", "Upload buffer size limit reached");
+        ApiError.throw(
+          ApiErrorType.InvalidRequest,
+          "Upload buffer size limit reached"
+        );
       }
 
       buffers.push(buffer);
@@ -161,7 +163,7 @@ export class ServerConnection {
     const getFile = async (
       id: number | null,
       authentication: UnlockedUserAuthentication,
-      accessLevel: FileAccessLevel = "None",
+      accessLevel: FileAccessLevel = FileAccessLevel.None,
       requireType?: FileType
     ) => {
       const file: FileResource | null =
@@ -170,11 +172,11 @@ export class ServerConnection {
           : await fileManager.getRoot(authentication);
 
       if (file == null) {
-        ApiError.throw("NotFound", "File not found");
+        ApiError.throw(ApiErrorType.NotFound, "File not found");
       }
 
       if (requireType != null && requireType != file.type) {
-        ApiError.throw("InvalidRequest", "File type invalid");
+        ApiError.throw(ApiErrorType.InvalidRequest, "File type invalid");
       }
 
       try {
@@ -185,8 +187,11 @@ export class ServerConnection {
         );
 
         return unlockedFile;
-      } catch {
-        ApiError.throw("Forbidden", `Failed to unlock file #${id}`);
+      } catch (error: any) {
+        console.log(error);
+        ApiError.throw(ApiErrorType.Forbidden, `Failed to unlock file #${id}`, {
+          cause: error,
+        });
       }
     };
 
@@ -204,7 +209,7 @@ export class ServerConnection {
       });
 
       if (fileSnapshot == null) {
-        ApiError.throw("InvalidRequest", "File snapshot not found");
+        ApiError.throw(ApiErrorType.InvalidRequest, "File snapshot not found");
       }
 
       return fileSnapshot;
@@ -222,7 +227,7 @@ export class ServerConnection {
       }
 
       if (user == null) {
-        ApiError.throw("NotFound", "User not found");
+        ApiError.throw(ApiErrorType.NotFound, "User not found");
       }
 
       return user;
@@ -235,11 +240,11 @@ export class ServerConnection {
       const user = await userManager.getById(authentication.userId);
 
       if (user == null) {
-        ApiError.throw("Unauthorized", "Invalid user");
+        ApiError.throw(ApiErrorType.Unauthorized, "Invalid user");
       }
 
-      if (serializeUserRole(role) > user.role) {
-        ApiError.throw("Forbidden", "Insufficient role");
+      if (role > user.role) {
+        ApiError.throw(ApiErrorType.Forbidden, "Insufficient role");
       }
     };
 
@@ -248,13 +253,13 @@ export class ServerConnection {
     ): T extends true ? UnlockedUserAuthentication : void => {
       if (authenticated) {
         if (this.#userAuthentication == null) {
-          ApiError.throw("Unauthorized", "Not logged in");
+          ApiError.throw(ApiErrorType.Unauthorized, "Not logged in");
         }
 
         return this.#userAuthentication as never;
       } else {
         if (this.currentUserId != null) {
-          ApiError.throw("Conflict", "Already logged in");
+          ApiError.throw(ApiErrorType.Conflict, "Already logged in");
         }
 
         return undefined as never;
@@ -270,11 +275,16 @@ export class ServerConnection {
     ): Promise<FileResource[]> => {
       const [sortType, sortDesc] = sort;
 
-      if (sortType === "fileName") {
+      console.log(files);
+
+      if (sortType === ScanFolderSortType.FileName) {
         return files.sort((a, b) =>
           sortDesc ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name)
         );
-      } else if (sortType === "dateModified" || sortType === "contentSize") {
+      } else if (
+        sortType === ScanFolderSortType.DateModified ||
+        sortType === ScanFolderSortType.ContentSize
+      ) {
         const filesWithData = await Promise.all(
           files.map(async (file) => {
             const fileContent = await fileContentManager.getMain(file);
@@ -295,13 +305,13 @@ export class ServerConnection {
             const [, aSnapshot] = a;
             const [, bSnapshot] = b;
 
-            if (sortType === "dateModified") {
+            if (sortType === ScanFolderSortType.DateModified) {
               if (sortDesc) {
                 return bSnapshot.createTime - aSnapshot.createTime;
               } else {
                 return aSnapshot.createTime - bSnapshot.createTime;
               }
-            } else if (sortType === "contentSize") {
+            } else if (sortType === ScanFolderSortType.ContentSize) {
               if (sortDesc) {
                 return bSnapshot.size - aSnapshot.size;
               } else {
@@ -340,7 +350,7 @@ export class ServerConnection {
           if (user != null) {
             if (user.isSuspended) {
               ApiError.throw(
-                "Forbidden",
+                ApiErrorType.Forbidden,
                 `User @${user.username} is currently suspended.`
               );
             }
@@ -384,7 +394,7 @@ export class ServerConnection {
           if (user != null) {
             if (user.isSuspended) {
               ApiError.throw(
-                "Forbidden",
+                ApiErrorType.Forbidden,
                 `User @${user.username} is currently suspended.`
               );
             }
@@ -421,7 +431,7 @@ export class ServerConnection {
           }
         }
 
-        ApiError.throw("Unauthorized", "Invalid login details");
+        ApiError.throw(ApiErrorType.Unauthorized, "Invalid login details");
       },
 
       whoAmI: async () => {
@@ -450,16 +460,16 @@ export class ServerConnection {
         }
 
         if (unlockedUserAuthentication == null || user == null) {
-          ApiError.throw("Unauthorized", "Invalid credentials");
+          ApiError.throw(ApiErrorType.Unauthorized, "Invalid credentials");
         }
 
         if (user.isSuspended) {
-          ApiError.throw("Forbidden", "User is currently suspended");
+          ApiError.throw(ApiErrorType.Forbidden, "User is currently suspended");
         }
 
         const unlockedSession = await userSessionManager.create(
           unlockedUserAuthentication,
-          "sync-app"
+          UserSessionType.Browser
         );
 
         this.#userAuthentication = unlockedUserAuthentication;
@@ -472,7 +482,7 @@ export class ServerConnection {
 
       getServerStatus: async () => {
         const setupRequired = await userManager
-          .count([["role", ">=", serializeUserRole("SiteAdmin")]])
+          .count([["role", ">=", UserRole.SiteAdmin]])
           .then((result) => result === 0);
 
         return { setupRequired };
@@ -483,7 +493,10 @@ export class ServerConnection {
 
         const status = await serverFunctions.getServerStatus();
         if (!status.setupRequired) {
-          ApiError.throw("InvalidRequest", "Admin user already exists");
+          ApiError.throw(
+            ApiErrorType.InvalidRequest,
+            "Admin user already exists"
+          );
         }
 
         const [user] = await userManager.create(
@@ -492,7 +505,7 @@ export class ServerConnection {
           middleName,
           lastName,
           password,
-          "SiteAdmin" as UserRole
+          UserRole.SiteAdmin
         );
 
         return user;
@@ -505,7 +518,7 @@ export class ServerConnection {
       },
 
       listUsers: async ({ searchString: search, offset, limit } = {}) => {
-        await requireRole(requireAuthenticated(true), "Member");
+        await requireRole(requireAuthenticated(true), UserRole.Member);
 
         const users = await userManager.read({
           search,
@@ -524,7 +537,7 @@ export class ServerConnection {
         password,
         role
       ) => {
-        await requireRole(requireAuthenticated(true), "SiteAdmin");
+        await requireRole(requireAuthenticated(true), UserRole.SiteAdmin);
 
         const [users] = database.getManagers(UserManager);
         const [user, unlockedUserKey] = await users.create(
@@ -545,23 +558,26 @@ export class ServerConnection {
         const user = await resolveUser(["userId", userId]);
 
         if (user.id !== userId) {
-          ApiError.throw("Forbidden");
+          ApiError.throw(ApiErrorType.Forbidden);
         }
 
         return await userManager.update(user, {
           firstName,
           middleName,
           lastName,
-          role: role != null ? serializeUserRole(role) : undefined,
+          role,
         });
       },
 
       setSuspend: async (id, isSuspended) => {
-        await requireRole(requireAuthenticated(true), "SiteAdmin");
+        await requireRole(requireAuthenticated(true), UserRole.SiteAdmin);
         const user = await resolveUser(["userId", id]);
 
-        if (user.role >= serializeUserRole("SiteAdmin")) {
-          ApiError.throw("InvalidRequest", "Cannot suspend site admin");
+        if (user.role >= UserRole.SiteAdmin) {
+          ApiError.throw(
+            ApiErrorType.InvalidRequest,
+            "Cannot suspend site admin"
+          );
         }
 
         await userManager.setSuspended(user, isSuspended);
@@ -579,30 +595,34 @@ export class ServerConnection {
         const parentFolder = await getFile(
           parentFolderId,
           authentication,
-          "ReadWrite"
+          FileAccessLevel.ReadWrite
         );
 
         const folder = await fileManager.create(
           authentication,
           parentFolder,
           name,
-          "folder"
+          FileType.Folder
         );
 
         const user = (await userManager.getById(authentication.userId))!;
-        await fileLogManager.push(parentFolder, user, "modify");
-        await fileLogManager.push(folder, user, "create");
+        await fileLogManager.push(parentFolder, user, FileLogType.Modify);
+        await fileLogManager.push(folder, user, FileLogType.Create);
 
         return (await fileManager.getById(folder.id))!;
       },
 
       scanFolder: async (folderId, sort) => {
         const authentication = requireAuthenticated(true);
-        const folder = await getFile(folderId, authentication, "Read");
+        const folder = await getFile(
+          folderId,
+          authentication,
+          FileAccessLevel.Read
+        );
 
         const user = await resolveUser(["userId", authentication.id]);
 
-        await fileLogManager.push(folder, user, "access");
+        await fileLogManager.push(folder, user, FileLogType.Access);
         const files = await fileManager.scanFolder(folder);
 
         if (sort == null) {
@@ -625,11 +645,8 @@ export class ServerConnection {
           granterUser
         );
 
-        if (
-          serializeFileAccessLevel(granterAccess) <
-          serializeFileAccessLevel("Manage")
-        ) {
-          ApiError.throw("Forbidden", "Insufficient access level");
+        if (granterAccess < FileAccessLevel.Manage) {
+          ApiError.throw(ApiErrorType.Forbidden, "Insufficient access level");
         }
 
         const user = await resolveUser(["userId", targetUserId]);
@@ -637,27 +654,31 @@ export class ServerConnection {
         await fileAccessManager.setUserAccess(
           file,
           user,
-          level ?? "None",
+          level ?? FileAccessLevel.None,
           granterUser
         );
-        return level ?? "None";
+        return level ?? FileAccessLevel.None;
       },
 
       getFile: async (fileId: number | null) => {
         const authentication = requireAuthenticated(true);
 
-        const file = await getFile(fileId, authentication, "Read");
+        const file = await getFile(
+          fileId,
+          authentication,
+          FileAccessLevel.Read
+        );
 
         return (await fileManager.getById(file.id))!;
       },
 
       adminGetFile: async (fileId: number) => {
         const authentication = requireAuthenticated(true);
-        await requireRole(authentication, "SiteAdmin");
+        await requireRole(authentication, UserRole.SiteAdmin);
 
         const file = await fileManager.getById(fileId);
         if (file == null) {
-          ApiError.throw("NotFound", "File not found");
+          ApiError.throw(ApiErrorType.NotFound, "File not found");
         }
 
         return file;
@@ -665,15 +686,15 @@ export class ServerConnection {
 
       adminScanFolder: async (fileId: number, sort) => {
         const authentication = requireAuthenticated(true);
-        await requireRole(authentication, "SiteAdmin");
+        await requireRole(authentication, UserRole.SiteAdmin);
 
         const file = await fileManager.getById(fileId);
         if (file == null) {
-          ApiError.throw("NotFound", "File not found");
+          ApiError.throw(ApiErrorType.NotFound, "File not found");
         }
 
-        if (file.type !== "folder") {
-          ApiError.throw("InvalidRequest", "Not a folder");
+        if (file.type !== FileType.Folder) {
+          ApiError.throw(ApiErrorType.InvalidRequest, "Not a folder");
         }
 
         const files = await fileManager.scanFolder(file);
@@ -687,7 +708,7 @@ export class ServerConnection {
 
       getFilePathChain: async (fileId: number) => {
         const authentication = requireAuthenticated(true);
-        let file = await getFile(fileId, authentication, "Read");
+        let file = await getFile(fileId, authentication, FileAccessLevel.Read);
 
         const chain: FileResource[] = [];
         while (file != null) {
@@ -698,7 +719,15 @@ export class ServerConnection {
             break;
           }
 
-          file = await getFile(parentFolderId, authentication, "Read");
+          try {
+            file = await getFile(
+              parentFolderId,
+              authentication,
+              FileAccessLevel.Read
+            );
+          } catch {
+            break;
+          }
         }
 
         return chain;
@@ -706,7 +735,12 @@ export class ServerConnection {
 
       getFileSize: async (fileId, fileSnapshotId) => {
         const authentication = requireAuthenticated(true);
-        const file = await getFile(fileId, authentication, "Read", "file");
+        const file = await getFile(
+          fileId,
+          authentication,
+          FileAccessLevel.Read,
+          FileType.File
+        );
 
         const fileContent = await fileContentManager.getMain(file);
         const fileSnapshot =
@@ -715,7 +749,7 @@ export class ServerConnection {
             : await fileSnapshotManager.getLatest(file, fileContent);
 
         if (fileSnapshot == null) {
-          ApiError.throw("NotFound", "File snapshot not found");
+          ApiError.throw(ApiErrorType.NotFound, "File snapshot not found");
         }
 
         return fileSnapshot.size;
@@ -723,7 +757,12 @@ export class ServerConnection {
 
       getFileMime: async (fileId, fileSnapshotId) => {
         const authentication = requireAuthenticated(true);
-        const file = await getFile(fileId, authentication, "Read", "file");
+        const file = await getFile(
+          fileId,
+          authentication,
+          FileAccessLevel.Read,
+          FileType.File
+        );
         const fileContent = await fileContentManager.getMain(file);
         const fileSnapshot =
           fileSnapshotId != null
@@ -731,7 +770,7 @@ export class ServerConnection {
             : await fileSnapshotManager.getLatest(file, fileContent);
 
         if (fileSnapshot == null) {
-          ApiError.throw("NotFound", "File snapshot not found");
+          ApiError.throw(ApiErrorType.NotFound, "File snapshot not found");
         }
 
         return await server.mimeDetector.getFileMime(
@@ -743,16 +782,20 @@ export class ServerConnection {
 
       getFileTime: async (fileId) => {
         const authentication = requireAuthenticated(true);
-        const file = await getFile(fileId, authentication, "Read");
+        const file = await getFile(
+          fileId,
+          authentication,
+          FileAccessLevel.Read
+        );
 
-        if (file.type === "folder") {
+        if (file.type === FileType.Folder) {
           const resourceStats = (await fileManager.getStats(file.id))!;
 
           return {
             createTime: resourceStats.createTime,
             modifyTime: resourceStats.updateTime,
           };
-        } else if (file.type === "file") {
+        } else if (file.type === FileType.File) {
           const fileContent = await fileContentManager.getMain(file);
           const firstSnapshot = await fileSnapshotManager.getRoot(
             file,
@@ -769,12 +812,17 @@ export class ServerConnection {
           };
         }
 
-        throw ApiError.throw("InvalidRequest");
+        throw ApiError.throw(ApiErrorType.InvalidRequest);
       },
 
       listFileViruses: async (fileId, fileSnapshotId) => {
         const authentication = requireAuthenticated(true);
-        const file = await getFile(fileId, authentication, "Read", "file");
+        const file = await getFile(
+          fileId,
+          authentication,
+          FileAccessLevel.Read,
+          FileType.File
+        );
         const fileContent = await fileContentManager.getMain(file);
         const fileSnapshot =
           fileSnapshotId != null
@@ -782,7 +830,7 @@ export class ServerConnection {
             : await fileSnapshotManager.getLatest(file, fileContent);
 
         if (fileSnapshot == null) {
-          ApiError.throw("NotFound", "File snapshot not found");
+          ApiError.throw(ApiErrorType.NotFound, "File snapshot not found");
         }
 
         return await server.virusScanner.scan(
@@ -795,7 +843,11 @@ export class ServerConnection {
 
       listFileAccess: async (fileId, offset, limit) => {
         const authentication = requireAuthenticated(true);
-        const file = await getFile(fileId, authentication, "Read");
+        const file = await getFile(
+          fileId,
+          authentication,
+          FileAccessLevel.Read
+        );
 
         let fileAccesses: FileAccessResource[];
         if (file.ownerUserId !== authentication.userId) {
@@ -822,7 +874,12 @@ export class ServerConnection {
 
       listFileSnapshots: async (fileId) => {
         const authentication = requireAuthenticated(true);
-        const file = await getFile(fileId, authentication, "Read", "file");
+        const file = await getFile(
+          fileId,
+          authentication,
+          FileAccessLevel.Read,
+          FileType.File
+        );
 
         const fileContent = await fileContentManager.getMain(file);
         return await fileSnapshotManager.list(file, fileContent);
@@ -832,7 +889,11 @@ export class ServerConnection {
         const authentication = requireAuthenticated(true);
         const logs: FileLogResource[] = [];
 
-        const file = await getFile(fileId, authentication, "Read");
+        const file = await getFile(
+          fileId,
+          authentication,
+          FileAccessLevel.Read
+        );
 
         for await (const log of fileLogManager.readStream({
           where: [
@@ -853,7 +914,7 @@ export class ServerConnection {
 
       adminListFileLogs: async (fileIds, userIds, types, offset, limit) => {
         const authentication = requireAuthenticated(true);
-        await requireRole(authentication, "SiteAdmin");
+        await requireRole(authentication, UserRole.SiteAdmin);
 
         const logs: FileLogResource[] = [];
 
@@ -877,10 +938,14 @@ export class ServerConnection {
         const authentication = requireAuthenticated(true);
 
         const me = await currentUser(authentication);
-        const file = await getFile(fileId, authentication, "None");
+        const file = await getFile(
+          fileId,
+          authentication,
+          FileAccessLevel.None
+        );
 
         if (file.ownerUserId === me.id) {
-          return { level: "Full", access: null };
+          return { level: FileAccessLevel.Full, access: null };
         }
 
         const fileAccesses = await fileAccessManager.read({
@@ -907,7 +972,7 @@ export class ServerConnection {
 
         return {
           access,
-          level: deserializeFileAccessLevel(access?.level ?? 0),
+          level: access?.level ?? FileAccessLevel.None,
         };
       },
 
@@ -916,7 +981,7 @@ export class ServerConnection {
         const parentFolder = await getFile(
           parentFolderId,
           authentication,
-          "ReadWrite"
+          FileAccessLevel.ReadWrite
         );
 
         const file = await this.#manager.server.fileManager.openNewFile(
@@ -931,7 +996,11 @@ export class ServerConnection {
 
       openFile: async (fileId) => {
         const authentication = requireAuthenticated(true);
-        const file = await getFile(fileId, authentication, "None");
+        const file = await getFile(
+          fileId,
+          authentication,
+          FileAccessLevel.None
+        );
 
         return await this.#manager.server.fileManager.openFile(
           this,
@@ -942,7 +1011,11 @@ export class ServerConnection {
 
       openFileThumbnail: async (fileId, snapshotId) => {
         const authentication = requireAuthenticated(true);
-        const file = await getFile(fileId, authentication, "None");
+        const file = await getFile(
+          fileId,
+          authentication,
+          FileAccessLevel.None
+        );
 
         const fileHandleId =
           await this.#manager.server.fileManager.openFileThumbnail(
@@ -952,7 +1025,7 @@ export class ServerConnection {
           );
 
         if (fileHandleId == null) {
-          ApiError.throw("NotFound", "No thumbnail available");
+          ApiError.throw(ApiErrorType.NotFound, "No thumbnail available");
         }
 
         return fileHandleId;
@@ -1001,13 +1074,17 @@ export class ServerConnection {
         const authentication = requireAuthenticated(true);
 
         for (const fileId of fileIds) {
-          const file = await getFile(fileId, authentication, "None");
+          const file = await getFile(
+            fileId,
+            authentication,
+            FileAccessLevel.None
+          );
 
           const toParent = await getFile(
             toParentId,
             authentication,
-            "ReadWrite",
-            "folder"
+            FileAccessLevel.ReadWrite,
+            FileType.Folder
           );
 
           await fileManager.move(file, toParent);
@@ -1028,20 +1105,24 @@ export class ServerConnection {
         const authentication = requireAuthenticated(true);
 
         for (const fileId of fileIds) {
-          const file = await getFile(fileId, authentication, "None");
+          const file = await getFile(
+            fileId,
+            authentication,
+            FileAccessLevel.None
+          );
 
           const toParent = await getFile(
             toParentId,
             authentication,
-            "ReadWrite",
-            "folder"
+            FileAccessLevel.ReadWrite,
+            FileType.Folder
           );
 
           const copy = async (
             sourceFile: UnlockedFileResource,
             destinationFile: UnlockedFileResource
           ) => {
-            if (sourceFile.type === "file") {
+            if (sourceFile.type === FileType.File) {
               const fileContent = await fileContentManager.getMain(file);
               const fileSnapshot = await fileSnapshotManager.getLatest(
                 file,
@@ -1052,7 +1133,7 @@ export class ServerConnection {
                 authentication,
                 toParent,
                 file.name,
-                "file"
+                FileType.File
               );
               const newFileContent = await fileContentManager.getMain(newFile);
               const newFileSnapshot = await fileSnapshotManager.getRoot(
@@ -1083,7 +1164,7 @@ export class ServerConnection {
                   buffer
                 );
               }
-            } else if (sourceFile.type === "folder") {
+            } else if (sourceFile.type === FileType.Folder) {
               let newFolder: UnlockedFileResource;
 
               {
@@ -1097,13 +1178,13 @@ export class ServerConnection {
                     authentication,
                     destinationFile,
                     sourceFile.name,
-                    "folder"
+                    FileType.Folder
                   );
                 } else {
                   newFolder = await fileManager.unlock(
                     newFolderFind,
                     authentication,
-                    "ReadWrite"
+                    FileAccessLevel.ReadWrite
                   );
                 }
               }
@@ -1113,7 +1194,11 @@ export class ServerConnection {
                 .then((files) =>
                   Promise.all(
                     files.map((file) =>
-                      fileManager.unlock(file, authentication, "Read")
+                      fileManager.unlock(
+                        file,
+                        authentication,
+                        FileAccessLevel.Read
+                      )
                     )
                   )
                 )) {
@@ -1130,7 +1215,11 @@ export class ServerConnection {
         const authentication = requireAuthenticated(true);
 
         for (const fileId of fileIds) {
-          const file = await getFile(fileId, authentication, "Manage");
+          const file = await getFile(
+            fileId,
+            authentication,
+            FileAccessLevel.Manage
+          );
 
           if (file.deleted) {
             return;
@@ -1144,7 +1233,11 @@ export class ServerConnection {
         const authentication = requireAuthenticated(true);
 
         for (const fileId of fileIds) {
-          const file = await getFile(fileId, authentication, "Manage");
+          const file = await getFile(
+            fileId,
+            authentication,
+            FileAccessLevel.Manage
+          );
 
           if (!file.deleted) {
             return;
@@ -1158,7 +1251,11 @@ export class ServerConnection {
         const authentication = requireAuthenticated(true);
 
         for (const fileId of fileIds) {
-          const file = await getFile(fileId, authentication, "Manage");
+          const file = await getFile(
+            fileId,
+            authentication,
+            FileAccessLevel.Manage
+          );
 
           await fileManager.untrash(
             authentication,
@@ -1167,8 +1264,8 @@ export class ServerConnection {
               ? await getFile(
                   newParentId,
                   authentication,
-                  "ReadWrite",
-                  "folder"
+                  FileAccessLevel.ReadWrite,
+                  FileType.Folder
                 )
               : undefined
           );
@@ -1200,7 +1297,7 @@ export class ServerConnection {
         const fileAccesses = await fileAccessManager.read({
           where: [
             ["userId", "=", authentication.userId],
-            ["level", ">=", serializeFileAccessLevel("Read")],
+            ["level", ">=", FileAccessLevel.Read],
           ],
           offset,
           limit,
@@ -1213,7 +1310,9 @@ export class ServerConnection {
         const authentication = requireAuthenticated(true);
 
         const file =
-          fileId != null ? await getFile(fileId, authentication, "Read") : null;
+          fileId != null
+            ? await getFile(fileId, authentication, FileAccessLevel.Read)
+            : null;
 
         const user =
           userId != null ? await resolveUser(["userId", userId]) : null;
@@ -1232,7 +1331,11 @@ export class ServerConnection {
       isFileStarred: async (fileId) => {
         const authentication = requireAuthenticated(true);
 
-        const file = await getFile(fileId, authentication, "Read");
+        const file = await getFile(
+          fileId,
+          authentication,
+          FileAccessLevel.Read
+        );
 
         return (await fileStarManager.count([["fileId", "=", file.id]])) !== 0;
       },
@@ -1242,19 +1345,23 @@ export class ServerConnection {
 
         const user = await resolveUser(["userId", authentication.userId]);
 
-        const file = await getFile(fileId, authentication, "Read");
+        const file = await getFile(
+          fileId,
+          authentication,
+          FileAccessLevel.Read
+        );
 
         await fileStarManager.setStar(user, file, starred);
         return starred;
       },
 
       createNews: async (news) => {
-        await requireRole(requireAuthenticated(true), "SiteAdmin");
+        await requireRole(requireAuthenticated(true), UserRole.SiteAdmin);
         newsArray.push(news);
       },
 
       deleteNews: async (index) => {
-        await requireRole(requireAuthenticated(true), "SiteAdmin");
+        await requireRole(requireAuthenticated(true), UserRole.SiteAdmin);
         newsArray.splice(index, 1);
       },
 

@@ -1,8 +1,8 @@
 import { Knex } from "knex";
 import { Database } from "../database.js";
 import { ResourceManager, Resource } from "../resource.js";
-import { FileManager, FileResource, UnlockedFileResource } from "./file.js";
-import { FileType } from "../../shared/db/file.js";
+import { FileManager, FileResource } from "./file.js";
+import { FileType } from "../../shared.js";
 
 export interface FileContentResource
   extends Resource<FileContentResource, FileContentManager> {
@@ -42,7 +42,7 @@ export class FileContentManager extends ResourceManager<
   }
 
   public async getMain(file: FileResource) {
-    if (file.type === 'folder') {
+    if (file.type === FileType.Folder) {
       throw new Error("File is a folder.");
     }
 

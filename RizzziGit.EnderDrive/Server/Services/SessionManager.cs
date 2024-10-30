@@ -13,7 +13,6 @@ using Microsoft.Extensions.Logging;
 
 namespace RizzziGit.EnderDrive.Server.Services;
 
-using API;
 using Commons.Memory;
 using Commons.Services;
 using Core;
@@ -31,9 +30,12 @@ public sealed class Session
 }
 
 public sealed class SessionManager(ApiServer apiServer)
-    : Service2<SessionManagerContext>("Sessions", apiServer)
+    : Service<SessionManagerContext>("Sessions", apiServer)
 {
-    protected override Task<SessionManagerContext> OnStart(CancellationToken cancellationToken)
+    protected override Task<SessionManagerContext> OnStart(
+        CancellationToken startupCancellationToken,
+        CancellationToken serviceCancellationToken
+    )
     {
         List<Session> sessions = [];
 

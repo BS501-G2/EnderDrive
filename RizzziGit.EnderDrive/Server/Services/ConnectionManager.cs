@@ -6,110 +6,138 @@ namespace RizzziGit.EnderDrive.Server.Services;
 
 using System;
 using System.Net.WebSockets;
-using Commons.Net.HybridWebSocket;
+using System.Runtime.ExceptionServices;
 using Commons.Services;
 using Core;
 using RizzziGit.Commons.Collections;
+using RizzziGit.Commons.Utilities;
 
-public sealed record ConnectionWaitQueueEntry(
-    TaskCompletionSource<Connection> Source,
-    WebSocket WebSocket,
-    CancellationToken CancellationToken
-);
-
-public sealed class ConnectionManagerParams
+public sealed class ConnectionManagerContext
 {
     public required List<Connection> Connections;
-    public required WaitQueue<ConnectionWaitQueueEntry> ConnectionWaitQueue;
+    public required WaitQueue<ConnectionManagerFeed> Feed;
+
+    public required ulong NextConnectionId;
+}
+
+public abstract record ConnectionManagerFeed
+{
+    private ConnectionManagerFeed() { }
+
+    public sealed record NewConnection(
+        TaskCompletionSource TaskCompletionSource,
+        WebSocket WebSocket,
+        CancellationToken CancellationToken
+    ) : ConnectionManagerFeed();
+
+    public sealed record Error(ExceptionDispatchInfo Exception) : ConnectionManagerFeed();
 }
 
 public sealed partial class ConnectionManager(Server server)
-    : Service2<ConnectionManagerParams>("Connections", server)
+    : Service<ConnectionManagerContext>("Connections", server)
 {
-    protected override Task<ConnectionManagerParams> OnStart(CancellationToken cancellationToken)
+    protected override Task<ConnectionManagerContext> OnStart(
+        CancellationToken startupCancellationToken,
+        CancellationToken serviceCancellationToken
+    )
     {
         List<Connection> connection = [];
-        WaitQueue<ConnectionWaitQueueEntry> connectionWaitQueue = new(1000);
+        WaitQueue<ConnectionManagerFeed> connectionWaitQueue = new(1000);
 
-        return Task.FromResult<ConnectionManagerParams>(
-            new() { Connections = connection, ConnectionWaitQueue = connectionWaitQueue }
+        return Task.FromResult<ConnectionManagerContext>(
+            new()
+            {
+                Connections = connection,
+                Feed = connectionWaitQueue,
+                NextConnectionId = 0
+            }
         );
-    }
-
-    public async Task<Connection> Connect(WebSocket webSocket, CancellationToken cancellationToken)
-    {
-        TaskCompletionSource<Connection> source = new();
-
-        await Context.ConnectionWaitQueue.Enqueue(
-            new(source, webSocket, cancellationToken),
-            cancellationToken
-        );
-
-        return await source.Task;
     }
 
     protected override async Task OnRun(
-        ConnectionManagerParams data,
+        ConnectionManagerContext context,
         CancellationToken serviceCancellationToken
     )
     {
         await foreach (
-            var (
-                source,
-                webSocket,
-                cancellationToken
-            ) in Context.ConnectionWaitQueue.WithCancellation(serviceCancellationToken)
+            ConnectionManagerFeed feed in Context.Feed.WithCancellation(serviceCancellationToken)
         )
-            HandleConnection(source, webSocket, cancellationToken, serviceCancellationToken);
+        {
+            switch (feed)
+            {
+                case ConnectionManagerFeed.NewConnection(
+                    TaskCompletionSource taskCompletionSource,
+                    WebSocket webSocket,
+                    CancellationToken cancellationToken
+                ):
+                {
+                    HandleConnection(
+                        taskCompletionSource,
+                        context.NextConnectionId++,
+                        webSocket,
+                        cancellationToken,
+                        serviceCancellationToken
+                    );
+
+                    break;
+                }
+
+                case ConnectionManagerFeed.Error(ExceptionDispatchInfo exception):
+                    exception.Throw();
+                    break;
+            }
+        }
     }
 
-    private ulong nextConnectionId = 0;
+    public async Task Push(WebSocket webSocket, CancellationToken cancellationToken)
+    {
+        TaskCompletionSource source = new();
+
+        await Context.Feed.Enqueue(
+            new ConnectionManagerFeed.NewConnection(source, webSocket, cancellationToken),
+            cancellationToken
+        );
+
+        await source.Task;
+    }
 
     private async void HandleConnection(
-        TaskCompletionSource<Connection> source,
+        TaskCompletionSource taskCompletionSource,
+        ulong connectionId,
         WebSocket webSocket,
         CancellationToken cancellationToken,
         CancellationToken serviceCancellationToken
     )
     {
-        using CancellationTokenSource linkedCancellationToken =
-            CancellationTokenSource.CreateLinkedTokenSource(
-                serviceCancellationToken,
-                cancellationToken
-            );
+        using CancellationTokenSource linkedCancellationTokenSource = serviceCancellationToken.Link(
+            cancellationToken
+        );
 
-        Connection connection;
+        Connection connection = new(this, connectionId, webSocket);
+
+        await connection.Start();
+
         try
         {
-            connection = new(this, ++nextConnectionId, webSocket);
-
-            await connection.Start(linkedCancellationToken.Token);
-            source.SetResult(connection);
+            try
+            {
+                await connection.Watch(cancellationToken);
+            }
+            catch (Exception exception)
+            {
+                await Context.Feed.Enqueue(
+                    new ConnectionManagerFeed.Error(ExceptionDispatchInfo.Capture(exception)),
+                    serviceCancellationToken
+                );
+            }
         }
         catch (Exception exception)
         {
-            source.SetException(exception);
-            return;
+            taskCompletionSource.SetException(exception);
         }
-
-        lock (Context.Connections)
-        {
-            Context.Connections.Add(connection);
-        }
-
-        try
-        {
-            await WatchService(connection, serviceCancellationToken);
-        }
-        catch { }
         finally
         {
-            lock (Context.Connections)
-            {
-                Context.Connections.Remove(connection);
-            }
-
-            await connection.Stop();
+            taskCompletionSource.SetResult();
         }
     }
 }

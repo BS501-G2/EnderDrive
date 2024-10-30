@@ -6,7 +6,7 @@
 	import { type DashboardContext, DashboardContextName } from '../../dashboard';
 	import FileManagerFileEntry from '../../files/file-manager-file-entry.svelte';
 	import { getConnection } from '$lib/client/client';
-	import { FileManagerViewMode } from '../../files/file-manager-folder-list';
+	import { FileManagerViewMode } from '../../files/file-manager';
 	import { goto } from '$app/navigation';
 	import Title from '$lib/widgets/title.svelte';
 	import LoadingSpinner from '$lib/widgets/loading-spinner.svelte';
