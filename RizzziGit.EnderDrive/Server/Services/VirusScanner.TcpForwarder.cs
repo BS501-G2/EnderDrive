@@ -1,21 +1,15 @@
 using System;
-using System.IO;
-using System.IO.Pipes;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
-using ClamAV.Net.Client;
-using ClamAV.Net.Client.Results;
 
 namespace RizzziGit.EnderDrive.Server.Services;
 
-using System.Collections.Generic;
-using System.Runtime.ExceptionServices;
-using Commons.Collections;
 using Commons.Services;
-using Core;
-using Utilities;
+using Commons.Utilities;
 
 public sealed partial class VirusScanner
 {
@@ -153,12 +147,12 @@ public sealed partial class VirusScanner
             CancellationToken cancellationToken
         )
         {
-            await ListenTcp(Context.InternalTcpListener, cancellationToken);
+            await ListenTcp(GetContext().InternalTcpListener, cancellationToken);
         }
 
         protected override Task OnStop(TcpForwarderParams data, ExceptionDispatchInfo? exception)
         {
-            Context.InternalTcpListener.Stop();
+            GetContext().InternalTcpListener.Stop();
             return Task.CompletedTask;
         }
     }

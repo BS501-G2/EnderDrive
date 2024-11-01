@@ -31,7 +31,7 @@
 				</div>
 			{/snippet}
 
-			<Button {onclick} container={windowButtonContainer}>
+			<Button {onclick} background={windowButtonContainer}>
 				<div class="window-button">
 					<Icon {...icon} size="1em" />
 				</div>

@@ -55,34 +55,38 @@ public sealed class Server(
         };
     }
 
-    public ResourceManager ResourceManager => Context.ResourceManager;
-    public KeyManager KeyManager => Context.KeyGenerator;
-    public VirusScanner VirusScanner => Context.VirusScanner;
-    public ApiServer ApiServer => Context.ApiServer;
-    public ConnectionManager ConnectionManager => Context.ConnectionManager;
+    public ResourceManager ResourceManager => GetContext().ResourceManager;
+    public KeyManager KeyManager => GetContext().KeyGenerator;
+    public VirusScanner VirusScanner => GetContext().VirusScanner;
+    public ApiServer ApiServer => GetContext().ApiServer;
+    public ConnectionManager ConnectionManager => GetContext().ConnectionManager;
 
     public new Task Start(CancellationToken cancellationToken = default) =>
         base.Start(cancellationToken);
 
     protected override async Task OnRun(ServerData data, CancellationToken cancellationToken)
     {
+        ServerData context = GetContext();
+
         await await Task.WhenAny(
-            WatchService(Context.KeyGenerator, cancellationToken),
-            WatchService(Context.VirusScanner, cancellationToken),
-            WatchService(Context.ResourceManager, cancellationToken),
-            WatchService(Context.ApiServer, cancellationToken),
-            WatchService(Context.ConnectionManager, cancellationToken)
+            WatchService(context.KeyGenerator, cancellationToken),
+            WatchService(context.VirusScanner, cancellationToken),
+            WatchService(context.ResourceManager, cancellationToken),
+            WatchService(context.ApiServer, cancellationToken),
+            WatchService(context.ConnectionManager, cancellationToken)
         );
     }
 
     protected override async Task OnStop(ServerData data, ExceptionDispatchInfo? exception)
     {
+        ServerData context = GetContext();
+
         await StopServices(
-            Context.ConnectionManager,
-            Context.ApiServer,
-            Context.ResourceManager,
-            Context.VirusScanner,
-            Context.KeyGenerator
+            context.ConnectionManager,
+            context.ApiServer,
+            context.ResourceManager,
+            context.VirusScanner,
+            context.KeyGenerator
         );
     }
 }

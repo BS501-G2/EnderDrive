@@ -8,16 +8,20 @@
 
 	let {
 		children,
-		container,
+		background,
+		foreground,
 		onclick,
-		click = $bindable()
+		click = $bindable(),
+		disabled = false
 	}: {
 		children: Snippet;
-		container?: Snippet<[content: Snippet]>;
+		background?: Snippet<[content: Snippet, error: boolean]>;
+		foreground?: Snippet<[content: Snippet, error: boolean]>;
 		onclick: (
 			event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
 		) => void | Promise<void>;
 		click?: () => void;
+		disabled?: boolean;
 	} = $props();
 
 	$effect(() => (click = clickButton));
@@ -36,6 +40,8 @@
 
 <button
 	bind:this={button}
+	class:disabled
+	{disabled}
 	onclick={(event) => {
 		try {
 			if (promise != null) {
@@ -62,23 +68,31 @@
 		}
 	}}
 >
-	<div class="background" class:error={error != null} class:busy={promise != null}>
-		{#snippet content()}
-			{#if error != null}
-				{error.message}
-			{:else if promise != null}
-				<LoadingSpinner size="1em" />
-			{:else}
-				{@render children()}
-			{/if}
-		{/snippet}
+	{#snippet backgroundContent()}
+		<div class="background" class:error={error != null} class:busy={promise != null}>
+			{#snippet foregroundContent()}
+				{#if error != null}
+					{error.message}
+				{:else if promise != null}
+					<LoadingSpinner size="1em" />
+				{:else}
+					{@render children()}
+				{/if}
+			{/snippet}
 
-		{#if container != null}
-			{@render container(content)}
-		{:else}
-			{@render content()}
-		{/if}
-	</div>
+			{#if foreground != null}
+				{@render foreground(foregroundContent, error != null)}
+			{:else}
+				{@render foregroundContent()}
+			{/if}
+		</div>
+	{/snippet}
+
+	{#if background != null}
+		{@render background(backgroundContent, error != null)}
+	{:else}
+		{@render backgroundContent()}
+	{/if}
 </button>
 
 <style lang="scss">
@@ -93,10 +107,6 @@
 		overflow: hidden;
 
 		transition-property: scale;
-
-		div.background.error {
-			background-color: var(--color-6);
-		}
 
 		div.background.busy {
 			cursor: not-allowed;
@@ -142,6 +152,14 @@
 		div.background {
 			background-color: rgba(0, 0, 0, 0.75);
 			color: var(--color-5);
+		}
+	}
+
+	button.disabled {
+		cursor: not-allowed;
+
+		div.background {
+			background-color: rgba(0, 0, 0, 0.25);
 		}
 	}
 </style>

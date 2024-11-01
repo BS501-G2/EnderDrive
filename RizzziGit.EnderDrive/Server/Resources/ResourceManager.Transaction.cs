@@ -40,11 +40,14 @@ public sealed partial class ResourceManager
         CancellationToken cancellationToken = default
     )
     {
+        CancellationToken serviceCancellationToken = GetCancellationToken();
+
         async Task transactInner(ulong transactionId, Logger logger)
         {
             using CancellationTokenSource linkedCancellationTokenSource = cancellationToken.Link(
-                CancellationToken
+                serviceCancellationToken
             );
+
             using IClientSessionHandle session = await Client.StartSessionAsync(
                 null,
                 linkedCancellationTokenSource.Token

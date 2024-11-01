@@ -58,11 +58,11 @@ export function createLandingContext() {
 		},
 
 		pushButton: (content, icon, isSecondary, onclick) => () => {
-			const a: LandingPageButton = { id: Math.random(), icon, content, isSecondary, onclick };
+			const id = Math.random();
 
-			buttons.update((buttons) => [...buttons]);
+			buttons.update((buttons) => [...buttons, { id, icon, content, isSecondary, onclick }]);
 
-			return () => buttons.update((buttons) => buttons.filter((entry) => entry !== a));
+			return () => buttons.update((buttons) => buttons.filter((entry) => entry.id !== id));
 		},
 
 		pushFooter: (name, content) => {

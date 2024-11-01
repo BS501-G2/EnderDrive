@@ -3,7 +3,6 @@
   <ItemGroup>
     <PackageReference Include="ClamAV.Net" Version="0.1.166" />
     <PackageReference Include="MongoDB.Driver" Version="2.29.0" />
-    <PackageReference Include="MPack" Version="2.1.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
   </ItemGroup>
@@ -26,4 +25,3 @@
   </PropertyGroup>
 
 </Project>
-

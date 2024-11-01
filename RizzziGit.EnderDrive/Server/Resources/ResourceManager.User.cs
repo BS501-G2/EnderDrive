@@ -55,13 +55,13 @@ public enum UsernameValidation
 public sealed partial class ResourceManager
 {
     [GeneratedRegex("^\\w$")]
-    private static partial Regex GetUsernameValidator();
+    private static partial Regex GetUsernameRegex();
 
+    public static readonly Regex USERNAME_REGEX = GetUsernameRegex();
     public const int USERNAME_MIN_LENGTH = 6;
     public const int USERNAME_MAX_LENGTH = 12;
-    public readonly Regex USERNAME_CHAR_DICTIONARY = GetUsernameValidator();
 
-    public UsernameValidation Validate(string username)
+    public UsernameValidation ValidateUsername(string username)
     {
         UsernameValidation validation = default;
 
@@ -75,7 +75,7 @@ public sealed partial class ResourceManager
             validation |= UsernameValidation.TooLong;
         }
 
-        if (!USERNAME_CHAR_DICTIONARY.IsMatch(username))
+        if (!USERNAME_REGEX.IsMatch(username))
         {
             validation |= UsernameValidation.InvalidChars;
         }

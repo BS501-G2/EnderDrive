@@ -57,5 +57,5 @@ public sealed partial class ResourceManager
                             && item.FileSnapshotId == fileSnapshot.Id
                     )
             )
-            .FirstOrDefaultAsync(CancellationToken);
+            .FirstOrDefaultAsync(GetCancellationToken());
 }

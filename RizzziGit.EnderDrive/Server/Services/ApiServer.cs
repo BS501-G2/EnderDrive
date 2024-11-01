@@ -23,7 +23,7 @@ public sealed partial class ApiServerParams
 {
     public required WebApplication WebApplication;
     public required SessionManager SessionManager;
-    // public required SocketIoBridge SocketIoBridge;
+    public required SocketIoBridge SocketIoBridge;
 }
 
 public sealed partial class ApiServer(Server server, int httpPort, int httpsPort)
@@ -35,7 +35,7 @@ public sealed partial class ApiServer(Server server, int httpPort, int httpsPort
     )
     {
         SessionManager sessionManager = new(this);
-        // SocketIoBridge socketIoBridge = new(this);
+        SocketIoBridge socketIoBridge = new(this);
 
         WebApplicationBuilder builder = WebApplication.CreateBuilder();
 
@@ -73,7 +73,7 @@ public sealed partial class ApiServer(Server server, int httpPort, int httpsPort
         await StartServices(
             [
                 sessionManager,
-                //socketIoBridge
+                socketIoBridge
             ],
             startupCancellationToken
         );
@@ -85,23 +85,29 @@ public sealed partial class ApiServer(Server server, int httpPort, int httpsPort
         {
             WebApplication = app,
             SessionManager = sessionManager,
-            // SocketIoBridge = socketIoBridge
+            SocketIoBridge = socketIoBridge
         };
     }
 
     protected override async Task OnRun(ApiServerParams data, CancellationToken cancellationToken)
     {
-        await await Task.WhenAny(
-            // WatchService(Context.SocketIoBridge, cancellationToken),
-            WatchService(Context.SessionManager, cancellationToken)
-        );
+        var context = GetContext();
+
+        Task[] tasks =
+        [
+            WatchService(context.SocketIoBridge, cancellationToken),
+            WatchService(context.SessionManager, cancellationToken)
+        ];
+
+        await await Task.WhenAny(tasks);
     }
 
     protected override async Task OnStop(ApiServerParams data, ExceptionDispatchInfo? exception)
     {
-        await Context.WebApplication.StopAsync(CancellationToken.None);
+        var context = GetContext();
+        await context.WebApplication.StopAsync(CancellationToken.None);
 
-        // await StopServices(Context.SocketIoBridge, Context.SessionManager);
+        await StopServices(context.SocketIoBridge, context.SessionManager);
     }
 
     private async Task Handle(HttpContext context, CancellationToken cancellationToken)

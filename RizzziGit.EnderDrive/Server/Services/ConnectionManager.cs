@@ -36,6 +36,8 @@ public abstract record ConnectionManagerFeed
 public sealed partial class ConnectionManager(Server server)
     : Service<ConnectionManagerContext>("Connections", server)
 {
+    public Server Server => server;
+
     protected override Task<ConnectionManagerContext> OnStart(
         CancellationToken startupCancellationToken,
         CancellationToken serviceCancellationToken
@@ -60,7 +62,8 @@ public sealed partial class ConnectionManager(Server server)
     )
     {
         await foreach (
-            ConnectionManagerFeed feed in Context.Feed.WithCancellation(serviceCancellationToken)
+            ConnectionManagerFeed feed in GetContext()
+                .Feed.WithCancellation(serviceCancellationToken)
         )
         {
             switch (feed)
@@ -91,9 +94,10 @@ public sealed partial class ConnectionManager(Server server)
 
     public async Task Push(WebSocket webSocket, CancellationToken cancellationToken)
     {
+        var context = GetContext();
         TaskCompletionSource source = new();
 
-        await Context.Feed.Enqueue(
+        await context.Feed.Enqueue(
             new ConnectionManagerFeed.NewConnection(source, webSocket, cancellationToken),
             cancellationToken
         );
@@ -109,6 +113,7 @@ public sealed partial class ConnectionManager(Server server)
         CancellationToken serviceCancellationToken
     )
     {
+        var context = GetContext();
         using CancellationTokenSource linkedCancellationTokenSource = serviceCancellationToken.Link(
             cancellationToken
         );
@@ -125,7 +130,7 @@ public sealed partial class ConnectionManager(Server server)
             }
             catch (Exception exception)
             {
-                await Context.Feed.Enqueue(
+                await context.Feed.Enqueue(
                     new ConnectionManagerFeed.Error(ExceptionDispatchInfo.Capture(exception)),
                     serviceCancellationToken
                 );

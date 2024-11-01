@@ -10,6 +10,7 @@ using Newtonsoft.Json;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
+using System.Text.RegularExpressions;
 using Services;
 
 public enum UserAuthenticationType
@@ -92,8 +93,23 @@ public record class UnlockedUserAuthentication : UserAuthentication
     public required byte[] RsaPrivateKey;
 }
 
+public enum PasswordVerification
+{
+    OK = 0,
+
+    TooShort = 1 << 0,
+    TooLong = 1 << 1,
+
+    NoRequiredChars = 1 << 2
+}
+
 public sealed partial class ResourceManager
 {
+    [GeneratedRegex("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]$")]
+    private static partial Regex GetPasswordRegex();
+
+    public static readonly Regex PASSWORD_REGEX = GetPasswordRegex();
+
     private IMongoCollection<UserAuthentication> UserAuthentications =>
         GetCollection<UserAuthentication>();
 
@@ -105,6 +121,27 @@ public sealed partial class ResourceManager
         return rfc2898DeriveBytes.GetBytes(32);
     }
 
+    public PasswordVerification VerifyPassword(string password)
+    {
+        PasswordVerification verification = 0;
+
+        if (password.Length < 6)
+        {
+            verification |= PasswordVerification.TooShort;
+        }
+
+        if (password.Length > 36)
+        {
+            verification |= PasswordVerification.TooLong;
+        }
+
+        if (!PASSWORD_REGEX.IsMatch(password)) {
+            verification |= PasswordVerification.NoRequiredChars;
+        }
+
+        return verification;
+    }
+
     private async Task<UnlockedUserAuthentication> AddInitialUserAuthentication(
         ResourceTransaction transactionParams,
         User user,
@@ -114,13 +151,15 @@ public sealed partial class ResourceManager
         byte[] rsaPrivateKey
     )
     {
+        MainResourceManagerContext context = GetContext();
+
         int iterations = 10000;
 
         byte[] salt = new byte[16];
-        Context.RandomNumberGenerator.GetBytes(salt);
+        context.RandomNumberGenerator.GetBytes(salt);
 
         byte[] iv = new byte[16];
-        Context.RandomNumberGenerator.GetBytes(iv);
+        context.RandomNumberGenerator.GetBytes(iv);
 
         byte[] aesKey = HashPayload(salt, iterations, payload);
 
@@ -177,13 +216,15 @@ public sealed partial class ResourceManager
         byte[] payload
     )
     {
+        MainResourceManagerContext context = GetContext();
+
         int iterations = 10000;
 
         byte[] salt = new byte[16];
-        Context.RandomNumberGenerator.GetBytes(salt);
+        context.RandomNumberGenerator.GetBytes(salt);
 
         byte[] iv = new byte[16];
-        Context.RandomNumberGenerator.GetBytes(iv);
+        context.RandomNumberGenerator.GetBytes(iv);
 
         byte[] aesKey = HashPayload(salt, iterations, payload);
 

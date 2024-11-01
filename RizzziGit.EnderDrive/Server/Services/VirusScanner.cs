@@ -65,9 +65,10 @@ public sealed partial class VirusScanner(Server server, string unixSocketPath)
         while (true)
         {
             serviceCancellationToken.ThrowIfCancellationRequested();
+            VirusScannerParams context = GetContext();
 
             await foreach (
-                var (source, stream, cancellationToken) in Context.WaitQueue.WithCancellation(
+                var (source, stream, cancellationToken) in context.WaitQueue.WithCancellation(
                     serviceCancellationToken
                 )
             )
@@ -82,7 +83,7 @@ public sealed partial class VirusScanner(Server server, string unixSocketPath)
 
                 try
                 {
-                    ScanResult result = await Context.Client.ScanDataAsync(stream, linked.Token);
+                    ScanResult result = await context.Client.ScanDataAsync(stream, linked.Token);
 
                     source.SetResult(result);
 
@@ -108,15 +109,18 @@ public sealed partial class VirusScanner(Server server, string unixSocketPath)
 
     protected override Task OnStop(VirusScannerParams data, ExceptionDispatchInfo? exception)
     {
-        Context.Client.Dispose();
+        VirusScannerParams context = GetContext();
+
+        context.Client.Dispose();
         return Task.CompletedTask;
     }
 
     public async Task<ScanResult> Scan(Stream stream, CancellationToken cancellationToken = default)
     {
-        TaskCompletionSource<ScanResult> source = new();
+        VirusScannerParams context = GetContext();
 
-        await Context.WaitQueue.Enqueue((source, stream, cancellationToken), cancellationToken);
+        TaskCompletionSource<ScanResult> source = new();
+        await context.WaitQueue.Enqueue((source, stream, cancellationToken), cancellationToken);
         return await source.Task;
     }
 

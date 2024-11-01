@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Buffer } from 'buffer';
-import { getContext, setContext } from 'svelte';
-import { get, writable, type Readable } from 'svelte/store';
+import { getContext, setContext, type Snippet } from 'svelte';
+import * as MsgPack from '@msgpack/msgpack';
+import { derived, get, writable, type Readable } from 'svelte/store';
+import * as SocketIO from 'socket.io-client';
 
 const clientContextName = 'Client Context';
 
@@ -14,6 +16,29 @@ const PACKET_RESPONSE_INTERNAL_ERROR = 5 as const;
 
 const INTERNAL_ERROR_DUPLICATE_ID = 0 as const;
 
+export type Packet =
+	| { type: typeof PACKET_REQUEST; id: number; data: any }
+	| {
+			type: typeof PACKET_REQUEST_CANCEL;
+			id: number;
+	  }
+	| {
+			type: typeof PACKET_RESPONSE;
+			id: number;
+			data: any;
+	  }
+	| { type: typeof PACKET_RESPONSE_CANCEL; id: number }
+	| {
+			type: typeof PACKET_RESPONSE_ERROR;
+			id: number;
+			error: string;
+	  }
+	| {
+			type: typeof PACKET_RESPONSE_INTERNAL_ERROR;
+			id: number;
+			reason: number;
+	  };
+
 export enum ClientStateType {
 	Connecting,
 	Connected,
@@ -23,11 +48,11 @@ export enum ClientStateType {
 export type ClientState =
 	| {
 			state: ClientStateType.Connecting;
-			request: (data: Buffer) => Promise<Buffer>;
+			request: (packet: ClientPacket<ServerSideRequestCode>) => Promise<ClientPacket<ResponseCode>>;
 	  }
 	| {
 			state: ClientStateType.Connected;
-			request: (data: Buffer) => Promise<Buffer>;
+			request: (packet: ClientPacket<ServerSideRequestCode>) => Promise<ClientPacket<ResponseCode>>;
 	  }
 	| {
 			state: ClientStateType.Failed;
@@ -35,83 +60,97 @@ export type ClientState =
 			retry: () => void;
 	  };
 
+export interface ClientPacket<
+	T extends ServerSideRequestCode | ClientSideRequestCode | ResponseCode
+> {
+	Code: T;
+	Data: any;
+}
+
 export function createClient(
-	handleRequest: (data: Buffer, isCancelled: () => boolean) => Promise<Buffer>
+	handleRequest: (data: any, isCancelled: () => boolean) => Promise<any>
 ): Readable<ClientState> {
-	const preRequest: ((request: (data: Buffer) => Promise<Buffer>) => Promise<void>)[] = [];
+	const preRequest: {
+		packet: ClientPacket<ServerSideRequestCode>;
+		resolve: (data: ClientPacket<ResponseCode>) => void;
+		reject: (error: Error) => void;
+	}[] = [];
+
 	const state = writable<ClientState>({
 		state: ClientStateType.Connecting,
-		request: (data): Promise<Buffer> =>
-			new Promise<Buffer>((resolve, reject) => {
-				preRequest.push((request) => request(data).then(resolve, reject));
-			})
+		request: (packet) =>
+			new Promise<any>((resolve, reject) => preRequest.push({ packet, reject, resolve }))
 	});
 
-	const connect = () => {
-		const url = `ws${window.location.protocol === 'https:' ? 's' : ''}://${window.location.hostname}:8082`;
+	const connect = async () => {
+		const url = `ws${window.location.protocol === 'https:' ? 's' : ''}://${window.location.hostname}:8083`;
 		const responses: Map<
-			string,
-			{ resolve: (data: Buffer) => void; reject: (reason: Error) => void }
+			number,
+			{ resolve: (data: any) => void; reject: (reason: Error) => void }
 		> = new Map();
-		const request: Map<string, () => void> = new Map();
+		const requests: Map<number, () => void> = new Map();
 
 		let nextId: number = 0;
 
 		try {
-			state.set({
-				state: ClientStateType.Connecting,
-				request: (data): Promise<Buffer> =>
-					new Promise<Buffer>((resolve, reject) => {
-						preRequest.push((request) => request(data).then(resolve, reject));
-					})
+			if (get(state).state !== ClientStateType.Connecting) {
+				state.set({
+					state: ClientStateType.Connecting,
+					request: (packet) =>
+						new Promise<any>((resolve, reject) => preRequest.push({ packet, reject, resolve }))
+				});
+			}
+
+			const socket = SocketIO.connect(url, {
+				reconnection: false,
+				autoConnect: false
 			});
 
-			const webSocket = new WebSocket(url);
-			webSocket.binaryType = 'arraybuffer';
+			function send(packet: Packet) {
+				console.log('->', packet);
+				socket.emit('message', packet);
+			}
 
-			webSocket.onmessage = ({ data: raw }: { data: ArrayBuffer }) => {
-				const data = Buffer.from(new Uint8Array(raw));
-
-				switch (data[0]) {
+			socket.on('message', (packet: Packet) => {
+				console.log('<-', packet);
+				switch (packet.type) {
 					case PACKET_REQUEST: {
-						const id = data.subarray(1, 5);
-						if (request.has(id.toString('hex'))) {
-							webSocket.send(
-								Buffer.concat([
-									Buffer.from([PACKET_RESPONSE_INTERNAL_ERROR]),
-									id,
-									Buffer.from([INTERNAL_ERROR_DUPLICATE_ID])
-								])
-							);
-
+						if (requests.has(packet.id)) {
+							send({
+								type: PACKET_RESPONSE_INTERNAL_ERROR,
+								id: packet.id,
+								reason: INTERNAL_ERROR_DUPLICATE_ID
+							});
 							break;
 						}
 
 						let cancelled: boolean = false;
-
-						request.set(id.toString('hex'), () => {
+						requests.set(packet.id, () => {
 							cancelled = true;
 						});
 
 						void (async () => {
 							try {
-								let result: Buffer;
+								let result: any;
+
 								try {
-									result = await handleRequest(data.subarray(5), () => cancelled);
+									result = await handleRequest(packet.data, () => cancelled);
 								} catch (error: any) {
-									webSocket.send(
-										Buffer.concat([
-											Buffer.from([PACKET_RESPONSE_ERROR]),
-											id,
-											error instanceof ClientResponseError ? error.errorData : Buffer.alloc(0)
-										])
-									);
+									send({
+										type: PACKET_RESPONSE_ERROR,
+										id: packet.id,
+										error: error instanceof Error ? error.message : ''
+									});
 									return;
 								}
 
-								webSocket.send(Buffer.concat([Buffer.from([PACKET_RESPONSE]), id, result]));
+								send({
+									type: PACKET_RESPONSE,
+									id: packet.id,
+									data: result
+								});
 							} finally {
-								request.delete(id.toString('hex'));
+								requests.delete(packet.id);
 							}
 						})();
 
@@ -119,9 +158,7 @@ export function createClient(
 					}
 
 					case PACKET_REQUEST_CANCEL: {
-						const id = data.subarray(1, 5);
-						const cancel = request.get(id.toString('hex'));
-
+						const cancel = requests.get(packet.id);
 						if (cancel == null) {
 							break;
 						}
@@ -131,23 +168,19 @@ export function createClient(
 					}
 
 					case PACKET_RESPONSE: {
-						const id = data.subarray(1, 5);
-						const response = responses.get(id.toString('hex'));
-
+						const response = responses.get(packet.id);
 						if (response == null) {
 							break;
 						}
 
 						const { resolve } = response;
 
-						resolve(data.subarray(5));
+						resolve(packet.data);
 						break;
 					}
 
 					case PACKET_RESPONSE_CANCEL: {
-						const id = data.subarray(1, 5);
-						const response = responses.get(id.toString('hex'));
-
+						const response = responses.get(packet.id);
 						if (response == null) {
 							break;
 						}
@@ -159,71 +192,93 @@ export function createClient(
 					}
 
 					case PACKET_RESPONSE_ERROR: {
-						const id = data.subarray(1, 5);
-						const response = responses.get(id.toString('hex'));
-
+						const response = responses.get(packet.id);
 						if (response == null) {
 							break;
 						}
 
 						const { reject } = response;
 
-						reject(new ClientResponseError(data.subarray(5)));
+						reject(new ClientResponseError(packet.error));
 						break;
 					}
 
 					case PACKET_RESPONSE_INTERNAL_ERROR: {
-						const id = data.subarray(1, 5);
-						const response = responses.get(id.toString('hex'));
-
+						const response = responses.get(packet.id);
 						if (response == null) {
 							break;
 						}
 
 						const { reject } = response;
 
-						reject(new ClientInternalResponseError(data[5]));
+						reject(new ClientInternalResponseError(packet.reason));
 						break;
 					}
 				}
-			};
+			});
 
-			webSocket.onopen = () => {
+			socket.io.on('open', () => {
 				const newState: ClientState & { state: ClientStateType.Connected } = {
 					state: ClientStateType.Connected,
-					request: async (data) => {
-						const id = Buffer.alloc(4);
-						id.writeInt32LE(nextId++, 0);
+					request: async (packet) => {
+						const id = nextId++;
 
-						try {
-							return await new Promise<Buffer>((resolve, reject) => {
-								responses.set(id.toString('hex'), { resolve, reject });
-								webSocket.send(Buffer.concat([Buffer.from([PACKET_REQUEST]), id, data]));
+						return new Promise<any>((resolve, reject) => {
+							responses.set(id, { resolve, reject });
+
+							send({
+								type: PACKET_REQUEST,
+								id,
+								data: packet
 							});
-						} finally {
-							responses.delete(id.toString('hex'));
-						}
+						});
 					}
 				};
 
-				state.set(newState);
-
 				for (let index = 0; index < preRequest.length; index++) {
-					void preRequest.splice(index--, 1)[0](newState.request);
-				}
-			};
+					const {
+						[index--]: { packet, resolve, reject }
+					} = preRequest;
+					preRequest.splice(index, 1);
 
-			webSocket.onerror = webSocket.onclose = () => {
+					newState.request(packet).then(resolve, reject);
+				}
+
+				state.set(newState);
+			});
+
+			function onClose(
+				error: Error = new Error('Failed to establish a connection to the server.')
+			) {
 				if (get(state).state === ClientStateType.Failed) {
 					return;
 				}
 
 				state.set({
 					state: ClientStateType.Failed,
-					error: new Error('Failed to connect'),
+					error,
 					retry: () => connect()
 				});
-			};
+
+				for (let index = 0; index < preRequest.length; index++) {
+					const {
+						[index--]: { reject }
+					} = preRequest;
+					preRequest.splice(index, 1);
+
+					reject(new Error(`Connection Closed`, { cause: error }));
+				}
+			}
+
+			socket.io.on('close', (reason) => {
+				onClose(new Error(reason));
+			});
+
+			socket.io.on('error', (error: Error) => {
+				onClose(error);
+			});
+
+			socket.connect();
 		} catch (error: any) {
 			state.set({ state: ClientStateType.Failed, error, retry: () => connect() });
 		}
@@ -240,13 +295,13 @@ export class ClientError extends Error {
 }
 
 export class ClientResponseError extends ClientError {
-	public constructor(errorData: Buffer, options?: ErrorOptions) {
-		super(`Remote returned an error`, options);
+	public constructor(errorData: string = 'Remote sent an error', options?: ErrorOptions) {
+		super(errorData, options);
 
 		this.#errorData = errorData;
 	}
 
-	readonly #errorData: Buffer;
+	readonly #errorData: string;
 
 	get errorData() {
 		return this.#errorData;
@@ -275,32 +330,161 @@ export class ClientInternalResponseError extends Error {
 export interface ClientContext {
 	client: Readable<ClientState>;
 
-	request: (data: Buffer) => Promise<Buffer>;
+	setMainContent: Readable<Snippet | null>;
+
+	request: (packet: ClientPacket<ServerSideRequestCode>) => Promise<ClientPacket<ResponseCode>>;
+
+	setRequestHandler: (
+		code: ClientSideRequestCode,
+		handler: (data: Buffer, isCancelled: () => boolean) => Promise<Payload<ResponseCode>>
+	) => () => void;
+
+	functions: ServerSideRequests;
 }
 
-export function createClientContext(
-	handleRequest: (data: Buffer, isCancelled: () => boolean) => Promise<Buffer>
-) {
+export interface Payload<T extends ClientSideRequestCode | ServerSideRequestCode | ResponseCode> {
+	Code: T;
+	Data: Buffer;
+}
+
+export function createClientContext() {
+	const requestHandlers: Map<
+		number,
+		(data: Buffer, isCancelled: () => boolean) => Promise<Payload<ResponseCode>>
+	> = new Map();
+
+	const handleRequest = async (data: Buffer, isCancelled: () => boolean): Promise<Buffer> => {
+		const requestPayload = MsgPack.decode(data) as Payload<ClientSideRequestCode>;
+
+		const handler = requestHandlers.get(requestPayload.Code);
+
+		const response: Payload<ResponseCode> =
+			handler == null
+				? {
+						Code: ResponseCode.NoHandlerFound,
+						Data: Buffer.alloc(0)
+					}
+				: await handler(requestPayload.Data, isCancelled);
+
+		return Buffer.from(MsgPack.encode(response));
+	};
+
 	const client = createClient(handleRequest);
+	const content = writable<Snippet | null>();
 	const context = setContext<ClientContext>(clientContextName, {
 		client,
-		request: async (data: Buffer): Promise<Buffer> => {
+
+		setMainContent: derived(content, (value) => value),
+
+		request: async (
+			packet: ClientPacket<ServerSideRequestCode>
+		): Promise<ClientPacket<ResponseCode>> => {
 			const state = get(client);
 
 			if (state.state === ClientStateType.Failed) {
 				throw new Error('Not connected');
 			}
 
-			return await state.request(data);
-		}
+			return await state.request(packet);
+		},
+
+		setRequestHandler: (code, handler) => {
+			requestHandlers.set(code, handler);
+
+			return () => {
+				const currentHandler = requestHandlers.get(code);
+
+				if (handler != currentHandler) {
+					return;
+				}
+
+				requestHandlers.delete(code);
+			};
+		},
+
+		functions: getServerSideFunctions((): ClientContext['request'] => context.request)
 	});
+
+	getBuiltinRequestHandlers(context);
 
 	return {
 		client,
+		content,
 		context
 	};
 }
 
-export function getClientContext() {
+export function useClientContext() {
 	return getContext<ClientContext>(clientContextName);
+}
+
+export enum ClientSideRequestCode {
+	Ping
+}
+
+export enum ResponseCode {
+	OK,
+	Cancelled,
+	InvalidParameters,
+	NoHandlerFound,
+	InvalidRequestCode,
+	InternalError
+}
+
+function getBuiltinRequestHandlers(context: ClientContext) {
+	context.setRequestHandler(ClientSideRequestCode.Ping, async () => {
+		const code = ResponseCode.OK;
+		const data = Buffer.alloc(0);
+
+		return { Code: code, Data: data };
+	});
+}
+
+export enum ServerSideRequestCode {
+	Echo,
+
+	WhoAmI,
+	AuthenticatePassword,
+	AuthenticateGoogle,
+
+	CreateAdmin,
+	SetupRequirements
+}
+
+function getServerSideFunctions(
+	getRequestFunc: () => ClientContext['request']
+): ServerSideRequests {
+	async function request(code: ServerSideRequestCode, data: any): Promise<any> {
+		const response = await getRequestFunc()({ Code: code, Data: data });
+
+		if (response.Code !== ResponseCode.OK) {
+			throw new Error('Failed');
+		}
+
+		return response.Data;
+	}
+
+	const functions: ServerSideRequests = {
+		getSetupRequirements: (data) => request(ServerSideRequestCode.SetupRequirements, data),
+
+		createAdmin: (data) => request(ServerSideRequestCode.CreateAdmin, data)
+	};
+
+	return functions;
+}
+
+export interface ServerSideRequests {
+	getSetupRequirements: (
+		data: object
+	) => Promise<{ AdminSetupRequired: boolean }>;
+
+	createAdmin: (data: {
+		Username: string;
+		Password: string;
+		ConfirmPassword: string;
+		LastName: string;
+		FirstName: string;
+		MiddleName: string | null;
+		DisplayName: string | null;
+	}) => Promise<object>;
 }

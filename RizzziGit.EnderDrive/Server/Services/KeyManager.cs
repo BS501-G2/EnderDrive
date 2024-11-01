@@ -71,25 +71,30 @@ public sealed class KeyManager(Server server) : Service<KeyGeneratorParams>("Key
     protected override async Task OnRun(
         KeyGeneratorParams data,
         CancellationToken cancellationToken
-    ) =>
-        await await Task.WhenAny(
-            [
-                Task.Run(
-                    () => RunAsymmetricKeyGenerator(Context.AsymmetricKeys, cancellationToken),
-                    CancellationToken.None
-                ),
-                Task.Run(
-                    () => RunSymmetricKeyGenerator(Context.SymmetricKeys, cancellationToken),
-                    CancellationToken.None
-                ),
-            ]
-        );
+    )
+    {
+        KeyGeneratorParams context = GetContext();
+        Task[] tasks =
+        [
+            Task.Run(
+                () => RunAsymmetricKeyGenerator(context.AsymmetricKeys, cancellationToken),
+                CancellationToken.None
+            ),
+            Task.Run(
+                () => RunSymmetricKeyGenerator(context.SymmetricKeys, cancellationToken),
+                CancellationToken.None
+            ),
+        ];
+
+        await Task.WhenAny(tasks);
+        WaitTasksBeforeStopping.AddRange(tasks);
+    }
 
     public Task<RSA> GenerateAsymmetricKey(CancellationToken cancellationToken = default) =>
-        Context.AsymmetricKeys.Dequeue(cancellationToken);
+        GetContext().AsymmetricKeys.Dequeue(cancellationToken);
 
     public Task<Aes> GenerateSymmetricKey(CancellationToken cancellationToken = default) =>
-        Context.SymmetricKeys.Dequeue(cancellationToken);
+        GetContext().SymmetricKeys.Dequeue(cancellationToken);
 
     public static byte[] SerializeAsymmetricKey(RSA key, bool includePrivate)
     {

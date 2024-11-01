@@ -2,11 +2,11 @@
 	import type { Snippet } from 'svelte';
 	import Overlay from './overlay.svelte';
 
-	const { head, children, footer }: { head?: Snippet; footer?: Snippet; children?: Snippet } =
+	const { ondismiss, head, children, footer }: { ondismiss: () => void, head?: Snippet; footer?: Snippet; children?: Snippet } =
 		$props();
 </script>
 
-<Overlay>
+<Overlay {ondismiss}>
 	<div class="dialog">
 		{#if head}
 			<div class="head">

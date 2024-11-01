@@ -50,7 +50,7 @@ public sealed class Resource<D>(
 public sealed partial class ResourceManager(Server server)
     : Service<MainResourceManagerContext>("Resource Manager", server)
 {
-    private IMongoClient Client => Context.Client;
+    private IMongoClient Client => GetContext().Client;
     private IMongoDatabase Database => Client.GetDatabase("EnderDrive");
 
     private IMongoCollection<D> GetCollection<D>()

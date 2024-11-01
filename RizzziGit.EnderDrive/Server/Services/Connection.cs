@@ -1,38 +1,75 @@
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
+using System.IO;
 using System.Net.WebSockets;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace RizzziGit.EnderDrive.Server.Services;
 
-using System.Runtime.ExceptionServices;
+using Commons.Memory;
 using Commons.Net.WebConnection;
 using Commons.Services;
-using Commons.Utilities;
-using RizzziGit.Commons.Memory;
-using RizzziGit.EnderDrive.Utilities;
+using Core;
+using MongoDB.Bson.IO;
+using MongoDB.Bson.Serialization;
+using Resources;
 
-public sealed class ConnectionContext
+public sealed partial class ConnectionContext
 {
     public required WebConnection Internal;
 }
 
-public enum ServerRequestCode : byte
+public enum ResponseCode : byte
 {
-    Echo
+    OK,
+    Cancelled,
+    InvalidParameters,
+    NoHandlerFound,
+    InvalidRequestCode,
+    InternalError
 }
 
-public enum ClientRequestCode : byte
+public sealed partial class ConnectionPacket<T>
+    where T : Enum
 {
-    Ping
+    public static ConnectionPacket<T> Deserialize(CompositeBuffer bytes) =>
+        new() { Code = (T)Enum.ToObject(typeof(T), bytes[0]), Data = bytes.Slice(1) };
+
+    public static ConnectionPacket<T> Create<V>(T code, V data)
+    {
+        using MemoryStream stream = new();
+        using BsonBinaryWriter writer = new(stream);
+        BsonSerializer.Serialize(writer, data);
+
+        return new() { Code = code, Data = stream.ToArray() };
+    }
+
+    public required T Code;
+    public required CompositeBuffer Data;
+
+    public V DeserializeData<V>()
+    {
+        using MemoryStream stream = new(Data.ToByteArray());
+        using BsonBinaryReader reader = new(stream);
+
+        return BsonSerializer.Deserialize<V>(reader);
+    }
+
+    public CompositeBuffer Serialize() =>
+        CompositeBuffer.Concat(new byte[] { Convert.ToByte(Code) }, Data);
 }
 
-public sealed class Connection(ConnectionManager manager, ulong connectionId, WebSocket webSocket)
-    : Service<ConnectionContext>($"Connection #{connectionId}")
+public sealed partial class Connection(
+    ConnectionManager manager,
+    ulong connectionId,
+    WebSocket webSocket
+) : Service<ConnectionContext>($"Connection #{connectionId}")
 {
     public ConnectionManager Manager => manager;
+    public Server Server => Manager.Server;
+    public ResourceManager Resources => Server.ResourceManager;
+
     public ulong ConnectionId => connectionId;
 
     protected override async Task<ConnectionContext> OnStart(
@@ -42,7 +79,6 @@ public sealed class Connection(ConnectionManager manager, ulong connectionId, We
     {
         WebConnection connection =
             new(
-                
                 webSocket,
                 new() { Name = $"Connection #{ConnectionId}", Logger = ((IService)manager).Logger }
             );
@@ -57,13 +93,16 @@ public sealed class Connection(ConnectionManager manager, ulong connectionId, We
         CancellationToken serviceCancellationToken
     )
     {
-        await await Task.WhenAny(
+        Task[] tasks =
+        [
             WatchService(context.Internal, serviceCancellationToken),
             RunWorker(context.Internal, serviceCancellationToken)
-        );
+        ];
+
+        await await Task.WhenAny(tasks);
     }
 
-    private static async Task RunWorker(WebConnection connection, CancellationToken cancellationToken)
+    private async Task RunWorker(WebConnection connection, CancellationToken cancellationToken)
     {
         while (true)
         {
@@ -75,16 +114,37 @@ public sealed class Connection(ConnectionManager manager, ulong connectionId, We
                 break;
             }
 
-            using CancellationTokenSource source = cancellationToken.Link(
-                request.CancellationToken
-            );
-
-            request.SendResponse(request.Request);
+            try
+            {
+                await HandleRequest(request, cancellationToken);
+            }
+            catch (Exception exception)
+            {
+                request.SendErrorResponse(
+                    exception is ConnectionResponseException webConnectionResponseException
+                        ? webConnectionResponseException.Data
+                        : []
+                );
+                continue;
+            }
         }
     }
 
-    protected override async Task OnStop(ConnectionContext context, ExceptionDispatchInfo? exception)
+    protected override async Task OnStop(
+        ConnectionContext context,
+        ExceptionDispatchInfo? exception
+    )
     {
         await StopServices(context.Internal);
     }
+}
+
+public abstract class ConnectionException(string? message = null, Exception? inner = null)
+    : Exception(message, inner);
+
+public sealed class ConnectionResponseException(ResponseCode code, CompositeBuffer data)
+    : ConnectionException($"Server returned error response: {code}")
+{
+    public readonly ResponseCode Code = code;
+    public new readonly CompositeBuffer Data = data;
 }

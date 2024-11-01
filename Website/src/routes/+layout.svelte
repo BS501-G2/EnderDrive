@@ -5,12 +5,12 @@
 </script>
 
 <script lang="ts">
-	import Client from '$lib/client/client.svelte';
-	import 'reset-css/reset.css';
 	import '@fortawesome/fontawesome-free/css/all.min.css';
+	import 'reset-css/reset.css';
 	import { fade } from 'svelte/transition';
 	import { createColorContext } from '../lib/client/contexts/colors';
 	import { createAppContext, ViewMode, WindowMode } from '$lib/client/contexts/app';
+	import { createClientContext } from '$lib/client/client';
 
 	const viewMode = writable<ViewMode>(ViewMode.None);
 	const windowMode = writable<WindowMode>(WindowMode.Normal);
@@ -52,7 +52,7 @@
 
 	const {} = createAppContext(viewMode, windowMode, overlay);
 	const { printStyleHTML } = createColorContext();
-
+	const {} = createClientContext();
 	const { children }: { children: Snippet } = $props();
 
 	onMount(() => {
@@ -75,9 +75,7 @@
 	}}
 />
 
-<Client>
-	{@render children()}
-</Client>
+{@render children()}
 
 {#if $overlay.length != 0}
 	<div class="overlay" transition:fade={{ duration: 250 }}>
@@ -89,10 +87,6 @@
 
 <style lang="scss">
 	@use './global.scss' as *;
-
-	:root {
-		line-height: 1rem;
-	}
 
 	:global(div) {
 		display: flex;
@@ -107,14 +101,14 @@
 	:global(body) {
 		display: flex;
 		flex-direction: column;
-
-		@include force-size(&, 100dvh);
-		min-width: 320px;
+		box-sizing: border-box;
 
 		background-color: var(--color-5);
 		color: var(--color-1);
 
+		min-width: 320px;
 		min-height: 100dvh;
+
 		user-select: none;
 	}
 

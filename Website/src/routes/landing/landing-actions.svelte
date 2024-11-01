@@ -22,7 +22,7 @@
 		</div>
 	{/snippet}
 
-	<Button {onclick} {container}>
+	<Button {onclick} background={container}>
 		<div class="action-inner">
 			<Icon {...icon} />
 
