@@ -1,6 +1,5 @@
 import { type Snippet, getContext, setContext } from 'svelte';
-import type { Readable } from 'svelte/motion';
-import { derived, type Writable } from 'svelte/store';
+import { derived, writable, type Writable } from 'svelte/store';
 
 export enum ViewMode {
 	None = 0,
@@ -10,41 +9,40 @@ export enum ViewMode {
 }
 
 export enum WindowMode {
-	Normal = 0b001,
-	CustomBar = 0b010,
-	Fullscreen = 0b100
-}
-
-export interface AppContext {
-	pushOverlayContent: (view: Snippet) => () => void;
-
-	viewMode: Readable<number>;
-	windowMode: Readable<number>;
-
-	isDesktop: Readable<boolean>;
-	isLimitedDesktop: Readable<boolean>;
-	isMobile: Readable<boolean>;
+	Normal = 0b00,
+	CustomBar = 1 << 1,
+	Fullscreen = 1 << 2,
+	Minimal = 1 << 3
 }
 
 const appContextName = `${Date.now()}`;
 
 export function useAppContext() {
-	return getContext<AppContext>(appContextName);
+	return getContext<ReturnType<typeof createAppContext>['context']>(appContextName);
 }
 
-export function createAppContext(
-	viewMode: Writable<ViewMode>,
-	windowMode: Writable<WindowMode>,
-	overlay: Writable<[id: number, snippet: Snippet][]>
-) {
-	return setContext<AppContext>(appContextName, {
-		pushOverlayContent: (view) => {
+export function createAppContext() {
+	const viewMode: Writable<ViewMode> = writable(ViewMode.None);
+	const windowMode: Writable<WindowMode> = writable(WindowMode.Normal);
+	const overlay: Writable<[id: number, snippet: Snippet, dim: boolean][]> = writable([]);
+	const titleStack: Writable<{ id: number; title: string }[]> = writable([]);
+
+	const context = setContext(appContextName, {
+		pushOverlayContent: (view: Snippet, dim: boolean) => {
 			const id = Math.random();
 
-			overlay.update((overlay) => [...overlay, [id, view]]);
+			overlay.update((overlay) => [...overlay, [id, view, dim]]);
 
 			return () =>
 				overlay.update((overlay) => (overlay = overlay.filter((value) => value[0] != id)));
+		},
+
+		pushTitle: (title: string) => {
+			const id = Math.random();
+
+			titleStack.update((value) => [...value, { id, title }]);
+
+			return () => titleStack.update((value) => value.filter((value) => value.id !== id));
 		},
 
 		viewMode: derived(viewMode, (value) => value),
@@ -55,6 +53,15 @@ export function createAppContext(
 			(mode) => mode === ViewMode.Desktop || mode === ViewMode.LimitedDesktop
 		),
 		isLimitedDesktop: derived(viewMode, (mode) => mode === ViewMode.LimitedDesktop),
-		isMobile: derived(viewMode, (mode) => mode === ViewMode.Mobile)
+		isMobile: derived(viewMode, (mode) => mode === ViewMode.Mobile),
+
+		isNormal: derived(windowMode, (value) => value === 0),
+		isCustomBar: derived(windowMode, (value) => (value & WindowMode.CustomBar) != 0),
+		isFullscreen: derived(windowMode, (value) => (value & WindowMode.Fullscreen) != 0),
+		isMinimal: derived(windowMode, (value) => (value & WindowMode.Minimal) != 0),
+
+		currentTitle: derived(titleStack, (value) => value.at(-1))
 	});
+
+	return { viewMode, windowMode, overlay, titleStack, context };
 }

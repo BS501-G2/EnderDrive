@@ -1,14 +1,12 @@
-using System;
 using System.IO;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace RizzziGit.EnderDrive.Server.Core;
 
-using System.Runtime.ExceptionServices;
 using Commons.Services;
 using Resources;
-using RizzziGit.EnderDrive.Utilities;
 using Services;
 
 public sealed class ServerData
@@ -17,6 +15,7 @@ public sealed class ServerData
     public required KeyManager KeyGenerator;
     public required VirusScanner VirusScanner;
     public required ApiServer ApiServer;
+    public required GoogleService GoogleService;
     public required ConnectionManager ConnectionManager;
 }
 
@@ -38,10 +37,11 @@ public sealed class Server(
         KeyManager keyGenerator = new(this);
         VirusScanner virusScanner = new(this, clamAvSocketPath);
         ApiServer apiServer = new(this, httpPort, httpsPort);
+        GoogleService googleService = new(this);
         ConnectionManager connectionManager = new(this);
 
         await StartServices(
-            [keyGenerator, virusScanner, resourceManager, apiServer, connectionManager],
+            [keyGenerator, virusScanner, resourceManager, apiServer, googleService, connectionManager],
             startupCancellationToken
         );
 
@@ -51,6 +51,7 @@ public sealed class Server(
             KeyGenerator = keyGenerator,
             VirusScanner = virusScanner,
             ApiServer = apiServer,
+            GoogleService = googleService,
             ConnectionManager = connectionManager
         };
     }
@@ -59,6 +60,7 @@ public sealed class Server(
     public KeyManager KeyManager => GetContext().KeyGenerator;
     public VirusScanner VirusScanner => GetContext().VirusScanner;
     public ApiServer ApiServer => GetContext().ApiServer;
+    public GoogleService GoogleService => GetContext().GoogleService;
     public ConnectionManager ConnectionManager => GetContext().ConnectionManager;
 
     public new Task Start(CancellationToken cancellationToken = default) =>
@@ -73,6 +75,7 @@ public sealed class Server(
             WatchService(context.VirusScanner, cancellationToken),
             WatchService(context.ResourceManager, cancellationToken),
             WatchService(context.ApiServer, cancellationToken),
+            WatchService(context.GoogleService, cancellationToken),
             WatchService(context.ConnectionManager, cancellationToken)
         );
     }
@@ -83,6 +86,7 @@ public sealed class Server(
 
         await StopServices(
             context.ConnectionManager,
+            context.GoogleService,
             context.ApiServer,
             context.ResourceManager,
             context.VirusScanner,

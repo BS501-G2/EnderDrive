@@ -17,6 +17,7 @@ public enum UserAuthenticationType
 {
     Password,
     Google,
+    Token
 }
 
 public record class UserAuthentication : ResourceData
@@ -24,7 +25,10 @@ public record class UserAuthentication : ResourceData
     public static implicit operator RSA(UserAuthentication user) =>
         KeyManager.DeserializeAsymmetricKey(user.RsaPublicKey);
 
+    [JsonProperty("userId")]
     public required ObjectId UserId;
+
+    [JsonProperty("type")]
     public required UserAuthenticationType Type;
 
     [JsonIgnore]
@@ -93,19 +97,21 @@ public record class UnlockedUserAuthentication : UserAuthentication
     public required byte[] RsaPrivateKey;
 }
 
+[Flags]
 public enum PasswordVerification
 {
     OK = 0,
-
     TooShort = 1 << 0,
     TooLong = 1 << 1,
-
-    NoRequiredChars = 1 << 2
+    NoRequiredChars = 1 << 2,
+    PasswordMismatch = 1 << 3
 }
 
 public sealed partial class ResourceManager
 {
-    [GeneratedRegex("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]$")]
+    [GeneratedRegex(
+        "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[[$&+,:;=?@#|'<>.^*()%!\\]-])[A-Za-z\\d$&+,:;=?@#|'<>.^*()%!\\]-]*$"
+    )]
     private static partial Regex GetPasswordRegex();
 
     public static readonly Regex PASSWORD_REGEX = GetPasswordRegex();
@@ -121,7 +127,7 @@ public sealed partial class ResourceManager
         return rfc2898DeriveBytes.GetBytes(32);
     }
 
-    public PasswordVerification VerifyPassword(string password)
+    public PasswordVerification VerifyPassword(string password, string? confirmPassword = null)
     {
         PasswordVerification verification = 0;
 
@@ -135,8 +141,14 @@ public sealed partial class ResourceManager
             verification |= PasswordVerification.TooLong;
         }
 
-        if (!PASSWORD_REGEX.IsMatch(password)) {
+        if (!PASSWORD_REGEX.IsMatch(password))
+        {
             verification |= PasswordVerification.NoRequiredChars;
+        }
+
+        if (confirmPassword != null && password != confirmPassword)
+        {
+            verification |= PasswordVerification.PasswordMismatch;
         }
 
         return verification;
@@ -151,7 +163,7 @@ public sealed partial class ResourceManager
         byte[] rsaPrivateKey
     )
     {
-        MainResourceManagerContext context = GetContext();
+        ResourceManagerContext context = GetContext();
 
         int iterations = 10000;
 
@@ -216,7 +228,7 @@ public sealed partial class ResourceManager
         byte[] payload
     )
     {
-        MainResourceManagerContext context = GetContext();
+        ResourceManagerContext context = GetContext();
 
         int iterations = 10000;
 
@@ -306,7 +318,24 @@ public sealed partial class ResourceManager
         UnlockedUserAuthentication unlockedUserAuthentication
     ) => RemoveUserAuthentication(transactionParams, unlockedUserAuthentication, false);
 
-    public IAsyncEnumerable<UserAuthentication> GetUserAuthentications(
+    public async Task TruncateLatestToken(ResourceTransaction transaction, User user, int count)
+    {
+        await foreach (
+            UserAuthentication userAuthentication in GetUserAuthentications(
+                    transaction,
+                    user,
+                    UserAuthenticationType.Token
+                )
+                .ToAsyncEnumerable()
+                .Reverse()
+                .Skip(count)
+        )
+        {
+            await Delete(transaction, userAuthentication);
+        }
+    }
+
+    public IQueryable<UserAuthentication> GetUserAuthentications(
         ResourceTransaction transaction,
         User? user = null,
         UserAuthenticationType? type = null

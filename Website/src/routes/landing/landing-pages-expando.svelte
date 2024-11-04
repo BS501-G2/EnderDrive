@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { LandingPageEntry } from '$lib/client/contexts/landing';
 	import Icon from '$lib/client/ui/icon.svelte';
-	import Overlay from '$lib/client/ui/overlay.svelte';
+	import Overlay from '../overlay.svelte';
 	import type { Readable, Writable } from 'svelte/store';
 	import { fly } from 'svelte/transition';
 
@@ -60,7 +60,7 @@
 {/if}
 
 <style lang="scss">
-	@use '../global.scss' as *;
+	@use '../../global.scss' as *;
 
 	button.open {
 		margin: 8px 0px;

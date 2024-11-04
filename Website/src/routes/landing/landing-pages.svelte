@@ -82,7 +82,7 @@
 </div>
 
 <style lang="scss">
-	@use '../global.scss' as *;
+	@use '../../global.scss' as *;
 
 	div.entries-container {
 		flex-direction: column;

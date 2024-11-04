@@ -2,8 +2,14 @@
 import { Buffer } from 'buffer';
 import { getContext, setContext, type Snippet } from 'svelte';
 import * as MsgPack from '@msgpack/msgpack';
-import { derived, get, writable, type Readable } from 'svelte/store';
+import { derived, get, writable, type Readable, type Writable } from 'svelte/store';
 import * as SocketIO from 'socket.io-client';
+import {
+	getServerSideFunctions,
+	ServerSideRequestCode,
+	type AuthenticationToken
+} from './client-server-side-request';
+import { persisted } from 'svelte-persisted-store';
 
 const clientContextName = 'Client Context';
 
@@ -83,7 +89,7 @@ export function createClient(
 	});
 
 	const connect = async () => {
-		const url = `ws${window.location.protocol === 'https:' ? 's' : ''}://${window.location.hostname}:8083`;
+		const url = `ws${window.location.protocol === 'https:' ? 's' : ''}://${window.location.host}/`;
 		const responses: Map<
 			number,
 			{ resolve: (data: any) => void; reject: (reason: Error) => void }
@@ -280,7 +286,11 @@ export function createClient(
 
 			socket.connect();
 		} catch (error: any) {
-			state.set({ state: ClientStateType.Failed, error, retry: () => connect() });
+			state.set({
+				state: ClientStateType.Failed,
+				error,
+				retry: () => connect()
+			});
 		}
 	};
 
@@ -339,7 +349,9 @@ export interface ClientContext {
 		handler: (data: Buffer, isCancelled: () => boolean) => Promise<Payload<ResponseCode>>
 	) => () => void;
 
-	functions: ServerSideRequests;
+	functions: ReturnType<typeof getServerSideFunctions>;
+
+	authentication: Readable<AuthenticationToken | null>;
 }
 
 export interface Payload<T extends ClientSideRequestCode | ServerSideRequestCode | ResponseCode> {
@@ -369,6 +381,12 @@ export function createClientContext() {
 		return Buffer.from(MsgPack.encode(response));
 	};
 
+	const onStartup: (() => Promise<void>)[] = [];
+
+	const storedAuthenticationToken: Writable<AuthenticationToken | null> = persisted(
+		'stored-token',
+		null
+	);
 	const client = createClient(handleRequest);
 	const content = writable<Snippet | null>();
 	const context = setContext<ClientContext>(clientContextName, {
@@ -402,10 +420,22 @@ export function createClientContext() {
 			};
 		},
 
-		functions: getServerSideFunctions((): ClientContext['request'] => context.request)
+		functions: getServerSideFunctions(
+			(): ClientContext['request'] => context.request,
+			(handler) => {
+				onStartup.push(handler);
+			},
+			storedAuthenticationToken
+		),
+
+		authentication: derived(storedAuthenticationToken, (value) => value)
 	});
 
 	getBuiltinRequestHandlers(context);
+
+	for (const entry of onStartup) {
+		void entry();
+	}
 
 	return {
 		client,
@@ -438,53 +468,4 @@ function getBuiltinRequestHandlers(context: ClientContext) {
 
 		return { Code: code, Data: data };
 	});
-}
-
-export enum ServerSideRequestCode {
-	Echo,
-
-	WhoAmI,
-	AuthenticatePassword,
-	AuthenticateGoogle,
-
-	CreateAdmin,
-	SetupRequirements
-}
-
-function getServerSideFunctions(
-	getRequestFunc: () => ClientContext['request']
-): ServerSideRequests {
-	async function request(code: ServerSideRequestCode, data: any): Promise<any> {
-		const response = await getRequestFunc()({ Code: code, Data: data });
-
-		if (response.Code !== ResponseCode.OK) {
-			throw new Error('Failed');
-		}
-
-		return response.Data;
-	}
-
-	const functions: ServerSideRequests = {
-		getSetupRequirements: (data) => request(ServerSideRequestCode.SetupRequirements, data),
-
-		createAdmin: (data) => request(ServerSideRequestCode.CreateAdmin, data)
-	};
-
-	return functions;
-}
-
-export interface ServerSideRequests {
-	getSetupRequirements: (
-		data: object
-	) => Promise<{ AdminSetupRequired: boolean }>;
-
-	createAdmin: (data: {
-		Username: string;
-		Password: string;
-		ConfirmPassword: string;
-		LastName: string;
-		FirstName: string;
-		MiddleName: string | null;
-		DisplayName: string | null;
-	}) => Promise<object>;
 }

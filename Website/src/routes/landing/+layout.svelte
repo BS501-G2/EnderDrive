@@ -11,7 +11,7 @@
 	import LandingActions from './landing-actions.svelte';
 	import LoginDialog from './login-dialog.svelte';
 	import { page } from '$app/stores';
-	import Overlay from '$lib/client/ui/overlay.svelte';
+	import Overlay from '../overlay.svelte';
 
 	const {
 		pages,
@@ -20,7 +20,7 @@
 		login,
 		context: { openLogin, closeLogin }
 	} = createLandingContext();
-	const { isDesktop, isMobile } = useAppContext();
+	const { isDesktop, isMobile, pushTitle } = useAppContext();
 	const { useColor } = useColorContext();
 
 	const currentPage = writable(0);
@@ -38,6 +38,8 @@
 			openLogin();
 		}
 	});
+
+	onMount(() => pushTitle('Welcome!'));
 </script>
 
 <svelte:window
@@ -106,7 +108,7 @@
 {@render children()}
 
 <style lang="scss">
-	@use '../global.scss' as *;
+	@use '../../global.scss' as *;
 
 	div.topbar-container {
 		flex-direction: column;

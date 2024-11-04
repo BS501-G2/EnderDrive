@@ -2,15 +2,20 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using MongoDB.Bson;
+using MongoDB.Driver;
+using Newtonsoft.Json;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
-using MongoDB.Driver;
-
 public record class FileContent : ResourceData
 {
+    [JsonProperty("fileId")]
     public required ObjectId FileId;
+
+    [JsonProperty("main")]
     public required bool Main;
+
+    [JsonProperty("name")]
     public required string Name;
 }
 
@@ -22,6 +27,7 @@ public sealed partial class ResourceManager
                 transaction,
                 (query) => query.Where((item) => item.FileId == file.Id && item.Main)
             )
+            .ToAsyncEnumerable()
             .FirstOrDefaultAsync(transaction.CancellationToken);
 
         if (content != null)
@@ -64,7 +70,7 @@ public sealed partial class ResourceManager
         return content;
     }
 
-    public IAsyncEnumerable<FileContent> GetFileContents(
+    public IQueryable<FileContent> GetFileContents(
         ResourceTransaction transaction,
         File file,
         string? name = null

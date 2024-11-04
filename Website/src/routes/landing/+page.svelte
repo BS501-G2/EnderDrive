@@ -52,7 +52,7 @@
 </LandingAction>
 
 <style lang="scss">
-	@use '../global.scss' as *;
+	@use '../../global.scss' as *;
 
 	div.img {
 		@include force-size(&, min(max(360px, 75dvh), 100dvh));

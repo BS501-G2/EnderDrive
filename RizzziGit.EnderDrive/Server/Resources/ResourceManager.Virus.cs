@@ -1,16 +1,24 @@
 using System;
 using System.Linq;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using MongoDB.Bson;
+using Newtonsoft.Json;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
 public record class VirusReport : ResourceData
 {
+    [JsonProperty("fileId")]
     public required ObjectId FileId;
+
+    [JsonProperty("fileContentId")]
     public required ObjectId FileContentId;
+
+    [JsonProperty("fileSnapshotId")]
     public required ObjectId FileSnapshotId;
 
+    [JsonProperty("viruses")]
     public required string[] Viruses;
 }
 
@@ -57,5 +65,6 @@ public sealed partial class ResourceManager
                             && item.FileSnapshotId == fileSnapshot.Id
                     )
             )
+            .ToAsyncEnumerable()
             .FirstOrDefaultAsync(GetCancellationToken());
 }

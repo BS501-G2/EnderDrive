@@ -7,24 +7,39 @@ using MongoDB.Driver;
 namespace RizzziGit.EnderDrive.Server.Resources;
 
 using Commons.Memory;
+using Newtonsoft.Json;
 using Services;
 
 public record class FileData : ResourceData
 {
+    [JsonIgnore]
     public required ObjectId FileId;
+
+    [JsonIgnore]
     public required ObjectId FileContentId;
+
+    [JsonIgnore]
     public required ObjectId FileSnapshotId;
+
+    [JsonIgnore]
     public required ObjectId AuthorUserId;
+
+    [JsonIgnore]
     public required ObjectId BufferId;
 
+    [JsonIgnore]
     public required long Index;
 }
 
 public record class FileBuffer : ResourceData
 {
+    [JsonIgnore]
     public required ObjectId FileId;
+
+    [JsonIgnore]
     public required ObjectId FileContentId;
 
+    [JsonIgnore]
     public required byte[] EncryptedBuffer;
 }
 
@@ -47,6 +62,7 @@ public sealed partial class ResourceManager
                             && item.Index == index
                     )
             )
+            .ToAsyncEnumerable()
             .FirstOrDefaultAsync(transaction.CancellationToken);
 
         FileBuffer? fileBuffer =
@@ -55,6 +71,7 @@ public sealed partial class ResourceManager
                         transaction,
                         (query) => query.Where((item) => item.Id == data.BufferId)
                     )
+                    .ToAsyncEnumerable()
                     .FirstAsync(transaction.CancellationToken)
                 : null;
 
@@ -86,6 +103,7 @@ public sealed partial class ResourceManager
                             && item.Index == index
                     )
             )
+            .ToAsyncEnumerable()
             .FirstOrDefaultAsync(transaction.CancellationToken);
 
         bytes =

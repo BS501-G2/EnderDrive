@@ -48,6 +48,7 @@
 				return;
 			}
 
+			error = null
 			const resultPromise = onclick(event);
 
 			if (resultPromise instanceof Promise) {

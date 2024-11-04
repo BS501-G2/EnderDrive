@@ -1,14 +1,19 @@
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using MongoDB.Bson;
+using Newtonsoft.Json;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
 public record class News : ResourceData
 {
+    [JsonProperty("title")]
     public required string Title;
+
+    [JsonProperty("imageFileIds")]
     public required ObjectId[] ImageFileIds;
+
+    [JsonProperty("authorUserId")]
     public required ObjectId AuthorUserId;
 }
 
@@ -39,6 +44,6 @@ public sealed partial class ResourceManager
         await Delete(transaction, news);
     }
 
-    public IAsyncEnumerable<News> GetNews(ResourceTransaction transaction) =>
+    public IQueryable<News> GetNews(ResourceTransaction transaction) =>
         Query<News>(transaction, (query) => query.OrderByDescending((item) => item.Id));
 }

@@ -1,0 +1,17 @@
+{
+  "folders": [
+	{
+		"name": "Website",
+		"path": "Website"
+	},
+	{
+		"name": "Server",
+		"path": "RizzziGit.EnderDrive"
+	},
+	{
+		"name": "Server Bridge",
+		"path": "RizzziGit.EnderDrive.Proxy"
+	}
+],
+  "settings": {}
+}

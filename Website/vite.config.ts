@@ -10,9 +10,9 @@ export default defineConfig({
 	},
 	server: {
 		proxy: {
-			'/ws': {
-				target: 'ws://localhost:8082',
-				changeOrigin: true,
+			'/socket.io': {
+				target: 'ws://localhost:8083/socket.io',
+				changeOrigin: false,
 				secure: false,
 				ws: true
 			}

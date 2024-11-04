@@ -10,34 +10,11 @@ using MongoDB.Driver;
 namespace RizzziGit.EnderDrive.Server.Resources;
 
 using Commons.Collections;
+using MongoDB.Driver.Linq;
 
 public sealed partial class ResourceManager
 {
     private sealed record ResourceHolderKey(ObjectId Id, Type Type);
-
-    // private readonly WeakDictionary<ResourceHolderKey, dynamic> Resources = [];
-
-    // private Resource<T> CreateResource<T>(T data)
-    //     where T : ResourceData
-    // {
-    //     if (Resources.TryGetValue(new ResourceHolderKey(data.Id, typeof(T)), out dynamic? resource))
-    //     {
-    //         return (Resource<T>)resource;
-    //     }
-
-    //     T getData() => data;
-    //     async Task update(ResourceTransaction transaction)
-    //     {
-    //         await Update(
-    //             transaction,
-    //             Query<T>(transaction, (query) => query.Where((item) => item.Id == data.Id)),
-    //             Builders<T>.Update.
-    //         );
-    //     }
-    //     async Task reset(ResourceTransaction transaction) { }
-
-    //     resource = new Resource<T>(getData, update, reset);
-    // }
 
     private delegate IQueryable<T> QueryBuilder<T>(IQueryable<T> query)
         where T : ResourceData;
@@ -124,6 +101,7 @@ public sealed partial class ResourceManager
                     transaction,
                     (query) => query.Where((item) => item.Id == updateItem.Id)
                 )
+                .ToAsyncEnumerable()
                 .FirstAsync(transaction.CancellationToken);
         }
     }
@@ -171,21 +149,13 @@ public sealed partial class ResourceManager
         }
     }
 
-    private async IAsyncEnumerable<T> Query<T>(
-        ResourceTransaction transaction,
-        QueryBuilder<T> query
-    )
+    private IQueryable<T> Query<T>(ResourceTransaction transaction, QueryBuilder<T> query)
         where T : ResourceData
     {
         IMongoCollection<T> collection = GetCollection<T>();
         transaction.CancellationToken.ThrowIfCancellationRequested();
 
-        await foreach (T item in query(collection.AsQueryable()).ToAsyncEnumerable())
-        {
-            transaction.CancellationToken.ThrowIfCancellationRequested();
-
-            yield return item;
-        }
+        return query(collection.AsQueryable());
     }
 
     private async IAsyncEnumerable<T> Query<T>(
@@ -214,5 +184,6 @@ public sealed partial class ResourceManager
     public ValueTask<T?> QueryById<T>(ResourceTransaction transaction, ObjectId objectId)
         where T : ResourceData =>
         Query<T>(transaction, (query) => query.Where((item) => item.Id == objectId))
+            .ToAsyncEnumerable()
             .FirstOrDefaultAsync(transaction.CancellationToken);
 }

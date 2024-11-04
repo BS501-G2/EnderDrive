@@ -15,9 +15,9 @@
 	const { isMobile } = useAppContext();
 
 	onMount(async () => {
-		const response = await getSetupRequirements({});
+		const response = await getSetupRequirements();
 
-		if (!response.AdminSetupRequired) {
+		if (!response.adminSetupRequired) {
 			await goto('/');
 		}
 	});
@@ -45,15 +45,15 @@
 	let error: Error | null = $state(null);
 
 	async function finalize() {
-		await createAdmin({
-			Username: username,
-			Password: password,
-			ConfirmPassword: confirmPassword,
-			LastName: lastName,
-			FirstName: firstName,
-			MiddleName: middleName || null,
-			DisplayName: displayName || null
-		});
+		await createAdmin(
+			username,
+			password,
+			confirmPassword,
+			firstName,
+			middleName || null,
+			lastName,
+			displayName || null
+		);
 
 		await goto($page.url.searchParams.get('return') ?? '/');
 	}
@@ -183,12 +183,12 @@
 			<Input id="display-name" type="text" name="Display Name" bind:value={displayName} />
 		</div>
 		<div class="padding">
-			<Input id="password" type="text" name="Password" bind:value={password} />
+			<Input id="password" type="password" name="Password" bind:value={password} />
 		</div>
 		<div class="padding">
 			<Input
 				id="confirm-password"
-				type="text"
+				type="password"
 				name="Confirm Password"
 				bind:value={confirmPassword}
 			/>
@@ -214,7 +214,7 @@
 {/snippet}
 
 <style lang="scss">
-	@use '../global.scss' as *;
+	@use '../../global.scss' as *;
 
 	div.page-container {
 		flex-grow: 1;

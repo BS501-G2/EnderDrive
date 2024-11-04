@@ -32,7 +32,7 @@
 </div>
 
 <style lang="scss">
-	@use '../../../routes/global.scss' as *;
+	@use '../../../global.scss' as *;
 
 	div.banner {
 		flex-direction: row;

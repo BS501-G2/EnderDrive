@@ -1,14 +1,14 @@
-using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using MongoDB.Bson;
-using Newtonsoft.Json;
-using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
+using Newtonsoft.Json;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
+using System;
+using MongoDB.Bson.Serialization.Attributes;
 using Services;
 
 public enum FileType
@@ -17,19 +17,42 @@ public enum FileType
     Folder,
 }
 
+public enum TrashOptions
+{
+    NotIncluded,
+    Included,
+    Exclusive
+}
+
 public record class File : ResourceData
 {
+    [JsonProperty("parentId")]
     public required ObjectId? ParentId;
+
+    [JsonProperty("ownerUserId")]
     public required ObjectId OwnerUserId;
 
+    [JsonProperty("name")]
     public required string Name;
+
+    [JsonProperty("type")]
     public required FileType Type;
 
-    [BsonIgnore]
+    [JsonProperty("createTime")]
+    [BsonRepresentation(BsonType.DateTime)]
+    public required DateTimeOffset CreateTime;
+
+    [JsonProperty("updateTime")]
+    [BsonRepresentation(BsonType.DateTime)]
+    public required DateTimeOffset UpdateTime;
+
+    [JsonProperty("trashTime")]
+    [BsonRepresentation(BsonType.DateTime)]
+    public required DateTimeOffset? TrashTime;
+
     [JsonIgnore]
     public required byte[] EncryptedAesKey;
 
-    [BsonIgnore]
     [JsonIgnore]
     public required byte[] AesIv;
 
@@ -50,6 +73,10 @@ public record class File : ResourceData
             AesIv = AesIv,
 
             AesKey = aesKey,
+
+            CreateTime = DateTimeOffset.Now,
+            UpdateTime = DateTimeOffset.Now,
+            TrashTime = null
         };
     }
 
@@ -81,6 +108,7 @@ public sealed partial class ResourceManager
                 transaction,
                 (query) => query.Where((item) => item.Id == user.RootFileId)
             )
+            .ToAsyncEnumerable()
             .FirstOrDefaultAsync(transaction.CancellationToken);
 
         if (file == null)
@@ -105,6 +133,7 @@ public sealed partial class ResourceManager
                 transaction,
                 (query) => query.Where((item) => item.Id == user.TrashFileId)
             )
+            .ToAsyncEnumerable()
             .FirstOrDefaultAsync(transaction.CancellationToken);
 
         if (file == null)
@@ -149,6 +178,10 @@ public sealed partial class ResourceManager
 
                 EncryptedAesKey = encryptedAesKey,
                 AesIv = aesIv,
+
+                CreateTime = DateTimeOffset.UtcNow,
+                UpdateTime = DateTimeOffset.UtcNow,
+                TrashTime = null
             };
 
         await Insert(transaction, [file]);
@@ -169,6 +202,10 @@ public sealed partial class ResourceManager
                 AesIv = aesIv,
 
                 AesKey = aesKey,
+
+                CreateTime = DateTimeOffset.UtcNow,
+                UpdateTime = DateTimeOffset.UtcNow,
+                TrashTime = null
             };
 
         return unlockedFile;
@@ -178,9 +215,10 @@ public sealed partial class ResourceManager
     {
         await foreach (
             FileContent content in Query<FileContent>(
-                transaction,
-                (query) => query.Where((item) => item.FileId == file.Id)
-            )
+                    transaction,
+                    (query) => query.Where((item) => item.FileId == file.Id)
+                )
+                .ToAsyncEnumerable()
         )
         {
             await Delete(transaction, content);
@@ -188,9 +226,10 @@ public sealed partial class ResourceManager
 
         await foreach (
             FileSnapshot snapshot in Query<FileSnapshot>(
-                transaction,
-                (query) => query.Where((item) => item.FileId == file.Id)
-            )
+                    transaction,
+                    (query) => query.Where((item) => item.FileId == file.Id)
+                )
+                .ToAsyncEnumerable()
         )
         {
             await DeleteSnapshot(transaction, snapshot);
@@ -198,9 +237,10 @@ public sealed partial class ResourceManager
 
         await foreach (
             FileData fileData in Query<FileData>(
-                transaction,
-                (query) => query.Where((item) => item.FileId == file.Id)
-            )
+                    transaction,
+                    (query) => query.Where((item) => item.FileId == file.Id)
+                )
+                .ToAsyncEnumerable()
         )
         {
             await Delete(transaction, fileData);
@@ -208,9 +248,10 @@ public sealed partial class ResourceManager
 
         await foreach (
             FileBuffer fileData in Query<FileBuffer>(
-                transaction,
-                (query) => query.Where((item) => item.FileId == file.Id)
-            )
+                    transaction,
+                    (query) => query.Where((item) => item.FileId == file.Id)
+                )
+                .ToAsyncEnumerable()
         )
         {
             await Delete(transaction, fileData);
@@ -218,9 +259,10 @@ public sealed partial class ResourceManager
 
         await foreach (
             FileAccess fileAccess in Query<FileAccess>(
-                transaction,
-                (query) => query.Where((item) => item.FileId == file.Id)
-            )
+                    transaction,
+                    (query) => query.Where((item) => item.FileId == file.Id)
+                )
+                .ToAsyncEnumerable()
         )
         {
             await Delete(transaction, fileAccess);
@@ -229,12 +271,14 @@ public sealed partial class ResourceManager
         await Delete(transaction, file.Original);
     }
 
-    public IAsyncEnumerable<File> GetFiles(
+    public IQueryable<File> GetFiles(
         ResourceTransaction transaction,
         File? parentFolder = null,
         FileType? type = null,
         string? name = null,
-        User? user = null
+        User? ownerUser = null,
+        ObjectId? id = null,
+        TrashOptions trashOptions = TrashOptions.NotIncluded
     ) =>
         Query<File>(
             transaction,
@@ -245,12 +289,15 @@ public sealed partial class ResourceManager
                         && (type == null || item.Type == type)
                         && (
                             name == null
-                            || item.Name.Contains(
-                                name,
-                                System.StringComparison.CurrentCultureIgnoreCase
-                            )
+                            || item.Name.Contains(name, StringComparison.CurrentCultureIgnoreCase)
                         )
-                        && (user == null || user.Id == item.OwnerUserId)
+                        && (ownerUser == null || ownerUser.Id == item.OwnerUserId)
+                        && (id == null || item.Id == id)
+                        && (
+                            trashOptions == TrashOptions.NotIncluded
+                                ? item.TrashTime == null
+                                : trashOptions != TrashOptions.Exclusive || item.TrashTime != null
+                        )
                 )
         );
 }

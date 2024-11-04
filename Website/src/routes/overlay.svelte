@@ -2,17 +2,22 @@
 	import { onMount, type Snippet } from 'svelte';
 	import { useAppContext } from '$lib/client/contexts/app';
 	import { scale } from 'svelte/transition';
-	import { createOverlayContext } from '../contexts/overlay';
-	import Button from './button.svelte';
-	import Icon from './icon.svelte';
+	import { createOverlayContext } from '../lib/client/contexts/overlay';
+	import Button from '../lib/client/ui/button.svelte';
+	import Icon from '../lib/client/ui/icon.svelte';
 
 	const { pushOverlayContent } = useAppContext();
 	const {
 		children,
-		ondismiss
-	}: { children: Snippet<[windowButtons: Snippet]>; ondismiss?: () => void } = $props();
+		ondismiss,
+		nodim = false
+	}: {
+		children: Snippet<[windowButtons: Snippet]>;
+		ondismiss?: () => void;
+		nodim?: boolean;
+	} = $props();
 
-	onMount(() => pushOverlayContent(overlay));
+	onMount(() => pushOverlayContent(overlay, !nodim));
 
 	const {
 		buttons,
@@ -25,16 +30,20 @@
 {#snippet windowButtons()}
 	<div class="window-buttons">
 		{#each $buttons as { id, tooltip, icon, onclick }, index (id)}
-			{#snippet windowButtonContainer(view: Snippet)}
-				<div class="window-button-container">
+			{#snippet background(view: Snippet)}
+				<div class="background">
 					{@render view()}
 				</div>
 			{/snippet}
 
-			<Button {onclick} background={windowButtonContainer}>
+			{#snippet foreground(view: Snippet)}
 				<div class="window-button">
-					<Icon {...icon} size="1em" />
+					{@render view()}
 				</div>
+			{/snippet}
+
+			<Button {onclick} {background} {foreground}>
+				<Icon {...icon} size="1em" />
 			</Button>
 		{/each}
 	</div>
@@ -61,17 +70,17 @@
 {/snippet}
 
 <style lang="scss">
-	@use '../../../routes/global.scss' as *;
+	@use '../global.scss' as *;
 
 	div.window-buttons {
 		flex-direction: row-reverse;
 
-		div.window-button-container {
+		div.background {
 			flex-grow: 1;
-			padding: 8px 16px;
 		}
 
 		div.window-button {
+			padding: 8px 16px;
 		}
 	}
 

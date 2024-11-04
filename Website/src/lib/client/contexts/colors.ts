@@ -3,20 +3,12 @@ import type { Readable } from 'svelte/motion';
 import { derived, get, type Writable } from 'svelte/store';
 import { persisted } from 'svelte-persisted-store';
 
-import Green from './colors/green';
+import Green from '../../shared/colors/green';
+import { rgbToCss, type Color, type Palette } from '$lib/shared/colors';
 
 const colors: Palette[] = [Green];
 
 const colorContextName = 'Color Context';
-
-export type Color = [r: number, g: number, b: number, a?: number];
-
-export interface Palette {
-	name: string;
-	night: boolean;
-
-	colors: Color[] & { length: 10 };
-}
 
 export interface ColorContext {
 	currentPalette: Readable<Palette>;
@@ -34,14 +26,6 @@ export interface ColorContext {
 	useCssVarColor: Readable<(index: number) => `--${string}`>;
 
 	printStyleHTML: Readable<() => string>;
-}
-
-export function fromRGBHex(color: number): Color {
-	return [(color >> 16) & 0xff, (color >> 8) & 0xff, (color >> 0) & 0xff];
-}
-
-export function fromRGBAHex(color: number): Color {
-	return [(color >> 24) & 0xff, (color >> 16) & 0xff, (color >> 8) & 0xff, (color >> 0) & 0xff];
 }
 
 export function useColorContext() {
@@ -85,7 +69,7 @@ export function createColorContext() {
 		useCssColor: derived(currentPalette, () => (index: number, alpha?: number) => {
 			const color = get(context.useColor)(index, alpha);
 
-			return `rgb${color[3] != null ? 'a' : ''}(${color.join(',')})` as never;
+			return rgbToCss(color) as never;
 		}),
 
 		useCssVarColor: derived(

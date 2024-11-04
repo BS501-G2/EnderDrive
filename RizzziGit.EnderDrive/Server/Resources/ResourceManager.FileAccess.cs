@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
@@ -7,8 +8,6 @@ using Newtonsoft.Json;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
-using System;
-using MongoDB.Bson.Serialization.Attributes;
 using Services;
 
 public enum FileAccessLevel
@@ -28,23 +27,31 @@ public enum FileAccessTargetEntityType
 
 public record class FileTargetEntity
 {
+    [JsonProperty("enityType")]
     public required FileAccessTargetEntityType EntityType;
+
+    [JsonProperty("entityId")]
     public required ObjectId EntityId;
 }
 
 public record class FileAccess : ResourceData
 {
+    [JsonProperty("fileId")]
     public required ObjectId FileId;
+
+    [JsonProperty("authorUserId")]
+    public required ObjectId AuthorUserId;
+
+    [JsonProperty("targetEntity")]
     public required FileTargetEntity? TargetEntity;
 
-    [BsonIgnore]
     [JsonIgnore]
     public required byte[] EncryptedAesKey;
 
-    [BsonIgnore]
     [JsonIgnore]
     public required byte[] AesIv;
 
+    [JsonProperty("level")]
     public required FileAccessLevel Level;
 
     public UnlockedFileAccess Unlock(UnlockedUserAuthentication userAuthentication)
@@ -56,6 +63,7 @@ public record class FileAccess : ResourceData
             Id = Id,
 
             FileId = FileId,
+            AuthorUserId = AuthorUserId,
             TargetEntity = TargetEntity,
 
             EncryptedAesKey = EncryptedAesKey,
@@ -91,7 +99,8 @@ public sealed partial class ResourceManager
     public async Task<UnlockedFileAccess> CreateFileAccess(
         ResourceTransaction transaction,
         UnlockedFile file,
-        FileAccessLevel level
+        FileAccessLevel level,
+        User authorUser
     )
     {
         if (level >= FileAccessLevel.Manage)
@@ -107,6 +116,7 @@ public sealed partial class ResourceManager
             {
                 Id = ObjectId.GenerateNewId(),
                 FileId = file.Id,
+                AuthorUserId = authorUser.Id,
                 TargetEntity = null,
                 EncryptedAesKey = file.AesKey,
                 AesIv = file.AesIv,
@@ -122,6 +132,7 @@ public sealed partial class ResourceManager
             Id = access.Id,
             FileId = access.FileId,
 
+            AuthorUserId = access.AuthorUserId,
             TargetEntity = access.TargetEntity,
 
             EncryptedAesKey = access.EncryptedAesKey,
@@ -135,11 +146,12 @@ public sealed partial class ResourceManager
     public async Task<UnlockedFileAccess> CreateFileAccess(
         ResourceTransaction transaction,
         UnlockedFile file,
-        UserAuthentication userAuthentication,
+        User targetUser,
+        User authorUser,
         FileAccessLevel level
     )
     {
-        byte[] encryptedAesKey = KeyManager.Encrypt(userAuthentication, file.AesKey);
+        byte[] encryptedAesKey = KeyManager.Encrypt(targetUser, file.AesKey);
         FileAccess access =
             new()
             {
@@ -147,10 +159,12 @@ public sealed partial class ResourceManager
 
                 FileId = file.Id,
 
+                AuthorUserId = authorUser.Id,
+
                 TargetEntity = new()
                 {
                     EntityType = FileAccessTargetEntityType.User,
-                    EntityId = userAuthentication.UserId
+                    EntityId = targetUser.Id
                 },
 
                 EncryptedAesKey = encryptedAesKey,
@@ -164,21 +178,13 @@ public sealed partial class ResourceManager
         return new()
         {
             Original = access,
-
             Id = access.Id,
-
             FileId = access.FileId,
-            TargetEntity = new()
-            {
-                EntityType = FileAccessTargetEntityType.User,
-                EntityId = userAuthentication.UserId
-            },
-
+            AuthorUserId = access.AuthorUserId,
+            TargetEntity = access.TargetEntity,
             EncryptedAesKey = access.EncryptedAesKey,
             AesIv = access.AesIv,
-
             Level = access.Level,
-
             AesKey = file.AesKey,
         };
     }
@@ -187,6 +193,7 @@ public sealed partial class ResourceManager
         ResourceTransaction transaction,
         UnlockedFile file,
         Group group,
+        User authorUser,
         FileAccessLevel level
     )
     {
@@ -197,6 +204,7 @@ public sealed partial class ResourceManager
                 Id = ObjectId.GenerateNewId(),
 
                 FileId = file.Id,
+                AuthorUserId = authorUser.Id,
                 TargetEntity = new()
                 {
                     EntityType = FileAccessTargetEntityType.Group,
@@ -218,6 +226,7 @@ public sealed partial class ResourceManager
             Id = access.Id,
 
             FileId = access.FileId,
+            AuthorUserId = access.AuthorUserId,
             TargetEntity = new()
             {
                 EntityType = FileAccessTargetEntityType.Group,
@@ -233,11 +242,13 @@ public sealed partial class ResourceManager
         };
     }
 
-    public IAsyncEnumerable<FileAccess> GetFileAccesses(
+    public IQueryable<FileAccess> GetFileAccesses(
         ResourceTransaction transaction,
-        User? user = null,
-        Group? group = null,
-        File? file = null
+        User? targetUser = null,
+        Group? targetGroup = null,
+        File? targetFile = null,
+        User? authorUser = null,
+        FileAccessLevel? level = null
     ) =>
         Query<FileAccess>(
             transaction,
@@ -245,29 +256,32 @@ public sealed partial class ResourceManager
                 query.Where(
                     (item) =>
                         (
-                            user == null
+                            targetUser == null
                             || (
                                 item.TargetEntity != null
                                 && item.TargetEntity.EntityType == FileAccessTargetEntityType.User
-                                && user.Id == item.TargetEntity.EntityId
+                                && targetUser.Id == item.TargetEntity.EntityId
                             )
                         )
                         && (
-                            group == null
+                            targetGroup == null
                             || (
                                 item.TargetEntity != null
                                 && item.TargetEntity.EntityType == FileAccessTargetEntityType.Group
-                                && group.Id == item.TargetEntity.EntityId
+                                && targetGroup.Id == item.TargetEntity.EntityId
                             )
                         )
-                        && (file == null || file.Id == item.FileId)
+                        && (authorUser == null || (item.AuthorUserId == authorUser.Id))
+                        && (targetFile == null || targetFile.Id == item.FileId)
+                        && (level == null || level <= item.Level)
                 )
         );
 
     public async Task<FileAccessResult?> FindFileAccess(
         ResourceTransaction transaction,
         File file,
-        User user
+        User user,
+        FileAccessLevel? minLevel = null
     )
     {
         if (file.OwnerUserId == user.Id)
@@ -275,7 +289,9 @@ public sealed partial class ResourceManager
             return new(user, file, null);
         }
 
-        FileAccess? access = await GetFileAccesses(transaction, user: user, file: file)
+        FileAccess? access = await GetFileAccesses(transaction, targetUser: user, targetFile: file)
+            .OrderByDescending(x => x.Level)
+            .ToAsyncEnumerable()
             .FirstOrDefaultAsync(transaction.CancellationToken);
 
         if (access == null)
@@ -289,6 +305,7 @@ public sealed partial class ResourceManager
                     transaction,
                     (query) => query.Where((item) => item.Id == file.ParentId)
                 )
+                .ToAsyncEnumerable()
                 .FirstOrDefaultAsync(transaction.CancellationToken);
 
             if (parentFile == null)
@@ -297,6 +314,11 @@ public sealed partial class ResourceManager
             }
 
             return await FindFileAccess(transaction, parentFile, user);
+        }
+
+        if (minLevel != null && access.Level < minLevel)
+        {
+            return null;
         }
 
         return new(user, file, access);

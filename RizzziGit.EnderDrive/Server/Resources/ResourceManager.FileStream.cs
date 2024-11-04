@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
@@ -7,21 +8,12 @@ using MongoDB.Bson;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
-using System.Collections.Concurrent;
-using RizzziGit.Commons.Memory;
-using RizzziGit.Commons.Utilities;
+using Commons.Memory;
+using Commons.Utilities;
 using Utilities;
 
 public sealed partial class ResourceManager
 {
-    private sealed record FileStreamKey(
-        ObjectId FileId,
-        ObjectId FileContentId,
-        ObjectId FileSnapshotId
-    );
-
-    private readonly ConcurrentDictionary<FileStreamKey, FileStream> FileStreams = new();
-
     public async Task<Stream> CreateReadStream(
         ResourceTransaction transaction,
         UnlockedFile file,
@@ -29,13 +21,15 @@ public sealed partial class ResourceManager
         FileSnapshot snapshot
     )
     {
+        ResourceManagerContext context = GetContext();
+
         FileStreamKey key = new(file.Id, content.Id, snapshot.Id);
-        if (FileStreams.TryGetValue(key, out FileStream? stream))
+        if (context.FileStreams.TryGetValue(key, out FileStream? stream))
         {
             throw new InvalidOperationException("Existing file stream is active.");
         }
         else if (
-            !FileStreams.TryAdd(
+            !context.FileStreams.TryAdd(
                 key,
                 stream = new FileStream(
                     this,
@@ -64,41 +58,37 @@ public sealed partial class ResourceManager
         bool createNewSnapshot
     )
     {
+        ResourceManagerContext context = GetContext();
+
         FileStreamKey key = new(file.Id, content.Id, snapshot.Id);
-        if (FileStreams.TryGetValue(key, out FileStream? stream))
+        FileStream stream =
+            new(
+                this,
+                transaction,
+                file,
+                content,
+                createNewSnapshot
+                    ? await CreateFileSnapshot(
+                        transaction,
+                        file,
+                        content,
+                        userAuthentication,
+                        snapshot
+                    )
+                    : snapshot,
+                await GetFileSize(transaction, snapshot),
+                userAuthentication
+            );
+
+        if (!context.FileStreams.TryAdd(key, stream))
         {
             throw new InvalidOperationException("Existing file stream is active.");
-        }
-        else if (
-            !FileStreams.TryAdd(
-                key,
-                stream = new FileStream(
-                    this,
-                    transaction,
-                    file,
-                    content,
-                    createNewSnapshot
-                        ? await CreateFileSnapshot(
-                            transaction,
-                            file,
-                            content,
-                            userAuthentication,
-                            snapshot
-                        )
-                        : snapshot,
-                    await GetFileSize(transaction, snapshot),
-                    userAuthentication
-                )
-            )
-        )
-        {
-            throw new InvalidOperationException("Failed to create new file stream.");
         }
 
         return stream;
     }
 
-    private sealed class FileStream(
+    internal sealed class FileStream(
         ResourceManager manager,
         ResourceTransaction? transaction,
         UnlockedFile file,
@@ -131,11 +121,13 @@ public sealed partial class ResourceManager
                     position = value;
                 }
                 else
+                {
                     throw new ArgumentOutOfRangeException(
                         nameof(value),
                         value,
                         $"Must must range from 0 to {size}"
                     );
+                }
             }
         }
 

@@ -12,12 +12,12 @@
 		functions: { getSetupRequirements }
 	} = useClientContext();
 
-	const { children }: { children: Snippet } = $props();
+	const { children, nosetup = false }: { children: Snippet; nosetup?: boolean } = $props();
 
 	onMount(async () => {
-		const response = await getSetupRequirements({});
+		const response = await getSetupRequirements();
 
-		if (response.AdminSetupRequired) {
+		if (response.adminSetupRequired && !nosetup) {
 			await goto(`/setup?return=${encodeURIComponent(`${$page.url.pathname}${$page.url.search}`)}`);
 		}
 	});
@@ -60,10 +60,6 @@
 
 		align-items: center;
 		justify-content: center;
-	}
-
-	div.error-message {
-		color: var(--color-6);
 	}
 
 	div.splash {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import Overlay from './overlay.svelte';
+	import Overlay from '../../../routes/overlay.svelte';
 
 	const { ondismiss, head, children, footer }: { ondismiss: () => void, head?: Snippet; footer?: Snippet; children?: Snippet } =
 		$props();

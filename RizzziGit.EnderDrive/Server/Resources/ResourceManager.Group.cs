@@ -10,6 +10,7 @@ using Newtonsoft.Json;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
+using MongoDB.Bson.Serialization.Attributes;
 using Services;
 
 public record class Group : ResourceData
@@ -17,7 +18,10 @@ public record class Group : ResourceData
     public static implicit operator RSA(Group groupMembership) =>
         KeyManager.DeserializeAsymmetricKey(groupMembership.RsaPublicKey);
 
+    [JsonProperty("name")]
     public required string Name;
+
+    [JsonProperty("description")]
     public required string? Description;
 
     [JsonIgnore]
@@ -36,13 +40,22 @@ public record class GroupMembership : ResourceData
     public static implicit operator RSA(GroupMembership groupMembership) =>
         KeyManager.DeserializeAsymmetricKey(groupMembership.RsaPublicKey);
 
+    [BsonElement("groupId")]
     public required ObjectId GroupId;
+
+    [BsonIgnore]
     public required ObjectId UserId;
 
+    [BsonIgnore]
     public required byte[] RsaPublicKey;
+
+    [BsonIgnore]
     public required byte[] EncryptedRsaPrivateKey;
 
+    [BsonElement("role")]
     public required GroupMembershipRole Role;
+
+    [BsonElement("accepted")]
     public required bool Accepted;
 
     public UnlockedGroupMembership Unlock(UnlockedUserAuthentication userAuthentication)
@@ -228,7 +241,10 @@ public sealed partial class ResourceManager
     public Task RemoveGroupMember(ResourceTransaction transaction, GroupMembership membership) =>
         Delete(transaction, membership);
 
-    public IAsyncEnumerable<GroupMembership> GetGroupMemberships(
+    public IQueryable<Group> GetGroups(ResourceTransaction transaction, ObjectId? id = null) =>
+        Query<Group>(transaction, (query) => query.Where((item) => (id == null || item.Id == id)));
+
+    public IQueryable<GroupMembership> GetGroupMemberships(
         ResourceTransaction transaction,
         User? user = null,
         Group? group = null,

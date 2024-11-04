@@ -1,46 +1,91 @@
 import { getContext, setContext, type Snippet } from 'svelte';
 import { writable, type Writable } from 'svelte/store';
 
-export type TopbarContentPosition = 'left' | 'center' | 'right';
-
-export interface DashboardContext {
-	pushSideContent: (view: Snippet) => () => void;
-	pushTopContent: (view: Snippet, position: TopbarContentPosition) => () => void;
-	pushContent: (view: Snippet) => () => void;
-}
-
 const contextName = `${Date.now()}`;
 
 export function useDashboardContext() {
-	return getContext<DashboardContext>(contextName);
+	return getContext<ReturnType<typeof createDashboardContext>['context']>(contextName);
 }
 
 export function createDashboardContext() {
-	const side: Writable<Snippet[]> = writable([]);
-	const mainTop: Writable<{ snippet: Snippet; position: TopbarContentPosition }[]> = writable([]);
-	const mainContent: Writable<Snippet[]> = writable([]);
+	const mobileButtons: Writable<{ id: number; snippet: Snippet }[]> = writable([]);
+	const mobileTopLeft: Writable<{ id: number; snippet: Snippet }[]> = writable([]);
+	const mobileTopRight: Writable<{ id: number; snippet: Snippet }[]> = writable([]);
+	const mobileBottom: Writable<{ id: number; snippet: Snippet }[]> = writable([]);
 
-	const context = setContext<DashboardContext>(contextName, {
-		pushSideContent: (view) => {
-			side.update((side) => [...side, view]);
+	const desktopSide: Writable<{ id: number; snippet: Snippet }[]> = writable([]);
+	const desktopTopLeft: Writable<{ id: number; snippet: Snippet }[]> = writable([]);
 
-			return () => side.update((side) => side.filter((value) => value !== view));
+	const desktopTopMiddle: Writable<{ id: number; snippet: Snippet }[]> = writable([]);
+	const desktopTopRight: Writable<{ id: number; snippet: Snippet }[]> = writable([]);
+
+	const context = setContext(contextName, {
+		pushMobileButton: (snippet: Snippet) => {
+			const id = Math.random();
+			mobileButtons.update((value) => [...value, { id, snippet }]);
+
+			return () => mobileButtons.update((value) => value.filter((value) => value.id !== id));
 		},
 
-		pushTopContent: (view, position) => {
-			mainTop.update((mainTop) => [...mainTop, { snippet: view, position }]);
+		pushMobileTopLeft: (snippet: Snippet) => {
+			const id = Math.random();
+			mobileTopLeft.update((value) => [...value, { id, snippet }]);
 
-			return () =>
-				mainTop.update((mainTop) => mainTop.filter((mainTop) => mainTop.snippet !== view));
+			return () => mobileTopLeft.update((value) => value.filter((value) => value.id !== id));
 		},
 
-		pushContent: (view) => {
-			mainContent.update((mainContent) => [...mainContent, view]);
+		pushMobileTopRight: (snippet: Snippet) => {
+			const id = Math.random();
+			mobileTopRight.update((value) => [...value, { id, snippet }]);
 
-			return () =>
-				mainContent.update((mainContent) => mainContent.filter((value) => value !== view));
+			return () => mobileTopRight.update((value) => value.filter((value) => value.id !== id));
+		},
+
+		pushMobileBottom: (snippet: Snippet) => {
+			const id = Math.random();
+			mobileBottom.update((value) => [...value, { id, snippet }]);
+
+			return () => mobileBottom.update((value) => value.filter((value) => value.id !== id));
+		},
+
+		pushDesktopSide: (snippet: Snippet) => {
+			const id = Math.random();
+			desktopSide.update((value) => [...value, { id, snippet }]);
+
+			return () => desktopSide.update((value) => value.filter((value) => value.id !== id));
+		},
+
+		pushDesktopTopLeft: (snippet: Snippet) => {
+			const id = Math.random();
+			desktopTopLeft.update((value) => [...value, { id, snippet }]);
+
+			return () => desktopTopLeft.update((value) => value.filter((value) => value.id !== id));
+		},
+
+		pushDesktopTopMiddle: (snippet: Snippet) => {
+			const id = Math.random();
+			desktopTopMiddle.update((value) => [...value, { id, snippet }]);
+
+			return () => desktopTopMiddle.update((value) => value.filter((value) => value.id !== id));
+		},
+
+		pushDesktopTopRight: (snippet: Snippet) => {
+			const id = Math.random();
+			desktopTopRight.update((value) => [...value, { id, snippet }]);
+
+			return () => desktopTopRight.update((value) => value.filter((value) => value.id !== id));
 		}
 	});
 
-	return { side, mainTop, mainContent, context };
+	return {
+		mobileButtons,
+		mobileTopLeft,
+		mobileTopRight,
+		mobileBottom,
+		desktopSide,
+		desktopTopLeft,
+		desktopTopMiddle,
+		desktopTopRight,
+		context
+	};
 }

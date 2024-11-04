@@ -1,20 +1,21 @@
-<script lang="ts" module>
-	import { getContext, onMount, setContext, type Snippet } from 'svelte';
-	import type { Readable } from 'svelte/motion';
-	import { derived, get, readable, writable, type Writable } from 'svelte/store';
-</script>
-
 <script lang="ts">
 	import '@fortawesome/fontawesome-free/css/all.min.css';
 	import 'reset-css/reset.css';
-	import { fade } from 'svelte/transition';
+
+	import { onMount, type Snippet } from 'svelte';
+	import { get } from 'svelte/store';
 	import { createColorContext } from '../lib/client/contexts/colors';
 	import { createAppContext, ViewMode, WindowMode } from '$lib/client/contexts/app';
 	import { createClientContext } from '$lib/client/client';
+	import OverlayHost from './overlay-host.svelte';
 
-	const viewMode = writable<ViewMode>(ViewMode.None);
-	const windowMode = writable<WindowMode>(WindowMode.Normal);
-	const overlay: Writable<[id: number, snippet: Snippet][]> = writable([]);
+	const {
+		viewMode,
+		windowMode,
+		overlay,
+		titleStack,
+		context: { pushTitle }
+	} = createAppContext();
 
 	function triggerUpdateViewMode(window: Window) {
 		let newMode: ViewMode = get(viewMode);
@@ -35,14 +36,18 @@
 	}
 
 	function triggerUpdateWindowMode(window: Window) {
-		let newMode: WindowMode = get(windowMode);
+		let newMode: WindowMode = WindowMode.Normal;
 
 		if (window.matchMedia('(display-mode: window-controls-overlay)').matches) {
-			newMode = WindowMode.CustomBar;
-		} else if (window.matchMedia('(display-mode: fullscreen)').matches) {
-			newMode = WindowMode.Fullscreen;
-		} else {
-			newMode = WindowMode.Normal;
+			newMode |= WindowMode.CustomBar;
+		}
+
+		if (window.matchMedia('(display-mode: fullscreen)').matches) {
+			newMode |= WindowMode.Fullscreen;
+		}
+
+		if (window.matchMedia('(display-mode: standalone)').matches) {
+			newMode |= WindowMode.Minimal;
 		}
 
 		if (newMode !== get(windowMode)) {
@@ -50,8 +55,9 @@
 		}
 	}
 
-	const {} = createAppContext(viewMode, windowMode, overlay);
-	const { printStyleHTML } = createColorContext();
+	windowMode.subscribe(console.log);
+
+	const { printStyleHTML, useCssColor } = createColorContext();
 	const {} = createClientContext();
 	const { children }: { children: Snippet } = $props();
 
@@ -59,12 +65,24 @@
 		triggerUpdateViewMode(window);
 		triggerUpdateWindowMode(window);
 	});
+
+	onMount(() => pushTitle('EnderDrive'));
 </script>
 
 <svelte:head>
 	<link rel="icon" href="favicon.svg" type="image/xml+svg" />
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<link
+		rel="manifest"
+		href="/manifest?theme-color={$useCssColor(8, 0)}&background-color={$useCssColor(8, 0)}"
+	/>
+	<title
+		>{$titleStack
+			.toReversed()
+			.map((e) => e.title)
+			.join(' - ')}</title
+	>
 	{@html $printStyleHTML()}
 </svelte:head>
 
@@ -75,18 +93,12 @@
 	}}
 />
 
+<OverlayHost {overlay} />
+
 {@render children()}
 
-{#if $overlay.length != 0}
-	<div class="overlay" transition:fade={{ duration: 250 }}>
-		{#each $overlay as [id, snippet] (id)}
-			{@render snippet()}
-		{/each}
-	</div>
-{/if}
-
 <style lang="scss">
-	@use './global.scss' as *;
+	@use '../global.scss' as *;
 
 	:global(div) {
 		display: flex;
@@ -103,26 +115,12 @@
 		flex-direction: column;
 		box-sizing: border-box;
 
-		background-color: var(--color-5);
+		background-color: var(--color-9);
 		color: var(--color-1);
 
 		min-width: 320px;
 		min-height: 100dvh;
 
 		user-select: none;
-	}
-
-	div.overlay {
-		flex-direction: column;
-
-		position: fixed;
-		top: 0;
-		left: 0;
-
-		z-index: 1;
-
-		backdrop-filter: blur(8px);
-
-		@include force-size(100dvw, 100dvh);
 	}
 </style>

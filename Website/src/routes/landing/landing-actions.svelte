@@ -80,7 +80,7 @@
 {/snippet}
 
 <style lang="scss">
-	@use '../global.scss' as *;
+	@use '../../global.scss' as *;
 
 	div.actions {
 		flex-direction: row;

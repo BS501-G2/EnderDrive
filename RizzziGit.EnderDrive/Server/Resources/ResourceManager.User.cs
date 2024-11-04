@@ -1,10 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -27,20 +25,38 @@ public record class User : ResourceData
     public static implicit operator RSA(User user) =>
         KeyManager.DeserializeAsymmetricKey(user.RsaPublicKey);
 
+    [JsonProperty("username")]
     public required string Username;
+
+    [JsonProperty("firstName")]
     public required string FirstName;
+
+    [JsonProperty("middleName")]
     public required string? MiddleName;
+
+    [JsonProperty("lastName")]
     public required string LastName;
+
+    [JsonProperty("displayName")]
     public required string? DisplayName;
 
+    [JsonProperty("role")]
     public required UserRole Role;
 
     [JsonIgnore]
     public required byte[] RsaPublicKey;
 
+    [JsonIgnore]
     public required ObjectId? RootFileId;
+
+    [JsonIgnore]
     public required ObjectId? TrashFileId;
+
+    [JsonIgnore]
     public required ObjectId? ProfilePictureId;
+
+    [JsonIgnore]
+    public required bool PrivacyPolicyAgreement;
 }
 
 [Flags]
@@ -54,10 +70,11 @@ public enum UsernameValidation
 
 public sealed partial class ResourceManager
 {
-    [GeneratedRegex("^\\w$")]
+    [GeneratedRegex("^\\w*$")]
     private static partial Regex GetUsernameRegex();
 
     public static readonly Regex USERNAME_REGEX = GetUsernameRegex();
+
     public const int USERNAME_MIN_LENGTH = 6;
     public const int USERNAME_MAX_LENGTH = 12;
 
@@ -106,6 +123,7 @@ public sealed partial class ResourceManager
                 transaction,
                 (query) => query.Where((user) => user.Role >= UserRole.Admin)
             )
+            .ToAsyncEnumerable()
             .AnyAsync(transaction.CancellationToken)
             ? UserRole.None
             : UserRole.Admin;
@@ -126,7 +144,9 @@ public sealed partial class ResourceManager
 
                 TrashFileId = null,
                 RootFileId = null,
-                ProfilePictureId = null
+                ProfilePictureId = null,
+
+                PrivacyPolicyAgreement = false
             };
 
         await Insert(transaction, [user]);
@@ -167,9 +187,11 @@ public sealed partial class ResourceManager
     {
         await foreach (
             UserAuthentication toDelete in Query<UserAuthentication>(
-                transaction,
-                (query) => query.Where((userAuthentication) => userAuthentication.UserId == user.Id)
-            )
+                    transaction,
+                    (query) =>
+                        query.Where((userAuthentication) => userAuthentication.UserId == user.Id)
+                )
+                .ToAsyncEnumerable()
         )
         {
             await RemoveUserAuthentication(
@@ -183,9 +205,10 @@ public sealed partial class ResourceManager
 
         await foreach (
             File file in Query<File>(
-                transaction,
-                (query) => query.Where((file) => file.OwnerUserId == user.Id)
-            )
+                    transaction,
+                    (query) => query.Where((file) => file.OwnerUserId == user.Id)
+                )
+                .ToAsyncEnumerable()
         )
         {
             await DeleteFile(transaction, file.Unlock(userAuthentication));
@@ -197,46 +220,45 @@ public sealed partial class ResourceManager
     public ValueTask SetUserRole(ResourceTransaction transaction, User user, UserRole role) =>
         Update(transaction, user, Builders<User>.Update.Set((item) => item.Role, role));
 
-    public async IAsyncEnumerable<User> GetUsers(
+    public IQueryable<User> GetUsers(
         ResourceTransaction transaction,
         string? searchString = null,
         UserRole? minRole = null,
-        UserRole? maxRole = null
+        UserRole? maxRole = null,
+        string? username = null,
+        ObjectId? id = null
     )
     {
-        await foreach (
-            User user in Query<User>(
-                transaction,
-                (query) =>
-                    query.Where(
-                        (user) =>
-                            (
-                                searchString == null
+        return Query<User>(
+            transaction,
+            (query) =>
+                query.Where(
+                    (user) =>
+                        (
+                            searchString == null
+                            || (
+                                user.FirstName.Contains(
+                                    searchString,
+                                    StringComparison.CurrentCultureIgnoreCase
+                                )
                                 || (
-                                    user.FirstName.Contains(
-                                        searchString,
-                                        StringComparison.CurrentCultureIgnoreCase
-                                    )
-                                    || (
-                                        user.MiddleName != null
-                                        && user.MiddleName.Contains(
-                                            searchString,
-                                            StringComparison.CurrentCultureIgnoreCase
-                                        )
-                                    )
-                                    || user.LastName.Contains(
+                                    user.MiddleName != null
+                                    && user.MiddleName.Contains(
                                         searchString,
                                         StringComparison.CurrentCultureIgnoreCase
                                     )
                                 )
+                                || user.LastName.Contains(
+                                    searchString,
+                                    StringComparison.CurrentCultureIgnoreCase
+                                )
                             )
-                            && (minRole == null || user.Role >= minRole)
-                            && (maxRole == null || user.Role <= maxRole)
-                    )
-            )
-        )
-        {
-            yield return user;
-        }
+                        )
+                        && (minRole == null || user.Role >= minRole)
+                        && (maxRole == null || user.Role <= maxRole)
+                        && (username == null || user.Username == username)
+                        && (id == null || user.Id == id)
+                )
+        );
     }
 }

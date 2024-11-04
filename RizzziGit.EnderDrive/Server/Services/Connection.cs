@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Net.WebSockets;
 using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
+using MongoDB.Bson.IO;
+using MongoDB.Bson.Serialization;
 
 namespace RizzziGit.EnderDrive.Server.Services;
 
@@ -11,14 +14,26 @@ using Commons.Memory;
 using Commons.Net.WebConnection;
 using Commons.Services;
 using Core;
-using MongoDB.Bson.IO;
-using MongoDB.Bson.Serialization;
 using Resources;
 
 public sealed partial class ConnectionContext
 {
     public required WebConnection Internal;
+
+    public required UnlockedUserAuthentication? CurrentUser;
+
+    public required ConcurrentDictionary<ServerSideRequestCode, RawRequestHandler> Handlers;
+
+    public required ulong NextFileStreamId;
+    public required ConcurrentDictionary<ulong, Stream> FileStreams;
 }
+
+public delegate Task<ConnectionPacket<ResponseCode>> RawRequestHandler(
+    ResourceTransaction transaction,
+    ConnectionPacket<ServerSideRequestCode> request
+);
+
+public delegate Task<R> RequestHandler<S, R>(ResourceTransaction transaction, S request);
 
 public enum ResponseCode : byte
 {
@@ -69,8 +84,7 @@ public sealed partial class Connection(
     public ConnectionManager Manager => manager;
     public Server Server => Manager.Server;
     public ResourceManager Resources => Server.ResourceManager;
-
-    public ulong ConnectionId => connectionId;
+    public UnlockedUserAuthentication? CurrentUser => GetContext().CurrentUser;
 
     protected override async Task<ConnectionContext> OnStart(
         CancellationToken startupCancellationToken,
@@ -85,8 +99,23 @@ public sealed partial class Connection(
 
         await StartServices([connection], startupCancellationToken);
 
-        return new() { Internal = connection };
+        ConnectionContext context =
+            new()
+            {
+                Internal = connection,
+                CurrentUser = null,
+                Handlers = new(),
+
+                NextFileStreamId = 0,
+                FileStreams = new()
+            };
+
+        RegisterHandlers(context);
+
+        return context;
     }
+
+    public ulong ConnectionId => connectionId;
 
     protected override async Task OnRun(
         ConnectionContext context,
@@ -96,19 +125,22 @@ public sealed partial class Connection(
         Task[] tasks =
         [
             WatchService(context.Internal, serviceCancellationToken),
-            RunWorker(context.Internal, serviceCancellationToken)
+            RunWorker(context, serviceCancellationToken)
         ];
 
         await await Task.WhenAny(tasks);
     }
 
-    private async Task RunWorker(WebConnection connection, CancellationToken cancellationToken)
+    private async Task RunWorker(ConnectionContext context, CancellationToken cancellationToken)
     {
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            WebConnectionRequest? request = await connection.ReceiveRequest(cancellationToken);
+            WebConnectionRequest? request = await context.Internal.ReceiveRequest(
+                cancellationToken
+            );
+            
             if (request == null)
             {
                 break;
@@ -116,7 +148,7 @@ public sealed partial class Connection(
 
             try
             {
-                await HandleRequest(request, cancellationToken);
+                await HandleRequest(context, request, cancellationToken);
             }
             catch (Exception exception)
             {
@@ -135,6 +167,13 @@ public sealed partial class Connection(
         ExceptionDispatchInfo? exception
     )
     {
+        foreach ((_, Stream stream) in context.FileStreams)
+        {
+            await stream.DisposeAsync();
+        }
+
+        context.FileStreams.Clear();
+
         await StopServices(context.Internal);
     }
 }

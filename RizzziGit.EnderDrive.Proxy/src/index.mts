@@ -8,10 +8,11 @@ export async function main() {
     cors: {
       origin: "*",
     },
+    maxHttpBufferSize: 1024 * 1024 * 256,
   });
 
   externalWebSocketServer.on("connection", (externalSocket) => {
-    const internalWebSocket = new WebSocket("ws://localhost:8082/ws");
+    const internalWebSocket = new WebSocket("ws://localhost:8082");
 
     const toInternalSend: Buffer[] = [];
 
@@ -104,7 +105,6 @@ export async function main() {
         return;
       }
 
-      console.log("<-", packet);
       externalSocket.emit("message", packet);
     };
 
