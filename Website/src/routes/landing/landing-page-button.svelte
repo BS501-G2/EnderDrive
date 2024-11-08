@@ -44,6 +44,8 @@
 		font-size: 1rem;
 
 		cursor: pointer;
+
+		-webkit-app-region: no-drag;
 	}
 
 	button.active {

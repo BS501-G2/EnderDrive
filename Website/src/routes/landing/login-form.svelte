@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { useClientContext } from '$lib/client/client';
-	import User from '$lib/client/model/user.svelte';
+	import { useServerContext } from '$lib/client/client';
 	import Button from '$lib/client/ui/button.svelte';
 	import Icon, { type IconOptions } from '$lib/client/ui/icon.svelte';
 	import Input from '$lib/client/ui/input.svelte';
@@ -42,18 +41,16 @@
 	onMount(() => pushAction('Reset Password', { thickness: 'solid', icon: 'key' }, async () => {}));
 
 	const {
-		functions: {
-			authenticatePassword,
-			authenticateGoogle,
-			resolveUsername,
-			whoAmI,
-			getUser,
-			deauthenticate
-		}
-	} = useClientContext();
+		authenticatePassword,
+		authenticateGoogle,
+		resolveUsername,
+		whoAmI,
+		getUser,
+		deauthenticate
+	} = useServerContext();
 
 	async function getCurrentUser() {
-		const { userId } = await whoAmI();
+		const userId = await whoAmI();
 
 		if (userId == null) {
 			return null;
@@ -88,7 +85,7 @@
 					type="text"
 					name="Username"
 					bind:value={$username}
-					onSubmit={click}
+					onsubmit={click}
 				/>
 
 				<Input
@@ -97,7 +94,7 @@
 					type="password"
 					name="Password"
 					bind:value={$password}
-					onSubmit={click}
+					onsubmit={click}
 				/>
 
 				{#snippet background(view: Snippet)}
@@ -229,7 +226,6 @@
 				background-color: transparent;
 				color: var(--color-1);
 				border: solid 1px var(--color-1);
-				border-radius: 8px;
 
 				flex-grow: 1;
 			}

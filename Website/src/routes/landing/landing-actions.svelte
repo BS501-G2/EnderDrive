@@ -94,6 +94,8 @@
 		cursor: pointer;
 
 		background-color: var(--color-1);
+
+		-webkit-app-region: no-drag;
 	}
 
 	div.action-inner {

@@ -6,10 +6,14 @@
 	const {
 		type,
 		icon,
-		content,
+		children,
 		bottom
-	}: { type: 'error' | 'warning' | 'info'; icon: IconOptions; content: Snippet; bottom?: Snippet } =
-		$props();
+	}: {
+		type: 'error' | 'warning' | 'info';
+		icon: IconOptions;
+		children: Snippet;
+		bottom?: Snippet;
+	} = $props();
 </script>
 
 <div class="banner {type}">
@@ -18,7 +22,7 @@
 	</div>
 	<div class="content">
 		<div class="main">
-			{@render content()}
+			{@render children()}
 		</div>
 
 		{#if bottom != null}
@@ -38,7 +42,6 @@
 		flex-direction: row;
 
 		padding: 8px;
-		border-radius: 8px;
 
 		color: var(--color-5);
 

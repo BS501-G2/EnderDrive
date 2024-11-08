@@ -1,6 +1,9 @@
 import { getContext, setContext, type Snippet } from 'svelte';
 import { persisted } from 'svelte-persisted-store';
-import { writable } from 'svelte/store';
+import { derived, writable, type Readable, type Writable } from 'svelte/store';
+import type { FileResource, FileAccessResource, FileStarResource } from '../client';
+import type { IconOptions } from '../ui/icon.svelte';
+import type { FileBrowserListContext } from './file-browser-list';
 
 const contextName = 'File Browser Context';
 
@@ -18,7 +21,7 @@ export type FileBrowserResolve =
 	| [type: FileBrowserResolveType.Starred];
 
 export interface FileBrowserOptions {
-	resolve: FileBrowserResolve;
+	resolve: Readable<FileBrowserResolve>;
 
 	onFileId?: (
 		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement },
@@ -32,13 +35,28 @@ export function useFileBrowserContext() {
 	return getContext<FileBrowserContext>(contextName);
 }
 
-export function createFileBrowserContext() {
+export interface FileBrowserAction {
+	id: number;
+	snippet: Snippet;
+	icon: IconOptions;
+	onclick: (event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) => void;
+	label: string;
+
+	type: 'left-main' | 'left' | 'right-main' | 'right';
+}
+
+export function createFileBrowserContext(onFileId?: FileBrowserOptions['onFileId']) {
 	const showDetails = persisted('file-browser-config-show-details', false);
 	const isLoading = writable(false);
-	const files = writable<File[]>([]);
-
 	const top = writable<{ id: number; snippet: Snippet }[]>([]);
-	const actions = writable<{ id: number; snippet: Snippet }[]>([]);
+	const middle = writable<{ id: number; snippet: Snippet }[]>([]);
+	const bottom = writable<{ id: number; snippet: Snippet }[]>([]);
+	const actions = writable<FileBrowserAction[]>([]);
+	const current = writable<CurrentFile>({
+		type: 'loading'
+	});
+
+	const fileListContext: Writable<FileBrowserListContext | null> = writable(null);
 
 	const context = setContext(contextName, {
 		showDetails,
@@ -51,14 +69,100 @@ export function createFileBrowserContext() {
 			return () => top.update((value) => value.filter((value) => value.id !== id));
 		},
 
-		pushAction: (snippet: Snippet) => {
+		pushMiddle: (snippet: Snippet) => {
 			const id = Math.random();
 
-			actions.update((actions) => [...actions, { id, snippet }]);
+			middle.update((value) => [...value, { id, snippet }]);
+
+			return () => middle.update((value) => value.filter((value) => value.id !== id));
+		},
+
+		pushBottom: (snippet: Snippet) => {
+			const id = Math.random();
+
+			bottom.update((value) => [...value, { id, snippet }]);
+
+			return () => bottom.update((value) => value.filter((value) => value.id !== id));
+		},
+
+		pushAction: (
+			snippet: Snippet,
+			type: FileBrowserAction['type'],
+			icon: IconOptions,
+			label: string,
+			onclick: (event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) => void
+		) => {
+			const id = Math.random();
+
+			actions.update((actions) => [...actions, { id, snippet, type, icon, label, onclick }]);
 
 			return () => actions.update((actions) => actions.filter((action) => action.id !== id));
+		},
+
+		current: derived(current, (value) => value),
+
+		onFileId,
+
+		setFileListContext: (context: FileBrowserListContext) => {
+			fileListContext.set(context);
+
+			return () =>
+				fileListContext.update((value) => {
+					if (value != context) {
+						return value;
+					}
+
+					return null;
+				});
 		}
 	});
 
-	return { showDetails, top, context, isLoading, files, actions };
+	return {
+		showDetails,
+		top,
+		middle,
+		bottom,
+		context,
+		isLoading,
+		actions,
+		current,
+		fileListContext
+	};
 }
+
+export type FileEntry = {
+	file: FileResource;
+} & (
+	| { type: 'normal' }
+	| {
+			type: 'shared';
+			fileAccess: FileAccessResource;
+	  }
+	| {
+			type: 'starred';
+			fileStar: FileStarResource;
+	  }
+	| {
+			type: 'trash';
+	  }
+);
+
+export type CurrentFile =
+	| ((
+			| {
+					type: 'file';
+					mime: string;
+			  }
+			| {
+					type: 'folder';
+					files: FileEntry[];
+			  }
+	  ) & { path: FileResource[]; file: FileResource })
+	| {
+			type: 'shared' | 'starred' | 'trash';
+			files: FileEntry[];
+	  }
+	| {
+			type: 'loading';
+	  }
+	| { type: 'error'; error: Error };

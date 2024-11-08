@@ -10,12 +10,56 @@
 	const {
 		children,
 		ondismiss,
-		nodim = false
+		nodim = false,
+		x,
+		y
 	}: {
 		children: Snippet<[windowButtons: Snippet]>;
 		ondismiss?: () => void;
 		nodim?: boolean;
+		x?: number;
+		y?: number;
 	} = $props();
+
+	let {
+		horizontalAlign,
+		paddingLeft,
+		paddingRight
+	}: {
+		horizontalAlign: 'flex-start' | 'center' | 'flex-end';
+		paddingLeft: number;
+		paddingRight: number;
+	} = $derived(
+		x == null
+			? { horizontalAlign: 'center', paddingLeft: 0, paddingRight: 0 }
+			: x < 0
+				? { horizontalAlign: 'flex-end', paddingLeft: 0, paddingRight: -(x + 1 )}
+				: {
+						horizontalAlign: 'flex-start',
+						paddingLeft: x,
+						paddingRight: 0
+					}
+	);
+
+	let {
+		verticalAlign,
+		paddingTop,
+		paddingBottom
+	}: {
+		verticalAlign: 'flex-start' | 'center' | 'flex-end';
+		paddingTop: number;
+		paddingBottom: number;
+	} = $derived(
+		y == null
+			? { verticalAlign: 'center', paddingTop: 0, paddingBottom: 0 }
+			: y < 0
+				? { verticalAlign: 'flex-end', paddingTop: 0, paddingBottom: -(y + 1) }
+				: {
+						verticalAlign: 'flex-start',
+						paddingTop: y,
+						paddingBottom: 0
+					}
+	);
 
 	onMount(() => pushOverlayContent(overlay, !nodim));
 
@@ -53,7 +97,13 @@
 	<div class="overlay-bounds">
 		<button
 			class="overlay-container"
-			transition:scale|global={{ duration: 250, start: 0.95 }}
+			style:align-items={horizontalAlign}
+			style:justify-content={verticalAlign}
+			style:padding-top="{paddingTop}px"
+			style:padding-bottom="{paddingBottom}px"
+			style:padding-left="{paddingLeft}px"
+			style:padding-right="{paddingRight}px"
+			class:dim={!nodim}
 			onclick={({ currentTarget, target }) => {
 				if (currentTarget != target) {
 					return;
@@ -62,7 +112,7 @@
 				ondismiss?.();
 			}}
 		>
-			<div class="overlay">
+			<div class="overlay" transition:scale|global={{ duration: 250, start: 0.95 }}>
 				{@render children(windowButtons)}
 			</div>
 		</button>
@@ -93,13 +143,17 @@
 		display: flex;
 		flex-direction: column;
 
-		align-items: center;
-		justify-content: center;
+		text-align: start;
 
 		border: none;
 		outline: none;
 
 		@include force-size(100dvw, 100dvh);
+	}
+
+	button.overlay-container.dim {
+		background-color:#00000025;
+
 	}
 
 	div.overlay {

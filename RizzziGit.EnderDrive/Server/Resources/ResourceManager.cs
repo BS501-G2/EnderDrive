@@ -12,11 +12,8 @@ using Newtonsoft.Json;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
-using Commons.Collections;
-using Commons.Logging;
 using Commons.Services;
 using Core;
-using Resources;
 using Services;
 
 public abstract record class ResourceData
@@ -65,6 +62,7 @@ public sealed class Resource<D>(
 public sealed partial class ResourceManager(Server server)
     : Service<ResourceManagerContext>("Resource Manager", server)
 {
+    private Server Server => server;
     private IMongoClient Client => GetContext().Client;
     private IMongoDatabase Database => Client.GetDatabase("EnderDrive");
 

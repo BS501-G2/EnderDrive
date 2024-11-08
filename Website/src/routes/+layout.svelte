@@ -55,8 +55,6 @@
 		}
 	}
 
-	windowMode.subscribe(console.log);
-
 	const { printStyleHTML, useCssColor } = createColorContext();
 	const {} = createClientContext();
 	const { children }: { children: Snippet } = $props();
@@ -70,7 +68,7 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href="favicon.svg" type="image/xml+svg" />
+	<link rel="icon" href="/favicon.svg" type="image/xml+svg" />
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<link

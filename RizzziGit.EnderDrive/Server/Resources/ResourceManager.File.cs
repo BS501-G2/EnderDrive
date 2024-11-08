@@ -2,13 +2,13 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using Newtonsoft.Json;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
 using System;
-using MongoDB.Bson.Serialization.Attributes;
 using Services;
 
 public enum FileType
@@ -53,9 +53,6 @@ public record class File : ResourceData
     [JsonIgnore]
     public required byte[] EncryptedAesKey;
 
-    [JsonIgnore]
-    public required byte[] AesIv;
-
     public UnlockedFile WithAesKey(byte[] aesKey)
     {
         return new()
@@ -70,7 +67,6 @@ public record class File : ResourceData
             Type = Type,
 
             EncryptedAesKey = EncryptedAesKey,
-            AesIv = AesIv,
 
             AesKey = aesKey,
 
@@ -90,8 +86,7 @@ public record class File : ResourceData
 
 public record class UnlockedFile : File
 {
-    public static implicit operator Aes(UnlockedFile file) =>
-        KeyManager.DeserializeSymmetricKey([.. file.AesKey, .. file.AesIv]);
+    public static implicit operator byte[](UnlockedFile file) => file.AesKey;
 
     public required File Original;
 
@@ -102,69 +97,132 @@ public sealed partial class ResourceManager
 {
     public const int FILE_BUFFER_SIZE = 1024 * 256;
 
-    public async Task<File> GetUserRootFile(ResourceTransaction transaction, User user)
+    public async Task<File> GetRootFolder(ResourceTransaction transaction, User user)
     {
-        File? file = await Query<File>(
+        File? existingFile = await Query<File>(
                 transaction,
-                (query) => query.Where((item) => item.Id == user.RootFileId)
+                (query) => query.Where((item) => item.OwnerUserId == user.Id)
             )
             .ToAsyncEnumerable()
             .FirstOrDefaultAsync(transaction.CancellationToken);
 
-        if (file == null)
+        if (existingFile != null)
         {
-            file = (await CreateFile(transaction, user, file, FileType.Folder, ".ROOT")).Original;
-
-            await UpdateReturn(
-                transaction,
-                user,
-                Builders<User>.Update.Set((item) => item.RootFileId, file.Id)
-            );
-
-            user.TrashFileId = file.Id;
+            return existingFile;
         }
 
-        return file;
+        byte[] aesKey = RandomNumberGenerator.GetBytes(32);
+        byte[] encryptedAesKey = KeyManager.Encrypt(user, aesKey);
+
+        File file =
+            new()
+            {
+                Id = ObjectId.GenerateNewId(),
+                ParentId = null,
+                OwnerUserId = user.Id,
+
+                Name = ".ROOT",
+                Type = FileType.Folder,
+
+                EncryptedAesKey = encryptedAesKey,
+
+                CreateTime = DateTimeOffset.UtcNow,
+                UpdateTime = DateTimeOffset.UtcNow,
+                TrashTime = null
+            };
+
+        await Insert(transaction, [file]);
+        await Update(
+            transaction,
+            user,
+            Builders<User>.Update.Set(nameof(User.RootFileId), file.Id)
+        );
+
+        UnlockedFile unlockedFile =
+            new()
+            {
+                Original = file,
+
+                Id = file.Id,
+                ParentId = file.ParentId,
+                OwnerUserId = file.OwnerUserId,
+
+                Name = file.Name,
+                Type = file.Type,
+
+                EncryptedAesKey = file.EncryptedAesKey,
+                AesKey = aesKey,
+
+                CreateTime = file.CreateTime,
+                UpdateTime = file.UpdateTime,
+                TrashTime = file.TrashTime
+            };
+
+        return unlockedFile;
     }
 
-    public async Task<File> GetUserRootTrash(ResourceTransaction transaction, User user)
+    public async Task<UnlockedFile> GetTrashFolder(ResourceTransaction transaction, User user)
     {
-        File? file = await Query<File>(
-                transaction,
-                (query) => query.Where((item) => item.Id == user.TrashFileId)
-            )
-            .ToAsyncEnumerable()
-            .FirstOrDefaultAsync(transaction.CancellationToken);
+        byte[] aesKey = RandomNumberGenerator.GetBytes(32);
+        byte[] encryptedAesKey = KeyManager.Encrypt(user, aesKey);
 
-        if (file == null)
-        {
-            file = (await CreateFile(transaction, user, file, FileType.Folder, ".TRASH")).Original;
+        File file =
+            new()
+            {
+                Id = ObjectId.GenerateNewId(),
+                ParentId = null,
+                OwnerUserId = user.Id,
 
-            await UpdateReturn(
-                transaction,
-                user,
-                Builders<User>.Update.Set((item) => item.TrashFileId, file.Id)
-            );
+                Name = ".TRASH",
+                Type = FileType.Folder,
 
-            user.TrashFileId = file.Id;
-        }
+                EncryptedAesKey = encryptedAesKey,
 
-        return file;
+                CreateTime = DateTimeOffset.UtcNow,
+                UpdateTime = DateTimeOffset.UtcNow,
+                TrashTime = null
+            };
+
+        await Insert(transaction, [file]);
+        await Update(
+            transaction,
+            user,
+            Builders<User>.Update.Set(nameof(User.TrashFileId), file.Id)
+        );
+
+        UnlockedFile unlockedFile =
+            new()
+            {
+                Original = file,
+
+                Id = file.Id,
+                ParentId = file.ParentId,
+                OwnerUserId = file.OwnerUserId,
+
+                Name = file.Name,
+                Type = file.Type,
+
+                EncryptedAesKey = file.EncryptedAesKey,
+                AesKey = aesKey,
+
+                CreateTime = file.CreateTime,
+                UpdateTime = file.UpdateTime,
+                TrashTime = file.TrashTime
+            };
+
+        return unlockedFile;
     }
 
     public async Task<UnlockedFile> CreateFile(
         ResourceTransaction transaction,
         User user,
-        File? parent,
+        UnlockedFile parent,
         FileType type,
         string name
     )
     {
-        using Aes aes = await KeyManager.GenerateSymmetricKey(transaction.CancellationToken);
-
-        byte[] aesIv = aes.IV;
-        byte[] aesKey = aes.Key;
-        byte[] encryptedAesKey = KeyManager.Encrypt(user, aesKey);
+        byte[] aesKey = RandomNumberGenerator.GetBytes(32);
+        byte[] encryptedAesKey = KeyManager.Encrypt(parent, aesKey);
 
         File file =
             new()
@@ -177,7 +235,6 @@ public sealed partial class ResourceManager
                 Type = type,
 
                 EncryptedAesKey = encryptedAesKey,
-                AesIv = aesIv,
 
                 CreateTime = DateTimeOffset.UtcNow,
                 UpdateTime = DateTimeOffset.UtcNow,
@@ -199,7 +256,6 @@ public sealed partial class ResourceManager
                 Type = file.Type,
 
                 EncryptedAesKey = encryptedAesKey,
-                AesIv = aesIv,
 
                 AesKey = aesKey,
 

@@ -119,10 +119,13 @@
 		top: 0;
 
 		padding: 0px 16px;
+		padding-top: env(titlebar-area-height);
 		box-sizing: border-box;
 
 		color: var(--color-5);
 		background-color: var(--color-3);
+
+		-webkit-app-region: drag;
 
 		@include force-size(100%, &);
 

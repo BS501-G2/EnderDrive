@@ -1,14 +1,12 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import SearchUsers from './search-users.svelte';
-	import { useClientContext } from '$lib/client/client';
+	import { useClientContext, useServerContext } from '$lib/client/client';
 	import Button from '$lib/client/ui/button.svelte';
 	import Input from '$lib/client/ui/input.svelte';
 	import { useAppContext } from '$lib/client/contexts/app';
 
-	const {
-		functions: { getUsers }
-	} = useClientContext();
+	const {getUsers} = useServerContext();
 	const { isMobile } = useAppContext();
 	const { windowButtons }: { windowButtons: Snippet } = $props();
 
@@ -75,7 +73,6 @@
 	div.search {
 		background-color: var(--color-9);
 
-		border-radius: 8px;
 		padding: 16px;
 		box-shadow: 2px 2px 4px;
 		gap: 8px;
@@ -124,7 +121,6 @@
 
 	div.result-box {
 		// background-color: var(--color-9);
-		border-radius: 4px;
 
 		> div.header {
 			flex-direction: row;
@@ -172,6 +168,5 @@
 		@include force-size(100dvw, 100dvh);
 
 		box-sizing: border-box;
-		border-radius: 0;
 	}
 </style>

@@ -17,6 +17,8 @@ public sealed class ServerData
     public required ApiServer ApiServer;
     public required GoogleService GoogleService;
     public required ConnectionManager ConnectionManager;
+    public required MimeDetector MimeDetector;
+    public required AdminManager AdminManager;
 }
 
 public sealed class Server(
@@ -33,35 +35,43 @@ public sealed class Server(
         CancellationToken serviceCancellationToken
     )
     {
-        ResourceManager resourceManager = new(this);
         KeyManager keyGenerator = new(this);
+        ResourceManager resourceManager = new(this);
+        AdminManager adminManager = new(resourceManager);
         VirusScanner virusScanner = new(this, clamAvSocketPath);
         ApiServer apiServer = new(this, httpPort, httpsPort);
         GoogleService googleService = new(this);
         ConnectionManager connectionManager = new(this);
+        MimeDetector mimeDetector = new(this);
 
+        await StartServices([keyGenerator, resourceManager], startupCancellationToken);
+        await StartServices([adminManager], startupCancellationToken);
         await StartServices(
-            [keyGenerator, virusScanner, resourceManager, apiServer, googleService, connectionManager],
+            [virusScanner, apiServer, googleService, connectionManager, mimeDetector],
             startupCancellationToken
         );
 
         return new()
         {
-            ResourceManager = resourceManager,
             KeyGenerator = keyGenerator,
+            ResourceManager = resourceManager,
+            AdminManager = adminManager,
             VirusScanner = virusScanner,
             ApiServer = apiServer,
             GoogleService = googleService,
-            ConnectionManager = connectionManager
+            ConnectionManager = connectionManager,
+            MimeDetector = mimeDetector
         };
     }
 
-    public ResourceManager ResourceManager => GetContext().ResourceManager;
     public KeyManager KeyManager => GetContext().KeyGenerator;
+    public ResourceManager ResourceManager => GetContext().ResourceManager;
+    public AdminManager AdminManager => GetContext().AdminManager;
     public VirusScanner VirusScanner => GetContext().VirusScanner;
     public ApiServer ApiServer => GetContext().ApiServer;
     public GoogleService GoogleService => GetContext().GoogleService;
     public ConnectionManager ConnectionManager => GetContext().ConnectionManager;
+    public MimeDetector MimeDetector => GetContext().MimeDetector;
 
     public new Task Start(CancellationToken cancellationToken = default) =>
         base.Start(cancellationToken);
@@ -72,11 +82,13 @@ public sealed class Server(
 
         await await Task.WhenAny(
             WatchService(context.KeyGenerator, cancellationToken),
-            WatchService(context.VirusScanner, cancellationToken),
             WatchService(context.ResourceManager, cancellationToken),
+            WatchService(context.AdminManager, cancellationToken),
+            WatchService(context.VirusScanner, cancellationToken),
             WatchService(context.ApiServer, cancellationToken),
             WatchService(context.GoogleService, cancellationToken),
-            WatchService(context.ConnectionManager, cancellationToken)
+            WatchService(context.ConnectionManager, cancellationToken),
+            WatchService(context.MimeDetector, cancellationToken)
         );
     }
 
@@ -85,11 +97,13 @@ public sealed class Server(
         ServerData context = GetContext();
 
         await StopServices(
+            context.MimeDetector,
             context.ConnectionManager,
             context.GoogleService,
             context.ApiServer,
-            context.ResourceManager,
             context.VirusScanner,
+            context.ResourceManager,
+            context.AdminManager,
             context.KeyGenerator
         );
     }

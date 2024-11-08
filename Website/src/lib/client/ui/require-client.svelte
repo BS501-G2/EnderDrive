@@ -1,16 +1,14 @@
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
-	import { ClientStateType, useClientContext } from '../client';
+	import { ClientState, useClientContext, useServerContext } from '../client';
 	import Button from './button.svelte';
 	import LoadingSpinner from './loading-spinner.svelte';
 	import Banner from './banner.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 
-	const {
-		client,
-		functions: { getSetupRequirements }
-	} = useClientContext();
+	const { clientState } = useClientContext();
+	const { getSetupRequirements } = useServerContext();
 
 	const { children, nosetup = false }: { children: Snippet; nosetup?: boolean } = $props();
 
@@ -18,25 +16,28 @@
 		const response = await getSetupRequirements();
 
 		if (response.adminSetupRequired && !nosetup) {
-			await goto(`/setup?return=${encodeURIComponent(`${$page.url.pathname}${$page.url.search}`)}`);
+			await goto(
+				`/setup?return=${encodeURIComponent(`${$page.url.pathname}${$page.url.search}`)}`,
+				{ replaceState: true }
+			);
 		}
 	});
 </script>
 
-{#if $client.state === ClientStateType.Connected}
+{#if $clientState[0] === ClientState.Connected}
 	{@render children()}
-{:else if $client.state === ClientStateType.Connecting}
+{:else if $clientState[0] === ClientState.Connecting}
 	<div class="splash-container">
 		<div class="splash">
 			<LoadingSpinner size="3rem" />
 		</div>
 	</div>
-{:else if $client.state === ClientStateType.Failed}
+{:else if $clientState[0] === ClientState.Failed}
 	<div class="splash-container error">
 		<div class="splash">
 			<Banner type="error" icon={{ icon: 'xmark', thickness: 'solid', size: '1.5em' }}>
-				{#snippet content()}
-					<p>{$client.error ?? 'Unknown error'}</p>
+				{#snippet children()}
+					<p>{$clientState[1] ?? 'Unknown error'}</p>
 				{/snippet}
 
 				{#snippet bottom()}
@@ -45,7 +46,7 @@
 							{@render view()}
 						</div>
 					{/snippet}
-					<Button background={container} onclick={() => $client.retry()}>Retry</Button>
+					<Button background={container} onclick={() => $clientState[2]()}>Retry</Button>
 				{/snippet}
 			</Banner>
 		</div>
@@ -74,6 +75,5 @@
 		padding: 8px 16px;
 
 		border: solid 1px var(--color-1);
-		border-radius: 8px;
 	}
 </style>

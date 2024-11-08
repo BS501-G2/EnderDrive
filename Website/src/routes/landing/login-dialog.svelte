@@ -39,7 +39,6 @@
 		flex-direction: row;
 		background-color: var(--color-5);
 		box-shadow: 2px 2px 8px var(--color-10);
-		border-radius: 8px;
 
 		overflow: hidden;
 

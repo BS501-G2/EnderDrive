@@ -93,9 +93,6 @@ public sealed class KeyManager(Server server) : Service<KeyGeneratorParams>("Key
     public Task<RSA> GenerateAsymmetricKey(CancellationToken cancellationToken = default) =>
         GetContext().AsymmetricKeys.Dequeue(cancellationToken);
 
-    public Task<Aes> GenerateSymmetricKey(CancellationToken cancellationToken = default) =>
-        GetContext().SymmetricKeys.Dequeue(cancellationToken);
-
     public static byte[] SerializeAsymmetricKey(RSA key, bool includePrivate)
     {
         RSAParameters keyParameters = key.ExportParameters(includePrivate);
@@ -117,39 +114,33 @@ public sealed class KeyManager(Server server) : Service<KeyGeneratorParams>("Key
         return RSA.Create(keyParameters);
     }
 
-    public static byte[] SerializeSymmetricKey(Aes key) => [.. key.Key, .. key.IV];
-
-    public static Aes DeserializeSymmetricKey(byte[] aesKey, byte[] aesIv) =>
-        DeserializeSymmetricKey([.. aesKey, .. aesIv]);
-
-    public static Aes DeserializeSymmetricKey(byte[] bytes)
-    {
-        Aes aes = Aes.Create();
-
-        aes.KeySize = 256;
-        aes.Key = bytes[0..32];
-        aes.IV = bytes[32..48];
-
-        return aes;
-    }
-
     public static byte[] Encrypt(RSA key, byte[] input) =>
         key.Encrypt(input, RSAEncryptionPadding.OaepSHA512);
 
     public static byte[] Decrypt(RSA key, byte[] input) =>
         key.Decrypt(input, RSAEncryptionPadding.OaepSHA512);
 
-    public static byte[] Encrypt(Aes aes, byte[] input)
+    public static byte[] Encrypt(byte[] aesKey, byte[] input)
     {
-        using ICryptoTransform encryptor = aes.CreateEncryptor();
+        byte[] aesIv = RandomNumberGenerator.GetBytes(16);
 
-        return encryptor.TransformFinalBlock(input, 0, input.Length);
+        using Aes aes = Aes.Create();
+        using ICryptoTransform encryptor = aes.CreateEncryptor(aesKey, aesIv);
+
+        byte[] encrypted = encryptor.TransformFinalBlock(input, 0, input.Length);
+        byte[] output = new byte[encrypted.Length + 16];
+
+        Buffer.BlockCopy(aesIv, 0, output, 0, aesIv.Length);
+        Buffer.BlockCopy(encrypted, 0, output, aesIv.Length, encrypted.Length);
+
+        return output;
     }
 
-    public static byte[] Decrypt(Aes aes, byte[] input)
+    public static byte[] Decrypt(byte[] aesKey, byte[] input)
     {
-        using ICryptoTransform decryptor = aes.CreateDecryptor();
+        using Aes aes = Aes.Create();
+        using ICryptoTransform decryptor = aes.CreateDecryptor(aesKey, input[..16]);
 
-        return decryptor.TransformFinalBlock(input, 0, input.Length);
+        return decryptor.TransformFinalBlock(input, 16, input.Length - 16);
     }
 }

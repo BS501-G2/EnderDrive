@@ -12,12 +12,11 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 
 using Services;
 
-[Flags]
+// [Flags]
 public enum UserRole
 {
     None = 0,
-    Admin = 1 << 0,
-    NewsEditor = 1 << 1,
+    NewsEditor = 1,
 }
 
 public record class User : ResourceData
@@ -119,15 +118,6 @@ public sealed partial class ResourceManager
         byte[] rsaPublicKey = KeyManager.SerializeAsymmetricKey(rsaKey, false);
         byte[] rsaPrivateKey = KeyManager.SerializeAsymmetricKey(rsaKey, true);
 
-        UserRole role = await Query<User>(
-                transaction,
-                (query) => query.Where((user) => user.Role >= UserRole.Admin)
-            )
-            .ToAsyncEnumerable()
-            .AnyAsync(transaction.CancellationToken)
-            ? UserRole.None
-            : UserRole.Admin;
-
         User user =
             new()
             {
@@ -138,7 +128,7 @@ public sealed partial class ResourceManager
                 LastName = lastName,
                 DisplayName = displayName,
 
-                Role = role,
+                Role = UserRole.None,
 
                 RsaPublicKey = rsaPublicKey,
 
@@ -150,6 +140,15 @@ public sealed partial class ResourceManager
             };
 
         await Insert(transaction, [user]);
+
+        if (
+            !await GetAdminAccesses(transaction)
+                .ToAsyncEnumerable()
+                .AnyAsync(transaction.CancellationToken)
+        )
+        {
+            await AddAdminAccess(transaction, Server.AdminManager.AdminKey, user);
+        }
 
         return (
             user,
@@ -254,8 +253,8 @@ public sealed partial class ResourceManager
                                 )
                             )
                         )
-                        && (minRole == null || user.Role >= minRole)
-                        && (maxRole == null || user.Role <= maxRole)
+                        && (minRole == null || (user.Role >= minRole))
+                        && (maxRole == null || (user.Role <= maxRole))
                         && (username == null || user.Username == username)
                         && (id == null || user.Id == id)
                 )

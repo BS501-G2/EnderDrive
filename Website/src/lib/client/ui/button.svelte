@@ -7,13 +7,16 @@
 	};
 
 	let {
+		hint,
 		children,
 		background,
 		foreground,
 		onclick,
 		click = $bindable(),
+		buttonElement = $bindable(),
 		disabled = false
 	}: {
+		hint?: string;
 		children: Snippet;
 		background?: Snippet<[content: Snippet, error: boolean]>;
 		foreground?: Snippet<[content: Snippet, error: boolean]>;
@@ -21,13 +24,20 @@
 			event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
 		) => void | Promise<void>;
 		click?: () => void;
+		buttonElement?: HTMLButtonElement;
 		disabled?: boolean;
 	} = $props();
 
-	$effect(() => (click = clickButton));
-
 	let promise: Promise<void> | null = $state(null);
 	let error: Error | null = $state(null);
+
+	$effect(() => {
+		click = clickButton;
+	});
+
+	$effect(() => {
+		buttonElement = button;
+	});
 
 	$effect(() => {
 		if (error != null) {
@@ -41,6 +51,7 @@
 <button
 	bind:this={button}
 	class:disabled
+	title={hint}
 	{disabled}
 	onclick={(event) => {
 		try {
@@ -48,7 +59,7 @@
 				return;
 			}
 
-			error = null
+			error = null;
 			const resultPromise = onclick(event);
 
 			if (resultPromise instanceof Promise) {
@@ -99,10 +110,12 @@
 <style lang="scss">
 	button {
 		display: flex;
+		flex-direction: column;
+		align-items: stretch;
 
 		border: none;
 		cursor: pointer;
-		border-radius: 8px;
+		// border-radius: 8px;
 		padding: 0;
 
 		overflow: hidden;
@@ -115,6 +128,9 @@
 
 		div.background {
 			transition-property: background-color, color;
+
+			align-items: center;
+			justify-content: center;
 
 			flex-grow: 1;
 			height: 100%;

@@ -9,7 +9,6 @@ using Newtonsoft.Json;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
-
 public record class FileSnapshot : ResourceData
 {
     [JsonProperty("createTime")]
@@ -57,7 +56,6 @@ public sealed partial class ResourceManager
                 BaseFileSnapshotId = baseFileSnapshot?.Id,
 
                 CreateTime = DateTimeOffset.UtcNow
-
             };
 
         await Insert(transaction, [fileSnapshot]);
@@ -116,6 +114,23 @@ public sealed partial class ResourceManager
 
         return newSize;
     }
+
+    public IQueryable<FileSnapshot> GetFileSnapshots(
+        ResourceTransaction transaction,
+        File file,
+        FileContent fileContent,
+        ObjectId? snapshotId = null
+    ) =>
+        Query<FileSnapshot>(
+            transaction,
+            (query) =>
+                query.Where(
+                    (item) =>
+                        (file.Id == item.FileId)
+                        && (fileContent.Id == item.FileContentId)
+                        && (snapshotId == null || item.Id == snapshotId)
+                )
+        );
 
     public ValueTask<FileSnapshot?> GetLatestFileSnapshot(
         ResourceTransaction transaction,

@@ -1,13 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { useClientContext } from '../client';
-	import type { UserResource } from '../client-server-side-request';
+	import {  useServerContext, type UserResource } from '../client';
 	import LoadingSpinner from '../ui/loading-spinner.svelte';
 
 	const { userId }: { userId: string } = $props();
-	const {
-		functions: { getUser }
-	} = useClientContext();
+	const { getUser } = useServerContext();
 
 	let state:
 		| { state: 'exists'; user: UserResource }

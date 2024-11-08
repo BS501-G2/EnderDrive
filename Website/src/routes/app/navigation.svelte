@@ -59,7 +59,6 @@
 		text-align: start;
 
 		border: none;
-		border-radius: 8px;
 
 		cursor: pointer;
 

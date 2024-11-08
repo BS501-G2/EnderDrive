@@ -1,5 +1,6 @@
 import { getContext, setContext, type Snippet } from 'svelte';
-import { writable, type Writable } from 'svelte/store';
+import { get, writable, type Writable } from 'svelte/store';
+import type { IconOptions } from '../ui/icon.svelte';
 
 const contextName = `${Date.now()}`;
 
@@ -8,7 +9,15 @@ export function useDashboardContext() {
 }
 
 export function createDashboardContext() {
-	const mobileButtons: Writable<{ id: number; snippet: Snippet }[]> = writable([]);
+	const mobileAppButtons: Writable<
+		{
+			id: number;
+			snippet: Snippet<[ondismiss: () => void]>;
+			onclick: (event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) => void;
+			show: boolean;
+			icon: IconOptions;
+		}[]
+	> = writable([]);
 	const mobileTopLeft: Writable<{ id: number; snippet: Snippet }[]> = writable([]);
 	const mobileTopRight: Writable<{ id: number; snippet: Snippet }[]> = writable([]);
 	const mobileBottom: Writable<{ id: number; snippet: Snippet }[]> = writable([]);
@@ -19,12 +28,20 @@ export function createDashboardContext() {
 	const desktopTopMiddle: Writable<{ id: number; snippet: Snippet }[]> = writable([]);
 	const desktopTopRight: Writable<{ id: number; snippet: Snippet }[]> = writable([]);
 
-	const context = setContext(contextName, {
-		pushMobileButton: (snippet: Snippet) => {
-			const id = Math.random();
-			mobileButtons.update((value) => [...value, { id, snippet }]);
+	const showNotifications = writable<boolean>(false);
+	const refresh = writable<(() => void) | null>(null);
 
-			return () => mobileButtons.update((value) => value.filter((value) => value.id !== id));
+	const context = setContext(contextName, {
+		pushMobileAppButton: (
+			snippet: Snippet<[ondismiss: () => void]>,
+			show: boolean,
+			icon: IconOptions,
+			onclick: (event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) => void
+		) => {
+			const id = Math.random();
+			mobileAppButtons.update((value) => [...value, { id, snippet, show, icon, onclick }]);
+
+			return () => mobileAppButtons.update((value) => value.filter((value) => value.id !== id));
 		},
 
 		pushMobileTopLeft: (snippet: Snippet) => {
@@ -74,11 +91,30 @@ export function createDashboardContext() {
 			desktopTopRight.update((value) => [...value, { id, snippet }]);
 
 			return () => desktopTopRight.update((value) => value.filter((value) => value.id !== id));
+		},
+
+		showNotifications,
+
+		pushRefresh: (callback: () => void) => {
+			if (get(refresh) != null) {
+				throw new Error('Refresh callback is already registered');
+			}
+
+			refresh.set(callback);
+
+			return () =>
+				refresh.update((value) => {
+					if (value != callback) {
+						return value;
+					}
+
+					return null;
+				});
 		}
 	});
 
 	return {
-		mobileButtons,
+		mobileAppButtons,
 		mobileTopLeft,
 		mobileTopRight,
 		mobileBottom,

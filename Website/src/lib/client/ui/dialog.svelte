@@ -38,7 +38,6 @@
 		box-shadow: 2px 2px 8px black;
 		background-color: white;
 
-		border-radius: 8px;
 		padding: 16px;
 		gap: 16px;
 

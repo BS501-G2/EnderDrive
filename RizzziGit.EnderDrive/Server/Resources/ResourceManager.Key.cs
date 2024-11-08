@@ -69,9 +69,7 @@ public sealed partial class ResourceManager
         User user
     )
     {
-        using Aes aes = await KeyManager.GenerateSymmetricKey(transactionParams.CancellationToken);
-
-        byte[] aesKey = KeyManager.SerializeSymmetricKey(aes);
+        byte[] aesKey = RandomNumberGenerator.GetBytes(32);
         byte[] encryptedAesKey = KeyManager.Encrypt(user, aesKey);
 
         KeyAccess keyAccess =
@@ -105,8 +103,8 @@ public sealed partial class ResourceManager
         User user
     )
     {
-        using Aes aes = KeyManager.DeserializeSymmetricKey(sourceKeyAccess.AesKey);
-        byte[] encryptedAesKey = KeyManager.Encrypt(user, sourceKeyAccess.AesKey);
+        byte[] aesKey = sourceKeyAccess.AesKey;
+        byte[] encryptedAesKey = KeyManager.Encrypt(user, aesKey);
 
         KeyAccess keyAccess =
             new()
@@ -127,8 +125,7 @@ public sealed partial class ResourceManager
             KeyId = key.Id,
             UserId = user.Id,
             EncryptedAesKey = encryptedAesKey,
-
-            AesKey = aes.Key,
+            AesKey = aesKey
         };
     }
 

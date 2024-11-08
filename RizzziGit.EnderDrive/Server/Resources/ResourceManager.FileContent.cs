@@ -73,7 +73,8 @@ public sealed partial class ResourceManager
     public IQueryable<FileContent> GetFileContents(
         ResourceTransaction transaction,
         File file,
-        string? name = null
+        string? name = null,
+        ObjectId? id = null
     ) =>
         Query<FileContent>(
             transaction,
@@ -88,6 +89,7 @@ public sealed partial class ResourceManager
                                 System.StringComparison.CurrentCultureIgnoreCase
                             )
                         )
+                        && (id == null || item.Id == id)
                 )
         );
 }

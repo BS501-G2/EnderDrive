@@ -1,4 +1,8 @@
 <script lang="ts">
-	import { useNavigationContext } from '$lib/client/contexts/navigation';
-	import { onMount } from 'svelte';
+	import { FileBrowserResolveType } from "$lib/client/contexts/file-browser";
+	import { writable } from "svelte/store";
+	import FileBrowser from "../file-browser.svelte";
+
 </script>
+
+<FileBrowser resolve={writable([FileBrowserResolveType.Trash])} />

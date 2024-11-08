@@ -63,11 +63,18 @@ public sealed partial class Connection
         registerHandler(ServerSideRequestCode.GetUser, GetUser);
         registerHandler(ServerSideRequestCode.GetUsers, GetUsers);
         registerHandler(ServerSideRequestCode.GetFile, GetFile);
-        registerHandler(ServerSideRequestCode.GetFiles, ScanFolder);
+        registerHandler(ServerSideRequestCode.GetFiles, GetFiles);
         registerHandler(ServerSideRequestCode.GetFileAccesses, GetFileAccesses);
         registerHandler(ServerSideRequestCode.GetFileStars, GetFileStars);
         registerHandler(ServerSideRequestCode.GetFilePath, GetFilePath);
         registerHandler(ServerSideRequestCode.UploadFile, UploadFile);
+        registerHandler(ServerSideRequestCode.CreateFolder, CreateFolder);
+        registerHandler(ServerSideRequestCode.GetFileMime, GetFileMime);
+        registerHandler(ServerSideRequestCode.GetFileContents, GetFileContents);
+        registerHandler(ServerSideRequestCode.GetFileSnapshots, GetFileSnapshots);
+        registerHandler(ServerSideRequestCode.AmIAdmin, AmIAdmin);
+        registerHandler(ServerSideRequestCode.ReadFile, ReadFile);
+        registerHandler(ServerSideRequestCode.UpdateFile, UpdateFile);
     }
 
     private UnlockedUserAuthentication Internal_EnsureAuthentication()
@@ -114,7 +121,7 @@ public sealed partial class Connection
                     .GetFiles(transaction, id: objectId)
                     .ToAsyncEnumerable()
                     .FirstOrDefaultAsync(transaction.CancellationToken)
-                : await Resources.GetUserRootFile(transaction, me)
+                : await Resources.GetRootFolder(transaction, me)
         );
     }
 
@@ -141,7 +148,7 @@ public sealed partial class Connection
             new()
             {
                 AdminSetupRequired = !await Resources
-                    .GetUsers(transaction, minRole: UserRole.Admin, maxRole: UserRole.Admin)
+                    .GetAdminAccesses(transaction)
                     .ToAsyncEnumerable()
                     .AnyAsync(transaction.CancellationToken)
             };
@@ -177,7 +184,7 @@ public sealed partial class Connection
         {
             if (
                 await Resources
-                    .GetUsers(transaction, minRole: UserRole.Admin, maxRole: UserRole.Admin)
+                    .GetAdminAccesses(transaction)
                     .ToAsyncEnumerable()
                     .AnyAsync(transaction.CancellationToken)
             )
@@ -589,7 +596,7 @@ public sealed partial class Connection
         public required string[] Files;
     }
 
-    private RequestHandler<GetFilesRequest, GetFilesResponse> ScanFolder =>
+    private RequestHandler<GetFilesRequest, GetFilesResponse> GetFiles =>
         async (transaction, request) =>
         {
             UnlockedUserAuthentication userAuthentication = Internal_EnsureAuthentication();
@@ -610,6 +617,22 @@ public sealed partial class Connection
                         .ToAsyncEnumerable()
                         .FirstOrDefaultAsync(transaction.CancellationToken)
                     : null;
+
+            if (
+                ownerUser == null
+                || (
+                    ownerUser.Id != me.Id
+                    && !await Resources
+                        .GetAdminAccesses(transaction, userId: me.Id)
+                        .ToAsyncEnumerable()
+                        .AnyAsync(transaction.CancellationToken)
+                )
+            )
+            {
+                throw new InvalidOperationException(
+                    "Owner user is not required is required for non-admin users"
+                );
+            }
 
             File[] files = await Resources
                 .GetFiles(
@@ -635,9 +658,6 @@ public sealed partial class Connection
     {
         [BsonElement("targetUserId")]
         public required ObjectId? TargetUserId;
-
-        [BsonElement("targetGroupId")]
-        public required ObjectId? TargetGroupId;
 
         [BsonElement("targetFileId")]
         public required ObjectId? TargetFileId;
@@ -672,6 +692,23 @@ public sealed partial class Connection
             if (request.TargetFileId != null)
             {
                 targetFile = await Internal_GetFile(transaction, me, request.TargetFileId);
+                FileAccessResult? result = await Resources.FindFileAccess(
+                    transaction,
+                    targetFile,
+                    me,
+                    FileAccessLevel.Manage
+                );
+
+                if (
+                    result == null
+                    && !await Resources
+                        .GetAdminAccesses(transaction, userId: me.Id)
+                        .ToAsyncEnumerable()
+                        .AnyAsync(transaction.CancellationToken)
+                )
+                {
+                    throw new InvalidOperationException("No access to this file");
+                }
             }
 
             if (request.TargetUserId != null)
@@ -679,23 +716,16 @@ public sealed partial class Connection
                 if (
                     targetFile == null
                     && request.TargetUserId != me.Id
-                    && me.Role.HasFlag(UserRole.Admin)
+                    && !await Resources
+                        .GetAdminAccesses(transaction, userId: me.Id)
+                        .ToAsyncEnumerable()
+                        .AnyAsync(transaction.CancellationToken)
                 )
                 {
                     throw new InvalidOperationException(
                         "Target file must be set if the target user id is not yourself."
                     );
                 }
-
-                FileAccessResult? result =
-                    targetFile != null
-                        ? await Resources.FindFileAccess(
-                            transaction,
-                            targetFile,
-                            me,
-                            FileAccessLevel.Manage
-                        ) ?? throw new InvalidOperationException("User has no access to file.")
-                        : null;
 
                 targetUser = Internal_EnsureExists(
                     await Resources
@@ -704,26 +734,23 @@ public sealed partial class Connection
                         .FirstOrDefaultAsync(transaction.CancellationToken)
                 );
             }
-            else if (request.TargetGroupId != null)
+
+            if (request.AuthorUserId != null)
             {
-                if (targetFile == null)
+                if (
+                    targetUser == null
+                    && !await Resources
+                        .GetAdminAccesses(transaction, userId: me.Id)
+                        .ToAsyncEnumerable()
+                        .AnyAsync(transaction.CancellationToken)
+                )
                 {
-                    throw new InvalidOperationException("Target file must be set.");
+                    throw new InvalidOperationException("Target user must be set if not an admin.");
                 }
 
-                FileAccessResult? result =
-                    targetFile != null
-                        ? await Resources.FindFileAccess(
-                            transaction,
-                            targetFile,
-                            me,
-                            FileAccessLevel.Manage
-                        ) ?? throw new InvalidOperationException("User has no access to file.")
-                        : null;
-
-                targetGroup = Internal_EnsureExists(
+                authorUser = Internal_EnsureExists(
                     await Resources
-                        .GetGroups(transaction, id: request.TargetGroupId)
+                        .GetUsers(transaction, id: request.AuthorUserId)
                         .ToAsyncEnumerable()
                         .FirstOrDefaultAsync(transaction.CancellationToken)
                 );
@@ -732,7 +759,7 @@ public sealed partial class Connection
             FileAccess[] fileAccesses = await Resources
                 .GetFileAccesses(
                     transaction,
-                    targetUser: targetUser,
+                    targetUser,
                     targetGroup,
                     targetFile,
                     authorUser,
@@ -740,6 +767,24 @@ public sealed partial class Connection
                 )
                 .ApplyPagination(request.Pagination)
                 .ToAsyncEnumerable()
+                .WhereAwait(
+                    async (fileAccess) =>
+                    {
+                        File file = await Resources
+                            .GetFiles(transaction, id: fileAccess.FileId)
+                            .ToAsyncEnumerable()
+                            .FirstAsync(transaction.CancellationToken);
+
+                        FileAccessResult? fileAccessResult = await Resources.FindFileAccess(
+                            transaction,
+                            file,
+                            me,
+                            FileAccessLevel.Read
+                        );
+
+                        return fileAccessResult != null;
+                    }
+                )
                 .ToArrayAsync(transaction.CancellationToken);
 
             return new()
@@ -779,7 +824,13 @@ public sealed partial class Connection
 
             if (request.UserId != null)
             {
-                if (request.UserId != me.Id && me.Role < UserRole.Admin)
+                if (
+                    request.UserId != me.Id
+                    && !await Resources
+                        .GetAdminAccesses(transaction, userId: me.Id)
+                        .ToAsyncEnumerable()
+                        .AnyAsync(transaction.CancellationToken)
+                )
                 {
                     throw new InvalidOperationException(
                         "Insufficient permissions to get other user's starred files."
@@ -806,6 +857,24 @@ public sealed partial class Connection
                 .GetFileStars(transaction, file, user)
                 .ApplyPagination(request.Pagination)
                 .ToAsyncEnumerable()
+                .WhereAwait(
+                    async (fileStar) =>
+                    {
+                        File file = await Resources
+                            .GetFiles(transaction, id: fileStar.FileId)
+                            .ToAsyncEnumerable()
+                            .FirstAsync(transaction.CancellationToken);
+
+                        FileAccessResult? fileAccessResult = await Resources.FindFileAccess(
+                            transaction,
+                            file,
+                            me,
+                            FileAccessLevel.Read
+                        );
+
+                        return fileAccessResult != null;
+                    }
+                )
                 .ToArrayAsync(transaction.CancellationToken);
 
             return new()
@@ -847,9 +916,9 @@ public sealed partial class Connection
             File rootFile =
                 result.FileAccess != null
                     ? result.File
-                    : await Resources.GetUserRootFile(transaction, me);
+                    : await Resources.GetRootFolder(transaction, me);
 
-            List<File> path = [currentFile];
+            List<File> path = [];
             do
             {
                 currentFile = await Internal_GetFile(transaction, me, currentFile.ParentId);
@@ -874,7 +943,11 @@ public sealed partial class Connection
         public required byte[] Content;
     }
 
-    private sealed partial class UploadFileResponse { };
+    private sealed partial class UploadFileResponse
+    {
+        [BsonElement("file")]
+        public required string File;
+    };
 
     private RequestHandler<UploadFileRequest, UploadFileResponse> UploadFile =>
         async (transaction, request) =>
@@ -893,10 +966,14 @@ public sealed partial class Connection
                     FileAccessLevel.ReadWrite
                 ) ?? throw new InvalidOperationException("Insufficient permissions.");
 
+            UnlockedFile unlockedParentFolder = parentFolder.WithAesKey(
+                fileAccessResult.Unlock(userAuthentication)
+            );
+
             UnlockedFile file = await Resources.CreateFile(
                 transaction,
                 me,
-                parentFolder,
+                unlockedParentFolder,
                 FileType.File,
                 request.Name
             );
@@ -922,7 +999,371 @@ public sealed partial class Connection
                 request.Content
             );
 
+            return new() { File = JToken.FromObject(file.Original).ToString(), };
+        };
+
+    private sealed class CreateFolderRequest
+    {
+        [BsonElement("parentFileId")]
+        public required ObjectId ParentFileId;
+
+        [BsonElement("name")]
+        public required string Name;
+    }
+
+    private sealed class CreateFolderResponse
+    {
+        [BsonElement("file")]
+        public required string File;
+    }
+
+    private RequestHandler<CreateFolderRequest, CreateFolderResponse> CreateFolder =>
+        async (transaction, request) =>
+        {
+            ConnectionContext context = GetContext();
+
+            UnlockedUserAuthentication userAuthentication = Internal_EnsureAuthentication();
+            User me = await Internal_Me(transaction, userAuthentication);
+
+            File parentFolder = await Internal_GetFile(transaction, me, request.ParentFileId);
+            FileAccessResult fileAccessResult =
+                await Resources.FindFileAccess(
+                    transaction,
+                    parentFolder,
+                    me,
+                    FileAccessLevel.ReadWrite
+                ) ?? throw new InvalidOperationException("Insufficient permissions.");
+
+            UnlockedFile unlockedParentFolder = parentFolder.WithAesKey(
+                fileAccessResult.Unlock(userAuthentication)
+            );
+
+            UnlockedFile file = await Resources.CreateFile(
+                transaction,
+                me,
+                unlockedParentFolder,
+                FileType.Folder,
+                request.Name
+            );
+
+            return new() { File = JToken.FromObject(file.Original).ToString(), };
+        };
+
+    private sealed class GetFileMimeRequest
+    {
+        [BsonElement("fileId")]
+        public required ObjectId FileId;
+    }
+
+    private sealed class GetFileMimeResponse
+    {
+        [BsonElement("fileMimeType")]
+        public required string FileMimeType;
+    }
+
+    private RequestHandler<GetFileMimeRequest, GetFileMimeResponse> GetFileMime =>
+        async (transaction, request) =>
+        {
+            ConnectionContext context = GetContext();
+
+            UnlockedUserAuthentication userAuthentication = Internal_EnsureAuthentication();
+            User me = await Internal_Me(transaction, userAuthentication);
+
+            File file = await Internal_GetFile(transaction, me, request.FileId);
+            FileAccessResult fileAccessResult =
+                await Resources.FindFileAccess(transaction, file, me, FileAccessLevel.ReadWrite)
+                ?? throw new InvalidOperationException("Insufficient permissions.");
+
+            UnlockedFile unlockedFile = file.WithAesKey(
+                fileAccessResult.Unlock(userAuthentication)
+            );
+
+            FileContent fileContent = await Resources.GetMainFileContent(transaction, file);
+            FileSnapshot fileSnapshot =
+                await Resources.GetLatestFileSnapshot(transaction, file, fileContent)
+                ?? await Resources.CreateFileSnapshot(
+                    transaction,
+                    unlockedFile,
+                    fileContent,
+                    userAuthentication,
+                    null
+                );
+
+            System.IO.Stream stream = await Resources.CreateReadStream(
+                transaction,
+                unlockedFile,
+                fileContent,
+                fileSnapshot
+            );
+
+            MimeDetective.Storage.Definition? definition = await Server.MimeDetector.Inspect(
+                stream,
+                transaction.CancellationToken
+            );
+
+            return new() { FileMimeType = definition?.File.MimeType ?? "application/octet-stream" };
+        };
+
+    private sealed class GetFileContentsRequest
+    {
+        [BsonElement("fileId")]
+        public required ObjectId FileId;
+
+        [BsonElement("pagination")]
+        public required PaginationOptions? Pagination;
+    }
+
+    private sealed class GetFileContentsResponse
+    {
+        [BsonElement("fileContents")]
+        public required string[] FileContents;
+    }
+
+    private RequestHandler<GetFileContentsRequest, GetFileContentsResponse> GetFileContents =>
+        async (transaction, request) =>
+        {
+            ConnectionContext context = GetContext();
+
+            UnlockedUserAuthentication userAuthentication = Internal_EnsureAuthentication();
+            User me = await Internal_Me(transaction, userAuthentication);
+
+            File file = await Internal_GetFile(transaction, me, request.FileId);
+            FileAccessResult fileAccessResult =
+                await Resources.FindFileAccess(transaction, file, me, FileAccessLevel.ReadWrite)
+                ?? throw new InvalidOperationException("Insufficient permissions.");
+
+            FileContent[] fileContents = await Resources
+                .GetFileContents(transaction, file)
+                .ApplyPagination(request.Pagination)
+                .ToAsyncEnumerable()
+                .ToArrayAsync(transaction.CancellationToken);
+
+            return new()
+            {
+                FileContents = fileContents
+                    .Select((fileContent) => JToken.FromObject(fileContent).ToString())
+                    .ToArray()
+            };
+        };
+
+    private sealed class GetFileSnapshotsRequest
+    {
+        [BsonElement("fileId")]
+        public required ObjectId FileId;
+
+        [BsonElement("fileContentId")]
+        public required ObjectId FileContentId;
+
+        [BsonElement("pagination")]
+        public required PaginationOptions? Pagination;
+    }
+
+    private sealed class GetFileSnapshotsResponse
+    {
+        [BsonElement("fileSnapshots")]
+        public required string[] FileSnapshots;
+    }
+
+    private RequestHandler<GetFileSnapshotsRequest, GetFileSnapshotsResponse> GetFileSnapshots =>
+        async (transaction, request) =>
+        {
+            ConnectionContext context = GetContext();
+
+            UnlockedUserAuthentication userAuthentication = Internal_EnsureAuthentication();
+            User me = await Internal_Me(transaction, userAuthentication);
+
+            File file = await Internal_GetFile(transaction, me, request.FileId);
+            FileAccessResult fileAccessResult =
+                await Resources.FindFileAccess(transaction, file, me, FileAccessLevel.ReadWrite)
+                ?? throw new InvalidOperationException("Insufficient permissions.");
+
+            FileContent fileContent =
+                await Resources
+                    .GetFileContents(transaction, file, id: request.FileContentId)
+                    .ToAsyncEnumerable()
+                    .FirstOrDefaultAsync(transaction.CancellationToken)
+                ?? throw new InvalidOperationException("Invalid file content id.");
+
+            FileSnapshot[] fileSnapshots = await Resources
+                .GetFileSnapshots(transaction, file, fileContent)
+                .ApplyPagination(request.Pagination)
+                .ToAsyncEnumerable()
+                .ToArrayAsync(transaction.CancellationToken);
+
+            return new()
+            {
+                FileSnapshots =
+                [
+                    .. fileSnapshots.Select(
+                        (fileSnapshot) => JToken.FromObject(fileSnapshot).ToString()
+                    )
+                ]
+            };
+        };
+
+    private sealed class ReadFileRequest
+    {
+        [BsonElement("fileId")]
+        public required ObjectId FileId;
+
+        [BsonElement("fileContentId")]
+        public required ObjectId? FileContentId;
+
+        [BsonElement("fileSnapshotId")]
+        public required ObjectId? FileSnapshotId;
+
+        [BsonElement("position")]
+        public required long Position;
+
+        [BsonElement("length")]
+        public required long Length;
+    }
+
+    private sealed class ReadFileResponse
+    {
+        [BsonElement("fileData")]
+        public required byte[] FileData;
+    }
+
+    private RequestHandler<ReadFileRequest, ReadFileResponse> ReadFile =>
+        async (transaction, request) =>
+        {
+            ConnectionContext context = GetContext();
+
+            UnlockedUserAuthentication userAuthentication = Internal_EnsureAuthentication();
+            User me = await Internal_Me(transaction, userAuthentication);
+
+            File file = await Internal_GetFile(transaction, me, request.FileId);
+            FileAccessResult fileAccessResult =
+                await Resources.FindFileAccess(transaction, file, me, FileAccessLevel.ReadWrite)
+                ?? throw new InvalidOperationException("Insufficient permissions.");
+
+            UnlockedFile unlockedFile = file.WithAesKey(
+                fileAccessResult.Unlock(userAuthentication)
+            );
+
+            FileContent fileContent =
+                await Resources
+                    .GetFileContents(transaction, file, id: request.FileContentId)
+                    .ToAsyncEnumerable()
+                    .FirstOrDefaultAsync(transaction.CancellationToken)
+                ?? (
+                    request.FileContentId != null
+                        ? throw new InvalidOperationException("Invalid file content id.")
+                        : await Resources.GetMainFileContent(transaction, file)
+                );
+
+            FileSnapshot fileSnapshot =
+                await Resources
+                    .GetFileSnapshots(transaction, file, fileContent, request.FileSnapshotId)
+                    .ToAsyncEnumerable()
+                    .FirstOrDefaultAsync(transaction.CancellationToken)
+                ?? (
+                    request.FileSnapshotId != null
+                        ? throw new InvalidOperationException()
+                        : await Resources.GetLatestFileSnapshot(transaction, file, fileContent)
+                            ?? throw new InvalidOperationException("No file content found.")
+                );
+
+            return new()
+            {
+                FileData =
+                [
+                    .. await Resources.ReadFile(
+                        transaction,
+                        unlockedFile,
+                        fileContent,
+                        fileSnapshot,
+                        request.Position,
+                        request.Length
+                    )
+                ]
+            };
+        };
+
+    private sealed class UpdateFileRequest
+    {
+        [BsonElement("fileId")]
+        public required ObjectId FileId;
+
+        [BsonElement("fileSnapshotId")]
+        public required ObjectId? FileSnapshotId;
+
+        [BsonElement("position")]
+        public required long Position;
+
+        [BsonElement("content")]
+        public required byte[] Content;
+    }
+
+    private sealed class UpdateFileResponse { }
+
+    private RequestHandler<UpdateFileRequest, UpdateFileResponse> UpdateFile =>
+        async (transaction, request) =>
+        {
+            ConnectionContext context = GetContext();
+
+            UnlockedUserAuthentication userAuthentication = Internal_EnsureAuthentication();
+            User me = await Internal_Me(transaction, userAuthentication);
+
+            File file = await Internal_GetFile(transaction, me, request.FileId);
+            FileAccessResult fileAccessResult =
+                await Resources.FindFileAccess(transaction, file, me, FileAccessLevel.ReadWrite)
+                ?? throw new InvalidOperationException("Insufficient permissions.");
+
+            UnlockedFile unlockedFile = file.WithAesKey(
+                fileAccessResult.Unlock(userAuthentication)
+            );
+
+            FileContent fileContent = await Resources.GetMainFileContent(transaction, file);
+
+            FileSnapshot fileSnapshot =
+                await Resources
+                    .GetFileSnapshots(transaction, file, fileContent, request.FileSnapshotId)
+                    .ToAsyncEnumerable()
+                    .FirstOrDefaultAsync(transaction.CancellationToken)
+                ?? (
+                    request.FileSnapshotId != null
+                        ? throw new InvalidOperationException()
+                        : await Resources.GetLatestFileSnapshot(transaction, file, fileContent)
+                            ?? throw new InvalidOperationException("No file content found.")
+                );
+
+            await Resources.WriteFile(
+                transaction,
+                unlockedFile,
+                fileContent,
+                fileSnapshot,
+                userAuthentication,
+                request.Position,
+                request.Content
+            );
+
             return new() { };
+        };
+
+    private sealed record class AmIAdminRequest { }
+
+    private sealed record class AmIAdminResponse
+    {
+        public required bool AmIAdmin;
+    }
+
+    private RequestHandler<AmIAdminRequest, AmIAdminResponse> AmIAdmin =>
+        async (transaction, request) =>
+        {
+            ConnectionContext context = GetContext();
+
+            UnlockedUserAuthentication userAuthentication = Internal_EnsureAuthentication();
+            User me = await Internal_Me(transaction, userAuthentication);
+
+            return new()
+            {
+                AmIAdmin = await Resources
+                    .GetAdminAccesses(transaction, me.Id)
+                    .ToAsyncEnumerable()
+                    .AnyAsync(transaction.CancellationToken)
+            };
         };
 }
 
@@ -952,5 +1393,13 @@ public enum ServerSideRequestCode : byte
     GetFileStars,
     GetFilePath,
 
-    UploadFile
+    UploadFile,
+    CreateFolder,
+    GetFileMime,
+    GetFileContents,
+    GetFileSnapshots,
+    ReadFile,
+    UpdateFile,
+
+    AmIAdmin
 }

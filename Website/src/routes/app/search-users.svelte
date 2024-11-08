@@ -1,14 +1,11 @@
 <script lang="ts">
-	import { useClientContext } from '$lib/client/client';
-	import { type UserResource } from '$lib/client/client-server-side-request';
+	import {  useServerContext, type UserResource } from '$lib/client/client';
 	import Button from '$lib/client/ui/button.svelte';
 	import Icon from '$lib/client/ui/icon.svelte';
 	import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte';
 	import type { Snippet } from 'svelte';
 
-	const {
-		functions: { getUsers }
-	} = useClientContext();
+	const { getUsers } = useServerContext();
 
 	const {
 		searchString,

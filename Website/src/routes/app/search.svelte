@@ -5,31 +5,22 @@
 	import { onMount, type Snippet } from 'svelte';
 	import SearchOverlay from './search-overlay.svelte';
 	import Button from '$lib/client/ui/button.svelte';
+	import AppButton from './app-button.svelte';
+	import { loremIpsum } from 'lorem-ipsum';
 
-	const { pushDesktopTopMiddle, pushMobileTopRight } = useDashboardContext();
+	const { pushDesktopTopMiddle } = useDashboardContext();
 
 	let searchOverlay: boolean = $state(false);
 
 	onMount(() => pushDesktopTopMiddle(desktopContent));
-	onMount(() => pushMobileTopRight(searchButton));
 </script>
 
-{#snippet searchButton()}
-	{#snippet buttonForeground(view: Snippet)}
-		<div class="button-foreground">
-			{@render view()}
-		</div>
-	{/snippet}
-
-	<Button
-		onclick={() => {
-			searchOverlay = true;
-		}}
-		foreground={buttonForeground}
-	>
-		<Icon icon="magnifying-glass" thickness="solid" size="1em" />
-	</Button>
-{/snippet}
+<AppButton
+	label="Search"
+	onclick={() => (searchOverlay = true)}
+	icon={{ icon: 'magnifying-glass', thickness: 'solid' }}
+	show
+/>
 
 {#snippet desktopContent()}
 	<button
@@ -73,7 +64,6 @@
 		box-sizing: border-box;
 
 		border: none;
-		border-radius: 8px;
 		outline: solid 1px var(--color-1);
 
 		background-color: var(--color-9);
@@ -97,10 +87,5 @@
 
 	button.search:hover {
 		box-shadow: 1px 1px 4px;
-	}
-
-	div.button-foreground {
-		padding: 8px;
-		margin: 8px;
 	}
 </style>

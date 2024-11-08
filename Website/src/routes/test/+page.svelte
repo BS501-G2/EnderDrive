@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { ClientStateType, useClientContext } from '$lib/client/client';
+	import { useClientContext, useServerContext } from '$lib/client/client';
 	import Button from '$lib/client/ui/button.svelte';
 	import RequireClient from '$lib/client/ui/require-client.svelte';
 	import { onMount, type Snippet } from 'svelte';
@@ -39,10 +39,8 @@
 	const adminUsername = 'testuser';
 	const adminPassword = 'TestUser123;';
 
-	const {
-		client,
-		functions: { getSetupRequirements, createAdmin, resolveUsername, authenticatePassword }
-	} = useClientContext();
+	const { getSetupRequirements, createAdmin, resolveUsername, authenticatePassword } =
+		useServerContext();
 
 	onMount(() => pushAction('Get Setup Requirements', () => getSetupRequirements()));
 
@@ -120,7 +118,6 @@
 		padding: 16px;
 		margin: 16px;
 		gap: 16px;
-		border-radius: 16px;
 
 		> div.separator {
 			background-color: var(--color-1);

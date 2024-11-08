@@ -40,14 +40,14 @@
 		focus = $bindable(),
 		focused = $bindable(true),
 		error,
-		onSubmit,
+		onsubmit: onSubmit,
 		...options
 	}: InputOptions<T> & {
 		id: string;
 		focus?: () => void;
 		focused?: boolean;
 		error?: Error;
-		onSubmit?: (event: Event) => void;
+		onsubmit?: (event: Event) => void;
 	} = $props();
 
 	// const icon = options.icon ?? 'fa-regular fa-pen-to-square';
@@ -128,7 +128,6 @@
 
 		padding: 4px 8px;
 		gap: 8px;
-		border-radius: 4px;
 
 		> div.field {
 			min-width: 0px;

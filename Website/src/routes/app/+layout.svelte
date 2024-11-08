@@ -14,9 +14,11 @@
 	import NavigationHost from './navigation-host.svelte';
 	import Navigation from './navigation.svelte';
 	import { derived } from 'svelte/store';
+	import AppButtonHost from './app-button-host.svelte';
+	import NotificationButtonDesktop from './notification-button-desktop.svelte';
 
 	const {
-		mobileButtons,
+		mobileAppButtons,
 		mobileTopLeft,
 		mobileTopRight,
 		mobileBottom,
@@ -34,7 +36,9 @@
 	onMount(() =>
 		authentication.subscribe(async (authentication) => {
 			if (authentication == null) {
-				await goto(`/landing?login&return=${encodeURIComponent($page.url.pathname)}`);
+				await goto(`/landing?login&return=${encodeURIComponent($page.url.pathname)}`, {
+					replaceState: true
+				});
 			}
 		})
 	);
@@ -136,6 +140,8 @@
 {/if}
 
 <Search />
+<AppButtonHost {mobileAppButtons} />
+<NotificationButtonDesktop />
 
 <style lang="scss">
 	@use '../../global.scss' as *;
@@ -163,9 +169,11 @@
 
 			@include force-size(env(titlebar-area-width), &);
 			min-height: 48px;
+			gap: 8px;
+			padding: 0 8px;
 
 			> div.nav {
-				margin: 8px;
+				margin: 8px 0;
 				gap: 8px;
 				-webkit-app-region: no-drag;
 				line-height: 1em;
@@ -188,6 +196,12 @@
 
 				gap: 8px;
 				padding: 8px;
+			}
+
+			> div.left,
+			> div.right,
+			> div.center {
+				gap: 8px;
 			}
 
 			> div.left {

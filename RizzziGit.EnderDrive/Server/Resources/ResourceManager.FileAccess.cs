@@ -48,9 +48,6 @@ public record class FileAccess : ResourceData
     [JsonIgnore]
     public required byte[] EncryptedAesKey;
 
-    [JsonIgnore]
-    public required byte[] AesIv;
-
     [JsonProperty("level")]
     public required FileAccessLevel Level;
 
@@ -67,7 +64,6 @@ public record class FileAccess : ResourceData
             TargetEntity = TargetEntity,
 
             EncryptedAesKey = EncryptedAesKey,
-            AesIv = AesIv,
 
             AesKey =
                 TargetEntity != null
@@ -81,8 +77,7 @@ public record class FileAccess : ResourceData
 
 public record class UnlockedFileAccess : FileAccess
 {
-    public static implicit operator Aes(UnlockedFileAccess file) =>
-        KeyManager.DeserializeSymmetricKey([.. file.AesKey, .. file.AesIv]);
+    public static implicit operator byte[](UnlockedFileAccess file) => file.AesKey;
 
     public required FileAccess Original;
 
@@ -119,7 +114,6 @@ public sealed partial class ResourceManager
                 AuthorUserId = authorUser.Id,
                 TargetEntity = null,
                 EncryptedAesKey = file.AesKey,
-                AesIv = file.AesIv,
                 Level = level
             };
 
@@ -136,7 +130,6 @@ public sealed partial class ResourceManager
             TargetEntity = access.TargetEntity,
 
             EncryptedAesKey = access.EncryptedAesKey,
-            AesIv = access.AesIv,
 
             Level = access.Level,
             AesKey = access.EncryptedAesKey
@@ -168,7 +161,6 @@ public sealed partial class ResourceManager
                 },
 
                 EncryptedAesKey = encryptedAesKey,
-                AesIv = file.AesIv,
 
                 Level = level,
             };
@@ -183,7 +175,6 @@ public sealed partial class ResourceManager
             AuthorUserId = access.AuthorUserId,
             TargetEntity = access.TargetEntity,
             EncryptedAesKey = access.EncryptedAesKey,
-            AesIv = access.AesIv,
             Level = access.Level,
             AesKey = file.AesKey,
         };
@@ -212,7 +203,6 @@ public sealed partial class ResourceManager
                 },
 
                 EncryptedAesKey = encryptedAesKey,
-                AesIv = file.AesIv,
 
                 Level = level,
             };
@@ -234,7 +224,6 @@ public sealed partial class ResourceManager
             },
 
             EncryptedAesKey = access.EncryptedAesKey,
-            AesIv = access.AesIv,
 
             Level = access.Level,
 
@@ -332,7 +321,7 @@ public sealed record FileAccessResult(User User, File File, FileAccess? FileAcce
             ? FileAccessLevel.Full
             : FileAccess?.Level ?? FileAccessLevel.None;
 
-    public Aes Unlock(UnlockedUserAuthentication userAuthentication)
+    public byte[] Unlock(UnlockedUserAuthentication userAuthentication)
     {
         if (File.OwnerUserId == userAuthentication.UserId)
         {

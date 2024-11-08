@@ -54,15 +54,15 @@ public record class UserAuthentication : ResourceData
 
     public UnlockedUserAuthentication Unlock(byte[] payload)
     {
-        byte[] key;
+        byte[] aesKey;
         {
             using Rfc2898DeriveBytes rfc2898DeriveBytes =
                 new(payload, Salt, Iterations, HashAlgorithmName.SHA256);
 
-            key = rfc2898DeriveBytes.GetBytes(32);
+            aesKey = rfc2898DeriveBytes.GetBytes(32);
         }
 
-        using Aes aesKey = KeyManager.DeserializeSymmetricKey([.. key, .. AesIv]);
+
         byte[] rsaPrivateKey = KeyManager.Decrypt(aesKey, EncryptedRsaPrivateKey);
 
         return new()
@@ -175,12 +175,7 @@ public sealed partial class ResourceManager
 
         byte[] aesKey = HashPayload(salt, iterations, payload);
 
-        using Aes aes = KeyManager.DeserializeSymmetricKey([.. aesKey, .. iv]);
-
-        byte[] encryptedRsaPrivateKey = KeyManager.Encrypt(aes, rsaPrivateKey);
-
-        byte[] challenge = RandomNumberGenerator.GetBytes(4 * 1024);
-        byte[] encryptedChallenge = KeyManager.Encrypt(aes, challenge);
+        byte[] encryptedRsaPrivateKey = KeyManager.Encrypt(aesKey, rsaPrivateKey);
 
         UserAuthentication userAuthentication =
             new()
@@ -240,10 +235,8 @@ public sealed partial class ResourceManager
 
         byte[] aesKey = HashPayload(salt, iterations, payload);
 
-        using Aes aes = KeyManager.DeserializeSymmetricKey(aesKey, iv);
-
         byte[] encryptedRsaPrivateKey = KeyManager.Encrypt(
-            aes,
+            aesKey,
             sourceUserAuthentication.RsaPrivateKey
         );
 

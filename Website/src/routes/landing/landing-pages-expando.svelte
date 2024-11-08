@@ -66,7 +66,6 @@
 		margin: 8px 0px;
 		padding: 0px 16px;
 
-		border-radius: 8px;
 		border: none;
 
 		color: var(--color-5);

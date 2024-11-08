@@ -1,87 +1,73 @@
 <script lang="ts">
-	import { useClientContext } from '$lib/client/client';
-	import type { FileResource } from '$lib/client/client-server-side-request';
-	import { useAppContext } from '$lib/client/contexts/app';
 	import {
 		createFileBrowserContext,
-		FileBrowserResolveType,
-		type FileBrowserOptions,
-		type FileBrowserResolve
+		useFileBrowserContext,
+		type FileBrowserOptions
 	} from '$lib/client/contexts/file-browser';
 	import Separator from '$lib/client/ui/separator.svelte';
 	import FileBrowserPath from './file-browser-path.svelte';
-	import FileManagerActionHost from './file-manager-action-host.svelte';
-	import { loremIpsum } from 'lorem-ipsum';
+	import FileManagerActionHost from './file-browser-action-host.svelte';
+	import FileBrowserProperties from './file-browser-properties.svelte';
+	import { useAppContext } from '$lib/client/contexts/app';
+	import FileBrowserResolver from './file-browser-resolver.svelte';
 
-	const { isMobile } = useAppContext();
-	const { showDetails, isLoading, files, actions, top } = createFileBrowserContext();
-	const {
-		functions: { getFiles: scanFolder, getFileAccesses, getFileStars, whoAmI, getFile, getFiles }
-	} = useClientContext();
 	const { resolve, onFileId }: FileBrowserOptions = $props();
-
-	async function load(resolve: FileBrowserResolve): Promise<FileResource[]> {
-		const { userId } = await whoAmI();
-		if (userId == null) {
-			throw Error('Not logged in');
-		}
-
-		switch (resolve[0]) {
-			case FileBrowserResolveType.File: {
-				const [, fileId] = resolve;
-
-				return await scanFolder(fileId || undefined);
-			}
-
-			case FileBrowserResolveType.Shared: {
-				const files = await Promise.all(
-					(await getFileAccesses()).map(async (fileAccess) => {
-						const file = await getFile(fileAccess.fileId);
-
-						return file;
-					})
-				);
-
-				return files;
-			}
-
-			case FileBrowserResolveType.Starred: {
-				const files = getFileStars(void 0, userId).then((fileStars) =>
-					Promise.all(
-						fileStars.map(async (fileStar): Promise<FileResource> => {
-							const file = await getFile(fileStar.fileId);
-
-							return file;
-						})
-					)
-				);
-
-				return files;
-			}
-
-			case FileBrowserResolveType.Trash: {
-				const files = await getFiles();
-				break;
-			}
-		}
-	}
+	const { actions, top, current, middle, bottom } = createFileBrowserContext(onFileId);
+	const { showDetails } = useFileBrowserContext();
+	const { isMobile, isDesktop } = useAppContext();
 </script>
 
 <div class="file-browser">
-	<div class="top">
-		{#each $top as { id, snippet } (id)}
-			{@render snippet()}
-		{/each}
+	<div class="left" >
+		{#if $top.length}
+			<div class="top">
+				{#each $top as { id, snippet }, index (id)}
+					{#if index > 0}
+						<Separator horizontal />
+					{/if}
+
+					{@render snippet()}
+				{/each}
+			</div>
+
+			<Separator horizontal />
+		{/if}
+
+		<div class="middle">
+			{#if resolve}
+				<FileBrowserResolver {resolve} {current} />
+			{/if}
+
+			{#each $middle as { id, snippet } (id)}
+				{@render snippet()}
+			{/each}
+		</div>
+
+		{#if $bottom.length}
+			<Separator horizontal />
+
+			<div class="bottom">
+				{#each $bottom as { id, snippet }, index (id)}
+					{#if index > 0}
+						<Separator horizontal />
+					{/if}
+
+					{@render snippet()}
+				{/each}
+			</div>
+		{/if}
 	</div>
 
-	<Separator horizontal />
-
-	<div class="middle">
-		{loremIpsum({ count: 100 })}
-	</div>
+	{#if $isMobile && $showDetails}
+		<div class="right">
+			<FileBrowserProperties />
+		</div>
+	{/if}
 </div>
 
-<FileBrowserPath />
+{#if $current.type === 'file' || $current.type === 'folder' || $current.type === 'loading'}
+	<FileBrowserPath current={$current} />
+{/if}
 <FileManagerActionHost {actions} />
 
 <style lang="scss">
@@ -93,20 +79,32 @@
 		min-width: 0;
 		min-height: 0;
 
-		> div.top {
-			flex-direction: row;
-		}
-
-		> div.middle {
+		> div.left {
 			flex-grow: 1;
 
-			overflow: hidden auto;
+			> div.top {
+				flex-direction: column;
+			}
 
-			min-height: 0;
+			> div.middle {
+				flex-grow: 1;
+				flex-direction: row;
+
+				overflow: hidden auto;
+
+				min-height: 0;
+
+				> div.loading {
+					align-self: center;
+				}
+			}
+
+			> div.bottom {
+				flex-direction: row;
+			}
 		}
 
-		> div.bottom {
-
+		> div.right {
 		}
 	}
 </style>

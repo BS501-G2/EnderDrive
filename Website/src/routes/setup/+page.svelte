@@ -1,17 +1,14 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { useClientContext } from '$lib/client/client';
+	import { useServerContext } from '$lib/client/client';
 	import { useAppContext } from '$lib/client/contexts/app';
 	import Button from '$lib/client/ui/button.svelte';
-	import Dialog from '$lib/client/ui/dialog.svelte';
 	import Icon from '$lib/client/ui/icon.svelte';
 	import Input from '$lib/client/ui/input.svelte';
 	import { onMount, type Snippet } from 'svelte';
 
-	const {
-		functions: { getSetupRequirements, createAdmin }
-	} = useClientContext();
+	const { getSetupRequirements, createAdmin } = useServerContext();
 	const { isMobile } = useAppContext();
 
 	onMount(async () => {
