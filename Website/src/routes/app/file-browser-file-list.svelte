@@ -2,48 +2,94 @@
 	import { useFileBrowserContext, type CurrentFile } from '$lib/client/contexts/file-browser';
 	import { createFileBrowserListContext } from '$lib/client/contexts/file-browser-list';
 	import { onMount } from 'svelte';
-	import FileBrowserCreate from './file-browser-create.svelte';
 	import FileBrowserFileListEntry from './file-browser-file-list-entry.svelte';
 	import { persisted } from 'svelte-persisted-store';
 	import FileBrowserAction from './file-browser-action.svelte';
+	import FileBrowserCreateFolder from './file-browser-create-folder.svelte';
+	import { useServerContext } from '$lib/client/client';
 
 	const {
 		current
 	}: { current: CurrentFile & { type: 'folder' | 'shared' | 'starred' | 'trash' } } = $props();
 
-	const { setFileListContext } = useFileBrowserContext();
+	const { setFileListContext, refresh } = useFileBrowserContext();
+	const { uploadFile, uploadBuffer, finishBuffer } = useServerContext();
 	const { context } = createFileBrowserListContext();
 
 	onMount(() => setFileListContext(context));
 
-	interface Resize {
-		preview: number;
-	}
-
-	const a = persisted<Resize>('a', {
-		preview: 32
-	});
-
-	let createButton: HTMLButtonElement = $state(null as never);
-	let create: boolean = $state(false);
+	let newFolder: boolean = $state(false);
+	let uploadElement: HTMLInputElement & { type: 'file' } = $state(null as never);
+	let uploadPromise: { resolve: (data: File[]) => void } | null = $state(null);
 </script>
 
 {#if current.type === 'folder'}
 	<FileBrowserAction
-		bind:buttonElement={createButton}
 		type="left-main"
 		icon={{ icon: 'plus', thickness: 'solid' }}
-		label="Create"
+		label="New Folder"
 		onclick={() => {
-			create = true;
+			newFolder = true;
 		}}
 	/>
 
-	{#if create}
-		<FileBrowserCreate
-			file={current.file}
+	<FileBrowserAction
+		type="left-main"
+		icon={{ icon: 'plus', thickness: 'solid' }}
+		label="Upload"
+		onclick={async () => {
+			uploadElement.click();
+
+			let files: File[];
+
+			try {
+				files = await new Promise((resolve) => {
+					uploadPromise = { resolve };
+				});
+
+				for (const file of files) {
+					const streamId = await uploadFile(current.file.id, file.name);
+					const bufferSize = 1024 * 256;
+
+					for (let index = 0; index < file.size; index += bufferSize) {
+						const buffer = file.slice(index, index + bufferSize);
+
+						await uploadBuffer(streamId, buffer);
+					}
+
+					await finishBuffer(streamId);
+				}
+
+				refresh()
+			} finally {
+				uploadPromise = null;
+			}
+		}}
+	/>
+
+	<input
+		type="file"
+		hidden
+		multiple
+		bind:this={uploadElement as never}
+		onchange={({ currentTarget }) => {
+			const files = Array.from(currentTarget.files ?? []);
+
+			if (files.length === 0) {
+				return;
+			}
+
+			uploadPromise?.resolve(files);
+		}}
+		oncancel={() => {
+			uploadPromise?.resolve([]);
+		}}
+	/>
+
+	{#if newFolder}
+		<FileBrowserCreateFolder
 			ondismiss={() => {
-				create = false;
+				newFolder = false;
 			}}
 		/>
 	{/if}

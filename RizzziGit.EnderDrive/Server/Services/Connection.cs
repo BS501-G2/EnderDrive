@@ -140,7 +140,7 @@ public sealed partial class Connection(
             WebConnectionRequest? request = await context.Internal.ReceiveRequest(
                 cancellationToken
             );
-            
+
             if (request == null)
             {
                 break;

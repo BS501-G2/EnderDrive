@@ -13,7 +13,7 @@ using Commons.Utilities;
 
 public sealed partial class VirusScanner
 {
-    public sealed class TcpForwarderParams
+    public sealed class TcpForwarderContext
     {
         public required TcpListener InternalTcpListener;
     }
@@ -22,9 +22,9 @@ public sealed partial class VirusScanner
         VirusScanner scanner,
         IPEndPoint ipEndPoint,
         string unixSocketPath
-    ) : Service<TcpForwarderParams>("TCP Forwarder", scanner)
+    ) : Service<TcpForwarderContext>("TCP Forwarder", scanner)
     {
-        protected override Task<TcpForwarderParams> OnStart(
+        protected override Task<TcpForwarderContext> OnStart(
             CancellationToken startupCancellationToken,
             CancellationToken serviceCancellationToken
         )
@@ -35,7 +35,7 @@ public sealed partial class VirusScanner
 
             Debug($"{ipEndPoint}", "EndPoint");
 
-            return Task.FromResult<TcpForwarderParams>(
+            return Task.FromResult<TcpForwarderContext>(
                 new() { InternalTcpListener = internalTcpListener }
             );
         }
@@ -143,14 +143,14 @@ public sealed partial class VirusScanner
         }
 
         protected override async Task OnRun(
-            TcpForwarderParams data,
+            TcpForwarderContext data,
             CancellationToken cancellationToken
         )
         {
             await ListenTcp(GetContext().InternalTcpListener, cancellationToken);
         }
 
-        protected override Task OnStop(TcpForwarderParams data, ExceptionDispatchInfo? exception)
+        protected override Task OnStop(TcpForwarderContext data, ExceptionDispatchInfo? exception)
         {
             GetContext().InternalTcpListener.Stop();
             return Task.CompletedTask;

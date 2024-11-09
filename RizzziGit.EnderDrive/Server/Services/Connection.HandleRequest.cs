@@ -119,6 +119,8 @@ public sealed partial class Connection
         registerHandler(ServerSideRequestCode.GetFileStars, GetFileStars);
         registerHandler(ServerSideRequestCode.GetFilePath, GetFilePath);
         registerHandler(ServerSideRequestCode.UploadFile, UploadFile);
+        registerHandler(ServerSideRequestCode.FinishBuffer, FinishBuffer);
+        registerHandler(ServerSideRequestCode.UploadBuffer, UploadBuffer);
         registerHandler(ServerSideRequestCode.CreateFolder, CreateFolder);
         registerHandler(ServerSideRequestCode.GetFileMime, GetFileMime);
         registerHandler(ServerSideRequestCode.GetFileContents, GetFileContents);
@@ -157,6 +159,8 @@ public enum ServerSideRequestCode : byte
     GetFilePath,
 
     UploadFile,
+    UploadBuffer,
+    FinishBuffer,
     CreateFolder,
     GetFileMime,
     GetFileContents,
@@ -164,5 +168,8 @@ public enum ServerSideRequestCode : byte
     ReadFile,
     UpdateFile,
 
-    AmIAdmin
+    AmIAdmin,
+
+GetFileLogs,
+    ScanFile
 }

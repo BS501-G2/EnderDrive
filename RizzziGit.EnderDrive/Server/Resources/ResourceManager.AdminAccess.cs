@@ -24,7 +24,7 @@ public record class AdminAccess : ResourceData
             UserId = UserId,
 
             EncryptedAesKey = EncryptedAesKey,
-            AesKey = aesKey,
+            AdminAesKey = aesKey,
 
             Original = this
         };
@@ -40,13 +40,13 @@ public record class AdminAccess : ResourceData
 
 public record class UnlockedAdminAccess : AdminAccess
 {
-    public static implicit operator byte[](UnlockedAdminAccess adminClass) => adminClass.AesKey;
+    public static implicit operator byte[](UnlockedAdminAccess adminClass) => adminClass.AdminAesKey;
 
     [JsonIgnore]
     public required AdminAccess Original;
 
     [JsonIgnore]
-    public required byte[] AesKey;
+    public required byte[] AdminAesKey;
 }
 
 public sealed partial class ResourceManager

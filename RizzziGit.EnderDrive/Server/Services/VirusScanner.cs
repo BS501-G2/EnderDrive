@@ -21,7 +21,6 @@ using Utilities;
 
 public sealed class VirusScannerParams
 {
-    public required VirusScanner.TcpForwarder TcpForwarder;
     public required IClamAvClient Client;
     public required WaitQueue<(
         TaskCompletionSource<ScanResult> Source,
@@ -34,30 +33,44 @@ public sealed partial class VirusScanner(Server server, string unixSocketPath)
     : Service<VirusScannerParams>("Virus Scanner", server)
 {
     protected override async Task<VirusScannerParams> OnStart(
-        CancellationToken cancellationToken,
-        CancellationToken a
+        CancellationToken startupCancellationToken,
+        CancellationToken serviceCancellationToken
     )
     {
-        IPEndPoint ipEndPoint = new(IPAddress.Loopback, Random.Shared.Next(1025, 65535));
-        TcpForwarder tcpForwarder = new(this, ipEndPoint, unixSocketPath);
-
-        await StartServices([tcpForwarder], cancellationToken);
+        (IPEndPoint ipEndPoint, _) = await StartTcpForwarder(startupCancellationToken);
 
         IClamAvClient client = ClamAvClient.Create(new($"tcp://{ipEndPoint}"));
 
-        await client.PingAsync(cancellationToken);
+        await client.PingAsync(startupCancellationToken);
 
-        VersionResult version = await client.GetVersionAsync(cancellationToken);
+        VersionResult version = await client.GetVersionAsync(startupCancellationToken);
 
         Info(version.ProgramVersion, "Version");
         Info($"Virus Database {version.VirusDbVersion}", "Version");
 
-        return new()
+        return new() { Client = client, WaitQueue = new(), };
+    }
+
+    private async Task<(IPEndPoint ipEndPoint, TcpForwarder tcpForwarder)> StartTcpForwarder(
+        CancellationToken cancellationToken
+    )
+    {
+        while (true)
         {
-            Client = client,
-            TcpForwarder = tcpForwarder,
-            WaitQueue = new(),
-        };
+            try
+            {
+                IPEndPoint ipEndPoint = new(IPAddress.Loopback, Random.Shared.Next(1025, 65535));
+                TcpForwarder tcpForwarder = new(this, ipEndPoint, unixSocketPath);
+
+                await StartServices([tcpForwarder], cancellationToken);
+
+                return (ipEndPoint, tcpForwarder);
+            }
+            catch (Exception exception)
+            {
+                Error(exception);
+            }
+        }
     }
 
     private async Task RunScanQueue(CancellationToken serviceCancellationToken)

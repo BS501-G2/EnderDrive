@@ -2,6 +2,7 @@
 	import { FileType, TrashOptions, useServerContext } from '$lib/client/client';
 	import {
 		FileBrowserResolveType,
+		useFileBrowserContext,
 		type CurrentFile,
 		type FileBrowserResolve,
 		type FileEntry
@@ -20,7 +21,7 @@
 	}: { resolve: Readable<FileBrowserResolve>; current: Writable<CurrentFile> } = $props();
 	const { getFiles, getFileAccesses, getFilePath, getFileStars, getFile, whoAmI } =
 		useServerContext();
-	const { pushRefresh } = useDashboardContext();
+		const {pushRefresh } = useFileBrowserContext();
 
 	async function load(resolve: FileBrowserResolve): Promise<void> {
 		const load = async (): Promise<CurrentFile> => {
@@ -36,7 +37,7 @@
 
 					const file = await getFile(fileId ?? void 0);
 					const path = await getFilePath(file.id);
-				
+
 					if (file.type === FileType.File) {
 						return {
 							type: 'file',

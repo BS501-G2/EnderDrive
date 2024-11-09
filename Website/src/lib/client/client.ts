@@ -664,14 +664,21 @@ function getServerFunctions(
 			return path.map((entry: any) => JSON.parse(entry)) as FileResource[];
 		},
 
-		uploadFile: async (parentFileId: string, name: string, content: Buffer) => {
-			const { file } = await request(ServerSideRequestCode.UploadFile, {
+		uploadFile: async (parentFileId: string, name: string) => {
+			const { streamId } = await request(ServerSideRequestCode.UploadFile, {
 				parentFileId,
-				name,
-				content
+				name
 			});
 
-			return file as FileResource;
+			return streamId as number;
+		},
+
+		uploadBuffer: async (streamId: number, data: Buffer | Blob) => {
+			await request(ServerSideRequestCode.UploadBuffer, { streamId, data });
+		},
+
+		finishBuffer: async (streamId: number) => {
+			await request(ServerSideRequestCode.FinishBuffer, { streamId });
 		},
 
 		createFolder: async (parentFileId: string, name: string) => {
@@ -742,22 +749,31 @@ function getServerFunctions(
 			fileId,
 			fileContextId,
 			fileSnapshotId,
-			position,
-			content
+			position
 		}: {
 			fileId: string;
 			fileContextId: string;
 			fileSnapshotId?: string;
 			position: number;
-			content: Buffer;
 		}) => {
-			await request(ServerSideRequestCode.UpdateFile, {
+			const { streamId } = await request(ServerSideRequestCode.UpdateFile, {
 				fileId,
 				fileContextId,
 				fileSnapshotId,
-				position,
-				content
+				position
 			});
+
+			return streamId as number;
+		},
+
+		amIAdmin: async () => {
+			const { amIAdmin } = await request(ServerSideRequestCode.AmIAdmin, {});
+
+			return amIAdmin as number;
+		},
+
+		getFileLogs: async () => {
+
 		}
 	};
 
@@ -795,6 +811,8 @@ export enum ServerSideRequestCode {
 	GetFilePath,
 
 	UploadFile,
+	UploadBuffer,
+	FinishBuffer,
 	CreateFolder,
 	GetFileMime,
 	GetFileContents,
@@ -802,7 +820,10 @@ export enum ServerSideRequestCode {
 	ReadFile,
 	UpdateFile,
 
-	AmIAdmin
+	AmIAdmin,
+
+	GetFileLogs,
+	ScanFile
 }
 
 export interface SearchParams {

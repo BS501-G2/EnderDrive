@@ -30,7 +30,7 @@
 
 {#snippet content()}
 	{#snippet foreground(view: Snippet)}
-		<div class="action" class:mobile={$isMobile}>
+		<div class="action {type}" class:mobile={$isMobile} >
 			{@render view()}
 		</div>
 	{/snippet}

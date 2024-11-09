@@ -7,6 +7,7 @@ using MongoDB.Driver;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
+using System.Linq;
 using Commons.Collections;
 using Commons.Logging;
 using Commons.Services;
@@ -178,6 +179,9 @@ public sealed partial class ResourceManager
 
 public sealed record class ResourceTransaction
 {
+    public static implicit operator CancellationToken(ResourceTransaction parameters) =>
+        parameters.CancellationToken;
+
     public required ulong TransactionId;
     public required Logger Logger;
 

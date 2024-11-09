@@ -1,5 +1,5 @@
 import { getContext, setContext, type Snippet } from 'svelte';
-import { get, writable, type Writable } from 'svelte/store';
+import { writable, type Writable } from 'svelte/store';
 import type { IconOptions } from '../ui/icon.svelte';
 
 const contextName = `${Date.now()}`;
@@ -29,7 +29,6 @@ export function createDashboardContext() {
 	const desktopTopRight: Writable<{ id: number; snippet: Snippet }[]> = writable([]);
 
 	const showNotifications = writable<boolean>(false);
-	const refresh = writable<(() => void) | null>(null);
 
 	const context = setContext(contextName, {
 		pushMobileAppButton: (
@@ -94,23 +93,6 @@ export function createDashboardContext() {
 		},
 
 		showNotifications,
-
-		pushRefresh: (callback: () => void) => {
-			if (get(refresh) != null) {
-				throw new Error('Refresh callback is already registered');
-			}
-
-			refresh.set(callback);
-
-			return () =>
-				refresh.update((value) => {
-					if (value != callback) {
-						return value;
-					}
-
-					return null;
-				});
-		}
 	});
 
 	return {

@@ -904,15 +904,12 @@ public sealed partial class Connection
 
         [BsonElement("name")]
         public required string Name;
-
-        [BsonElement("content")]
-        public required byte[] Content;
     }
 
     private sealed partial class UploadFileResponse
     {
-        [BsonElement("file")]
-        public required string File;
+        [BsonElement("streamId")]
+        public required ulong StreamId;
     };
 
     private RequestHandler<UploadFileRequest, UploadFileResponse> UploadFile =>
@@ -952,17 +949,68 @@ public sealed partial class Connection
                     null
                 );
 
-            await Resources.WriteFile(
+            ulong fileStreamId = context.NextFileStreamId++;
+            System.IO.Stream stream = await Resources.CreateWriteStream(
                 transaction,
                 file,
                 fileContent,
                 fileSnapshot,
                 userAuthentication,
-                0,
-                request.Content
+                false
             );
 
-            return new() { File = JToken.FromObject(file.Original).ToString(), };
+            if (!context.FileStreams.TryAdd(fileStreamId, stream))
+            {
+                throw new InvalidOperationException("Failed ");
+            }
+
+            return new() { StreamId = fileStreamId, };
+        };
+
+    private sealed record class UploadBufferRequest
+    {
+        [BsonElement("streamId")]
+        public required ulong StreamId;
+
+        [BsonElement("data")]
+        public required byte[] Data;
+    };
+
+    private sealed record class UploadBufferResponse { };
+
+    private RequestHandler<UploadBufferRequest, UploadBufferResponse> UploadBuffer =>
+        async (transaction, request) =>
+        {
+            ConnectionContext context = GetContext();
+
+            if (!context.FileStreams.TryGetValue(request.StreamId, out var stream))
+            {
+                throw new InvalidOperationException("Invalid stream ID.");
+            }
+
+            await stream.WriteAsync(request.Data, transaction.CancellationToken);
+            return new() { };
+        };
+
+    private record class FinishBufferRequest
+    {
+        [BsonElement("streamId")]
+        public required ulong StreamId;
+    }
+
+    private record class FinishBufferResponse { }
+
+    private RequestHandler<FinishBufferRequest, FinishBufferResponse> FinishBuffer =>
+        (transaction, request) =>
+        {
+            ConnectionContext context = GetContext();
+
+            if (!context.FileStreams.TryRemove(request.StreamId, out _))
+            {
+                throw new InvalidOperationException("Invalid stream ID.");
+            }
+
+            return Task.FromResult<FinishBufferResponse>(new() { });
         };
 
     private sealed class CreateFolderRequest
@@ -1263,12 +1311,13 @@ public sealed partial class Connection
 
         [BsonElement("position")]
         public required long Position;
-
-        [BsonElement("content")]
-        public required byte[] Content;
     }
 
-    private sealed class UpdateFileResponse { }
+    private sealed class UpdateFileResponse
+    {
+        [BsonElement("streamId")]
+        public required ulong StreamId;
+    }
 
     private RequestHandler<UpdateFileRequest, UpdateFileResponse> UpdateFile =>
         async (transaction, request) =>
@@ -1302,23 +1351,25 @@ public sealed partial class Connection
                             ?? throw new InvalidOperationException("No file content found.")
                 );
 
-            await Resources.WriteFile(
+            ulong streamId = context.NextFileStreamId++;
+            System.IO.Stream stream = await Resources.CreateWriteStream(
                 transaction,
                 fileAccessResult.File,
                 fileContent,
                 fileSnapshot,
                 userAuthentication,
-                request.Position,
-                request.Content
+                createNewSnapshot: false,
+                currentTransaction: true
             );
 
-            return new() { };
+            return new() { StreamId = streamId };
         };
 
     private sealed record class AmIAdminRequest { }
 
     private sealed record class AmIAdminResponse
     {
+        [BsonElement("amIAdmin")]
         public required bool AmIAdmin;
     }
 
@@ -1337,5 +1388,68 @@ public sealed partial class Connection
                     .ToAsyncEnumerable()
                     .AnyAsync(transaction.CancellationToken)
             };
+        };
+
+    private sealed record class GetFileLogsRequest
+    {
+        [BsonElement("fileId")]
+        public required ObjectId FileId;
+
+        [BsonElement("fileContentId")]
+        public required ObjectId? FileContentId;
+
+        [BsonElement("fileSnapshotId")]
+        public required ObjectId? FileSnapshotId;
+
+        [BsonElement("userId")]
+        public required ObjectId? UserId;
+    }
+
+    private sealed record class GetFileLogsResponse
+    {
+        [BsonElement("fileLogs")]
+        public required string[] FileLogs;
+    }
+
+    private RequestHandler<GetFileLogsRequest, GetFileLogsResponse> GetFileLogs =>
+        async (transaction, request) =>
+        {
+            UnlockedUserAuthentication userAuthentication = Internal_EnsureAuthentication();
+            User me = await Internal_Me(transaction, userAuthentication);
+
+            if (
+                me.Id != request.UserId
+                && !await Resources
+                    .GetAdminAccesses(transaction, me.Id)
+                    .ToAsyncEnumerable()
+                    .AnyAsync(transaction)
+            )
+            {
+                throw new InvalidOperationException(
+                    "User ID other than self is not allowed when not an administrator."
+                );
+            }
+
+            User? user =
+                request.UserId != null
+                    ? await Resources
+                        .GetUsers(transaction, id: request.UserId)
+                        .ToAsyncEnumerable()
+                        .FirstOrDefaultAsync(transaction)
+                    : null;
+
+            File? file = request.FileId!= null
+                ? await Internal_GetFile(transaction, me, request.FileId)
+                : null;
+            FileAccessResult fileAccessResult =
+                await Resources.FindFileAccess(
+                    transaction,
+                    file,
+                    me,
+                    userAuthentication,
+                    FileAccessLevel.ReadWrite
+                ) ?? throw new InvalidOperationException("Insufficient permissions.");
+
+            // return new() { };
         };
 }

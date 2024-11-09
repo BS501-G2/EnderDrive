@@ -44,6 +44,7 @@
 <style lang="scss">
 	div.button-foreground {
 		flex-direction: row;
+		flex-grow: 1;
 
 		padding: 16px;
 		gap: 16px;

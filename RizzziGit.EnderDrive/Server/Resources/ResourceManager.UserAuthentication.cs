@@ -23,7 +23,7 @@ public enum UserAuthenticationType
 public record class UserAuthentication : ResourceData
 {
     public static implicit operator RSA(UserAuthentication user) =>
-        KeyManager.DeserializeAsymmetricKey(user.RsaPublicKey);
+        KeyManager.DeserializeAsymmetricKey(user.UserPublicRsaKey);
 
     [JsonProperty("userId")]
     public required ObjectId UserId;
@@ -41,10 +41,10 @@ public record class UserAuthentication : ResourceData
     public required byte[] AesIv;
 
     [JsonIgnore]
-    public required byte[] RsaPublicKey;
+    public required byte[] UserPublicRsaKey;
 
     [JsonIgnore]
-    public required byte[] EncryptedRsaPrivateKey;
+    public required byte[] EncryptedUserPrivateRsaKey;
 
     public UnlockedUserAuthentication Unlock(UnlockedUserAuthentication userAuthentication) =>
         Unlock(userAuthentication.Payload);
@@ -63,7 +63,7 @@ public record class UserAuthentication : ResourceData
         }
 
 
-        byte[] rsaPrivateKey = KeyManager.Decrypt(aesKey, EncryptedRsaPrivateKey);
+        byte[] rsaPrivateKey = KeyManager.Decrypt(aesKey, EncryptedUserPrivateRsaKey);
 
         return new()
         {
@@ -75,12 +75,12 @@ public record class UserAuthentication : ResourceData
             Iterations = Iterations,
             Salt = Salt,
             AesIv = AesIv,
-            RsaPublicKey = RsaPublicKey,
-            EncryptedRsaPrivateKey = EncryptedRsaPrivateKey,
+            UserPublicRsaKey = UserPublicRsaKey,
+            EncryptedUserPrivateRsaKey = EncryptedUserPrivateRsaKey,
 
             Payload = payload,
             AesKey = payload,
-            RsaPrivateKey = rsaPrivateKey,
+            UserRsaPrivateKey = rsaPrivateKey,
         };
     }
 }
@@ -88,13 +88,13 @@ public record class UserAuthentication : ResourceData
 public record class UnlockedUserAuthentication : UserAuthentication
 {
     public static implicit operator RSA(UnlockedUserAuthentication user) =>
-        KeyManager.DeserializeAsymmetricKey(user.RsaPrivateKey);
+        KeyManager.DeserializeAsymmetricKey(user.UserRsaPrivateKey);
 
     public required UserAuthentication Original;
 
     public required byte[] Payload;
     public required byte[] AesKey;
-    public required byte[] RsaPrivateKey;
+    public required byte[] UserRsaPrivateKey;
 }
 
 [Flags]
@@ -186,8 +186,8 @@ public sealed partial class ResourceManager
                 Iterations = iterations,
                 Salt = salt,
                 AesIv = iv,
-                RsaPublicKey = rsaPublicKey,
-                EncryptedRsaPrivateKey = encryptedRsaPrivateKey,
+                UserPublicRsaKey = rsaPublicKey,
+                EncryptedUserPrivateRsaKey = encryptedRsaPrivateKey,
             };
 
         await UserAuthentications.InsertOneAsync(
@@ -206,11 +206,11 @@ public sealed partial class ResourceManager
                 Iterations = iterations,
                 Salt = salt,
                 AesIv = iv,
-                RsaPublicKey = rsaPublicKey,
-                EncryptedRsaPrivateKey = encryptedRsaPrivateKey,
+                UserPublicRsaKey = rsaPublicKey,
+                EncryptedUserPrivateRsaKey = encryptedRsaPrivateKey,
                 Payload = payload,
                 AesKey = aesKey,
-                RsaPrivateKey = rsaPrivateKey,
+                UserRsaPrivateKey = rsaPrivateKey,
             }
         );
     }
@@ -237,7 +237,7 @@ public sealed partial class ResourceManager
 
         byte[] encryptedRsaPrivateKey = KeyManager.Encrypt(
             aesKey,
-            sourceUserAuthentication.RsaPrivateKey
+            sourceUserAuthentication.UserRsaPrivateKey
         );
 
         UserAuthentication userAuthentication =
@@ -249,8 +249,8 @@ public sealed partial class ResourceManager
                 Iterations = iterations,
                 Salt = salt,
                 AesIv = iv,
-                RsaPublicKey = sourceUserAuthentication.RsaPublicKey,
-                EncryptedRsaPrivateKey = encryptedRsaPrivateKey,
+                UserPublicRsaKey = sourceUserAuthentication.UserPublicRsaKey,
+                EncryptedUserPrivateRsaKey = encryptedRsaPrivateKey,
             };
 
         await UserAuthentications.InsertOneAsync(
@@ -268,10 +268,10 @@ public sealed partial class ResourceManager
             Iterations = iterations,
             Salt = salt,
             AesIv = iv,
-            RsaPublicKey = sourceUserAuthentication.RsaPublicKey,
-            EncryptedRsaPrivateKey = encryptedRsaPrivateKey,
+            UserPublicRsaKey = sourceUserAuthentication.UserPublicRsaKey,
+            EncryptedUserPrivateRsaKey = encryptedRsaPrivateKey,
             AesKey = sourceUserAuthentication.AesKey,
-            RsaPrivateKey = sourceUserAuthentication.RsaPrivateKey,
+            UserRsaPrivateKey = sourceUserAuthentication.UserRsaPrivateKey,
             Payload = payload,
         };
     }

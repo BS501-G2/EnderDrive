@@ -1,6 +1,6 @@
 import { getContext, setContext, type Snippet } from 'svelte';
 import { persisted } from 'svelte-persisted-store';
-import { derived, writable, type Readable, type Writable } from 'svelte/store';
+import { derived, get, writable, type Readable, type Writable } from 'svelte/store';
 import type { FileResource, FileAccessResource, FileStarResource } from '../client';
 import type { IconOptions } from '../ui/icon.svelte';
 import type { FileBrowserListContext } from './file-browser-list';
@@ -55,6 +55,7 @@ export function createFileBrowserContext(onFileId?: FileBrowserOptions['onFileId
 	const current = writable<CurrentFile>({
 		type: 'loading'
 	});
+	const refresh = writable<(() => void) | null>(null);
 
 	const fileListContext: Writable<FileBrowserListContext | null> = writable(null);
 
@@ -109,6 +110,25 @@ export function createFileBrowserContext(onFileId?: FileBrowserOptions['onFileId
 			return () =>
 				fileListContext.update((value) => {
 					if (value != context) {
+						return value;
+					}
+
+					return null;
+				});
+		},
+
+		refresh: () => get(refresh)?.(),
+
+		pushRefresh: (callback: () => void) => {
+			if (get(refresh) != null) {
+				throw new Error('Refresh callback is already registered');
+			}
+
+			refresh.set(callback);
+
+			return () =>
+				refresh.update((value) => {
+					if (value != callback) {
 						return value;
 					}
 

@@ -55,7 +55,8 @@ public sealed partial class ResourceManager
         FileContent content,
         FileSnapshot snapshot,
         UnlockedUserAuthentication userAuthentication,
-        bool createNewSnapshot
+        bool createNewSnapshot,
+        bool currentTransaction = false
     )
     {
         ResourceManagerContext context = GetContext();
@@ -64,7 +65,7 @@ public sealed partial class ResourceManager
         FileStream stream =
             new(
                 this,
-                transaction,
+                currentTransaction ? transaction : null,
                 file,
                 content,
                 createNewSnapshot
