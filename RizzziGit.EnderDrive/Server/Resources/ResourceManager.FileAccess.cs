@@ -145,6 +145,7 @@ public sealed partial class ResourceManager
     )
     {
         byte[] encryptedAesKey = KeyManager.Encrypt(targetUser, file.AesKey);
+
         FileAccess access =
             new()
             {
@@ -270,68 +271,68 @@ public sealed partial class ResourceManager
         ResourceTransaction transaction,
         File file,
         User user,
-        FileAccessLevel? minLevel = null
+        UnlockedUserAuthentication userAuthentication,
+        FileAccessLevel minLevel = FileAccessLevel.Read
     )
     {
-        if (file.OwnerUserId == user.Id)
+        if (file.OwnerUserId == userAuthentication.UserId && file.ParentId == null)
         {
-            return new(user, file, null);
+            return new(user, file.Unlock(userAuthentication), null);
         }
-
-        FileAccess? access = await GetFileAccesses(transaction, targetUser: user, targetFile: file)
-            .OrderByDescending(x => x.Level)
-            .ToAsyncEnumerable()
-            .FirstOrDefaultAsync(transaction.CancellationToken);
-
-        if (access == null)
+        else
         {
-            if (file.ParentId == null)
-            {
-                return null;
-            }
-
-            File? parentFile = await Query<File>(
+            FileAccess? access = await GetFileAccesses(
                     transaction,
-                    (query) => query.Where((item) => item.Id == file.ParentId)
+                    targetUser: user,
+                    targetFile: file
                 )
+                .OrderByDescending(x => x.Level)
                 .ToAsyncEnumerable()
                 .FirstOrDefaultAsync(transaction.CancellationToken);
 
-            if (parentFile == null)
+            if (access != null)
             {
-                return null;
+                return new(user, file.WithAesKey(access.Unlock(userAuthentication)), access);
             }
-
-            return await FindFileAccess(transaction, parentFile, user);
         }
 
-        if (minLevel != null && access.Level < minLevel)
+        File? parentFolder =
+            file.ParentId != null
+                ? await GetFiles(transaction, id: file.ParentId)
+                    .ToAsyncEnumerable()
+                    .FirstOrDefaultAsync(transaction.CancellationToken)
+                : null;
+
+        if (parentFolder == null)
         {
             return null;
         }
 
-        return new(user, file, access);
+        FileAccessResult? result = await FindFileAccess(
+            transaction,
+            parentFolder,
+            user,
+            userAuthentication,
+            minLevel
+        );
+
+        if (result == null)
+        {
+            return null;
+        }
+
+        return new(
+            user,
+            file.WithAesKey(KeyManager.Decrypt(result.File.AesKey, file.EncryptedAesKey)),
+            result.FileAccess
+        );
     }
 }
 
-public sealed record FileAccessResult(User User, File File, FileAccess? FileAccess)
+public sealed record FileAccessResult(User User, UnlockedFile File, FileAccess? FileAccess)
 {
     public FileAccessLevel AccessLevel =>
         File.OwnerUserId == User.Id
             ? FileAccessLevel.Full
             : FileAccess?.Level ?? FileAccessLevel.None;
-
-    public byte[] Unlock(UnlockedUserAuthentication userAuthentication)
-    {
-        if (File.OwnerUserId == userAuthentication.UserId)
-        {
-            return File.Unlock(userAuthentication);
-        }
-        else if (FileAccess != null)
-        {
-            return FileAccess.Unlock(userAuthentication);
-        }
-
-        throw new InvalidOperationException("Failed to unlock file access.");
-    }
 }

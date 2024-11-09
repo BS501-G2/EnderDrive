@@ -36,7 +36,7 @@
 
 					const file = await getFile(fileId ?? void 0);
 					const path = await getFilePath(file.id);
-
+				
 					if (file.type === FileType.File) {
 						return {
 							type: 'file',

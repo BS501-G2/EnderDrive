@@ -14,7 +14,8 @@
 		onclick,
 		click = $bindable(),
 		buttonElement = $bindable(),
-		disabled = false
+		disabled = false,
+		onerror
 	}: {
 		hint?: string;
 		children: Snippet;
@@ -23,6 +24,7 @@
 		onclick: (
 			event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
 		) => void | Promise<void>;
+		onerror?: (error?: Error) => {};
 		click?: () => void;
 		buttonElement?: HTMLButtonElement;
 		disabled?: boolean;
@@ -76,7 +78,8 @@
 				})();
 			}
 		} catch (e: any) {
-			error = e;
+			error = e
+			onerror?.(error!);
 		}
 	}}
 >
@@ -115,6 +118,8 @@
 
 		border: none;
 		cursor: pointer;
+
+		flex-shrink: 0;
 		// border-radius: 8px;
 		padding: 0;
 
@@ -128,8 +133,8 @@
 
 		div.background {
 			transition-property: background-color, color;
+			flex-direction: row;
 
-			align-items: center;
 			justify-content: center;
 
 			flex-grow: 1;

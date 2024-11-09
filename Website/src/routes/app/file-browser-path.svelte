@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { useClientContext, useServerContext } from '$lib/client/client';
+	import { useServerContext } from '$lib/client/client';
 	import { useFileBrowserContext, type CurrentFile } from '$lib/client/contexts/file-browser';
 	import Button from '$lib/client/ui/button.svelte';
 	import Icon from '$lib/client/ui/icon.svelte';
 	import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte';
 	import { onMount, type Snippet } from 'svelte';
+	import FileBrowserPathEntry from './file-browser-path-entry.svelte';
 
-	const { getFilePath } = useServerContext();
 	const { pushTop, onFileId } = useFileBrowserContext();
 	const { whoAmI } = useServerContext();
 
@@ -23,7 +23,7 @@
 		</div>
 	{/snippet}
 
-	<div class="path">
+	<div class="path-container">
 		{#await whoAmI()}
 			{@render loading()}
 		{:then me}
@@ -60,14 +60,11 @@
 					{/if}
 				</Button>
 
-				{#each current.path.splice(1) as file (file.id)}
-				<Button onclick={() => {}}>
-					<p>asd</p>
-				</Button>
-					<div class="entry-list">
-
-					</div>
-				{/each}
+				<div class="path">
+					{#each current.path.slice(1) as file (file.id)}
+						<FileBrowserPathEntry {file} />
+					{/each}
+				</div>
 			{/if}
 		{/await}
 	</div>
@@ -76,12 +73,12 @@
 <style lang="scss">
 	@use '../../global.scss' as *;
 
-	div.path {
-		@include force-size(&, 32px);
-
-		gap: 8px;
+	div.path-container {
+		min-height: 32px;
 
 		flex-direction: row;
+
+		min-width: 0;
 
 		> div.loading {
 			padding: 0 8px;
@@ -95,6 +92,7 @@
 			flex-direction: row;
 			align-items: center;
 
+			flex-shrink: 0;
 			flex-grow: 1;
 
 			background-color: var(--color-5);
@@ -103,12 +101,27 @@
 
 		div.root {
 			flex-grow: 1;
+			flex-shrink: 0;
 
 			align-items: center;
 			flex-direction: row;
 
 			padding: 0 8px;
 			gap: 8px;
+		}
+
+		> div.path {
+			flex-direction: row;
+
+			overflow: auto hidden;
+
+			padding: 0 8px;
+
+			min-width: 0;
+
+			::-webkit-scrollbar {
+				scrollbar-width: 0;
+			}
 		}
 	}
 </style>

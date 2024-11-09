@@ -74,7 +74,7 @@
 		background-color: var(--color-9);
 
 		padding: 16px;
-		box-shadow: 2px 2px 4px;
+		// box-shadow: 2px 2px 4px;
 		gap: 8px;
 
 		text-align: start;

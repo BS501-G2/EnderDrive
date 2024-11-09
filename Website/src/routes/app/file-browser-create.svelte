@@ -8,9 +8,13 @@
 	import type { IconOptions } from '$lib/client/ui/icon.svelte';
 	import Button from '$lib/client/ui/button.svelte';
 	import Icon from '$lib/client/ui/icon.svelte';
+	import Input from '$lib/client/ui/input.svelte';
+	import { useServerContext, type FileResource } from '$lib/client/client';
 
-	const { ondismiss }: { ondismiss: () => void } = $props();
+	const { file, ondismiss }: { file: FileResource; ondismiss: () => void } = $props();
 	const { isMobile, isDesktop } = useAppContext();
+	const { createFolder } = useServerContext();
+	const { onFileId } = useFileBrowserContext();
 
 	let tabs: { id: number; name: string; icon: IconOptions; snippet: Snippet }[] = $state([]);
 	let tab: number = $state(0);
@@ -24,13 +28,57 @@
 		};
 	}
 
-	onMount(() => push('New File', { icon: 'file' }, createFolder));
-	onMount(() => push('New Folder', { icon: 'folder' }, createFile));
+	onMount(() => push('New File', { icon: 'file' }, fileCreation));
+	onMount(() => push('New Folder', { icon: 'folder' }, folderCreation));
+
+	let newFolderName: string = $state('');
 </script>
 
-{#snippet createFile()}{/snippet}
+{#snippet action(
+	name: string,
+	onclick: (
+		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
+	) => Promise<void>,
+	isPrimary: boolean
+)}
+	{#snippet foreground(view: Snippet)}
+		<div class="foreground" class:primary={isPrimary}>
+			{@render view()}
+		</div>
+	{/snippet}
 
-{#snippet createFolder()}{/snippet}
+	<Button {onclick} {foreground}>
+		<p>{name}</p>
+	</Button>
+{/snippet}
+
+{#snippet fileCreation()}{/snippet}
+
+{#snippet folderCreation()}
+	<div class="form">
+		<p>
+			Create a new folder
+			{#if newFolderName.trim()}
+				named
+			{/if}
+			<b class="folder-name">{newFolderName}</b> inside
+			<b class="folder-name">{file.name}</b>
+		</p>
+		<Input id="folder-name" type="text" name="Folder Name" bind:value={newFolderName} />
+	</div>
+	<div class="actions">
+		{@render action(
+			'Create',
+			async (event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) => {
+				const newFolder = await createFolder(file.id, newFolderName);
+				ondismiss();
+
+				onFileId?.(event, newFolder.id);
+			},
+			true
+		)}
+	</div>
+{/snippet}
 
 <Overlay {ondismiss}>
 	{#snippet children(windowButtons: Snippet)}
@@ -40,8 +88,23 @@
 					<h2>Create New</h2>
 
 					{#each tabs as { id, name, icon }, index (id)}
+						{#snippet desktopForeground(view: Snippet)}
+							{#key tab === index}
+								<div class="desktop-foreground" class:active={tab === index}>
+									{@render view()}
+								</div>
+							{/key}
+						{/snippet}
 
-						
+						<Button
+							onclick={() => {
+								tab = index;
+							}}
+							foreground={desktopForeground}
+						>
+							<Icon {...icon} thickness={tab === index ? 'solid' : 'regular'} />
+							<p class="label">{name}</p>
+						</Button>
 					{/each}
 				</div>
 
@@ -58,10 +121,6 @@
 										<div class="foreground">
 											{@render view()}
 										</div>
-
-										{#if tab === index}
-											<div class="indicator"></div>
-										{/if}
 									{/snippet}
 
 									<Button
@@ -73,6 +132,10 @@
 										<Icon {...icon} />
 										<p>{name}</p>
 									</Button>
+
+									{#if tab === index}
+										<div class="indicator"></div>
+									{/if}
 								</div>
 							{/each}
 						</div>
@@ -84,6 +147,10 @@
 				{#if $isDesktop}
 					{@render windowButtons()}
 				{/if}
+
+				<div class="content">
+					{@render tabs[tab]?.snippet()}
+				</div>
 			</div>
 		</div>
 	{/snippet}
@@ -99,16 +166,41 @@
 		color: var(--color-1);
 
 		min-height: 50dvh;
-		box-shadow: 2px 2px 4px var(--color-10);
+		// box-shadow: 2px 2px 4px var(--color-10);
 
 		> div.side {
 			@include force-size(172px, &);
 
 			padding: 8px;
+			gap: 8px;
 
 			> h2 {
 				font-size: 1.2em;
 				font-weight: bolder;
+			}
+
+			div.desktop-foreground {
+				flex-grow: 1;
+				flex-direction: row;
+				align-items: center;
+
+				line-height: 1em;
+
+				padding: 8px;
+				gap: 8px;
+
+				p.label {
+					flex-grow: 1;
+				}
+			}
+
+			div.desktop-foreground.active {
+				background-color: var(--color-1);
+				color: var(--color-5);
+
+				p.label {
+					font-weight: bolder;
+				}
 			}
 		}
 
@@ -123,13 +215,13 @@
 				> div.mobile-tabs {
 					flex-direction: row;
 					flex-grow: 1;
+					flex-basis: 0;
 
 					> div.mobile-tab {
 						flex-grow: 1;
 
 						div.foreground {
 							flex-direction: row;
-							flex-grow: 1;
 							align-items: center;
 
 							line-height: 1em;
@@ -146,6 +238,36 @@
 					}
 				}
 			}
+
+			> div.content {
+				padding: 8px;
+				gap: 8px;
+
+				flex-grow: 1;
+
+				> div.form {
+					flex-grow: 1;
+					gap: 8px;
+				}
+
+				> div.actions {
+					flex-direction: row;
+					justify-content: flex-end;
+				}
+			}
 		}
+	}
+
+	b.folder-name {
+		font-weight: bolder;
+	}
+
+	div.foreground {
+		padding: 8px;
+	}
+
+	div.foreground.primary {
+		background-color: var(--color-1);
+		color: var(--color-5);
 	}
 </style>

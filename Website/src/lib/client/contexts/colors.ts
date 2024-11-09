@@ -1,5 +1,5 @@
 import { getContext, setContext } from 'svelte';
-import type { Readable } from 'svelte/motion';
+import type { Readable } from 'svelte/store';
 import { derived, get, type Writable } from 'svelte/store';
 import { persisted } from 'svelte-persisted-store';
 

@@ -76,11 +76,39 @@ public record class File : ResourceData
         };
     }
 
+    public UnlockedFile Unlock(UnlockedFile parentFolder)
+    {
+        if (ParentId == null)
+        {
+            throw new InvalidOperationException("Requires user authentication to decrypt.");
+        }
+
+        try
+        {
+            return WithAesKey(KeyManager.Decrypt(parentFolder, EncryptedAesKey));
+        }
+        catch (Exception exception)
+        {
+            throw new InvalidOperationException("Failed to decrypt", exception);
+        }
+    }
+
     public UnlockedFile Unlock(UnlockedUserAuthentication userAuthentication)
     {
-        byte[] aesKey = KeyManager.Decrypt(userAuthentication, EncryptedAesKey);
+        if (ParentId != null)
+        {
+            throw new InvalidOperationException("Requires parent file to decrypt.");
+        }
 
-        return WithAesKey(aesKey);
+        try
+        {
+            byte[] aesKey = KeyManager.Decrypt(userAuthentication, EncryptedAesKey);
+            return WithAesKey(aesKey);
+        }
+        catch (Exception exception)
+        {
+            throw new InvalidOperationException("Failed to decrypt", exception);
+        }
     }
 }
 

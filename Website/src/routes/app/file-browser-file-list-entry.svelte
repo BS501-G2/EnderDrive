@@ -5,17 +5,15 @@
 	import Button from '$lib/client/ui/button.svelte';
 	import Icon from '$lib/client/ui/icon.svelte';
 	import { onMount, type Snippet } from 'svelte';
-	import { writable, type Writable } from 'svelte/store';
 
 	const { file }: { file: FileEntry } = $props();
-	const { pushFile } = useFileBrowserListContext();
+	const { pushFile, selectedFileIds } = useFileBrowserListContext();
 	const { getFileContents, getFileSnapshots } = useServerContext();
 
 	let buttonElement: HTMLElement = $state(null as never);
 	let hover: boolean = $state(false);
-	const selected: Writable<boolean> = writable(false);
 
-	onMount(() => pushFile(file, buttonElement, selected));
+	onMount(() => pushFile(file, buttonElement));
 </script>
 
 <div
@@ -30,14 +28,16 @@
 	role="figure"
 >
 	<div class="check">
-		{#if hover || $selected}
+		{#if hover || $selectedFileIds.includes(file.file.id)}
 			<button
 				class="check"
 				onclick={() => {
-					$selected = !$selected;
+					$selectedFileIds = $selectedFileIds.includes(file.file.id)
+						? $selectedFileIds.filter((id) => id !== file.file.id)
+						: [...$selectedFileIds, file.file.id];
 				}}
 			>
-				{#if $selected}
+				{#if $selectedFileIds.includes(file.file.id)}
 					<Icon icon="circle-check" size="18px" />
 				{:else}
 					<Icon icon="circle" size="18px" />
@@ -55,7 +55,9 @@
 
 	<div class="name">
 		<a href="/app/files?fileId={file.file.id}">
-			{file.file.name}
+			<p>
+				{file.file.name}
+			</p>
 		</a>
 
 		{#if hover}
@@ -93,6 +95,8 @@
 		flex-direction: row;
 		align-items: center;
 
+		overflow: hidden;
+
 		padding: 8px;
 		gap: 8px;
 
@@ -112,16 +116,26 @@
 
 		> div.name {
 			flex-grow: 1;
-			min-width: 512px;
+			min-width: 172px;
 
 			flex-direction: row;
 			align-items: center;
 
 			> a {
 				text-decoration: none;
+
 				color: inherit;
 
+				min-width: 0;
+
 				flex-grow: 1;
+
+				> p {
+					text-overflow: ellipsis;
+					text-wrap: nowrap;
+
+					overflow: hidden;
+				}
 			}
 
 			> div.actions {

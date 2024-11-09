@@ -2,7 +2,7 @@
 	import { useFileBrowserContext, type FileBrowserAction } from '$lib/client/contexts/file-browser';
 	import Separator from '$lib/client/ui/separator.svelte';
 	import { onMount, type Snippet } from 'svelte';
-	import type { Readable } from 'svelte/motion';
+	import type { Readable } from 'svelte/store';
 	import { derived } from 'svelte/store';
 
 	const { actions }: { actions: Readable<FileBrowserAction[]> } = $props();

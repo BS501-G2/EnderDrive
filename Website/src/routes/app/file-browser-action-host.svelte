@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { useAppContext } from '$lib/client/contexts/app';
 	import { type FileBrowserAction } from '$lib/client/contexts/file-browser';
-	import type { Readable } from 'svelte/motion';
+	import type { Readable } from 'svelte/store';
 	import FileBrowserActionHostDesktop from './file-browser-action-host-desktop.svelte';
 	import FileBrowserActionHostMobile from './file-browser-action-host-mobile.svelte';
 

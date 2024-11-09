@@ -11,9 +11,11 @@
 
 {#if $overlay.length != 0}
 	<div class="overlay" class:dim={$dim} transition:fade={{ duration: 250 }}>
+		<div class="overlay-a">
 		{#each $overlay as [id, snippet] (id)}
 			{@render snippet()}
 		{/each}
+		</div>
 	</div>
 {/if}
 
@@ -30,6 +32,12 @@
 		z-index: 1;
 
 		@include force-size(100dvw, 100dvh);
+
+		> div.overlay-a {
+			flex-direction: column;
+
+			filter: drop-shadow(2px 2px 2px black);
+		}
 	}
 
 	div.overlay.dim {

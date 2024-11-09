@@ -69,7 +69,7 @@
 		background-color: var(--color-9);
 
 		transition-duration: 150ms;
-		transition-property: box-shadow;
+		// transition-property: box-shadow;
 
 		@include force-size(max(25%, 320px), 32px);
 

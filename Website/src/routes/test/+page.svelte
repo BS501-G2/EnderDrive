@@ -65,6 +65,8 @@
 	);
 
 	onMount(() => pushAction('Go To Landing', () => goto('/landing')));
+
+	onMount(() => pushAction('Go To App', () => goto('/app/files')));
 </script>
 
 {#snippet background(view: Snippet)}

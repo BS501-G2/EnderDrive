@@ -9,7 +9,8 @@ using MessagePack;
 
 public enum ClientSideRequestCode : byte
 {
-    Ping
+    Ping,
+    Notify
 }
 
 public sealed partial class Connection

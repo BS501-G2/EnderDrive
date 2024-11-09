@@ -7,6 +7,7 @@ import { derived, get, writable, type Readable, type Writable } from 'svelte/sto
 import * as SocketIO from 'socket.io-client';
 
 import { persisted } from 'svelte-persisted-store';
+import type { NotificationContext } from './contexts/notification';
 
 const clientContextName = 'Client Context';
 
@@ -85,7 +86,7 @@ export function createClientContext() {
 
 	const requestHandlers: Map<
 		number,
-		(data: object, isCancelled: () => boolean) => Promise<Payload<ResponseCode>>
+		(data: any, isCancelled: () => boolean) => Promise<Payload<ResponseCode>>
 	> = new Map();
 
 	let nextRequestId: number = 0;
@@ -245,6 +246,8 @@ export function createClientContext() {
 		null
 	);
 
+	const notificationContext: Writable<NotificationContext | null> = writable(null);
+
 	const context = setContext(clientContextName, {
 		clientState: derived(state, (value) => value),
 
@@ -311,7 +314,26 @@ export function createClientContext() {
 			return getServerFunctions(context, storedAuthenticationToken);
 		},
 
-		authentication: derived(storedAuthenticationToken, (value) => value)
+		authentication: derived(storedAuthenticationToken, (value) => value),
+
+		setNotificationContext: (context: NotificationContext) => {
+			notificationContext.update((value) => {
+				if (value != null) {
+					throw new Error('Notification context is already set');
+				}
+
+				return context;
+			});
+
+			return () =>
+				notificationContext.update((value) => {
+					if (value != context) {
+						throw new Error('Notification context mismatch');
+					}
+
+					return null;
+				});
+		}
 	});
 
 	connect();
@@ -360,11 +382,8 @@ export function createClientContext() {
 		}
 	});
 
-	requestHandlers.set(ClientSideRequestCode.Ping, async () => {
-		const code = ResponseCode.OK;
-		const data = Buffer.alloc(0);
-		return { Code: code, Data: data };
-	});
+	setClientRequestHandlers(requestHandlers, notificationContext);
+
 	return { context };
 }
 
@@ -374,10 +393,6 @@ export function useClientContext() {
 
 export function useServerContext(): ServerSideContext {
 	return useClientContext()[requestFunctionsSymbol];
-}
-
-export enum ClientSideRequestCode {
-	Ping
 }
 
 export enum ResponseCode {
@@ -435,6 +450,38 @@ export interface AuthenticationToken {
 }
 
 export type ServerSideContext = ReturnType<typeof getServerFunctions>;
+
+function setClientRequestHandlers(
+	map: Map<number, (data: any, isCancelled: () => boolean) => Promise<Payload<ResponseCode>>>,
+	notification: Readable<NotificationContext | null>
+) {
+	const setHandler = <C extends ClientSideRequestCode, T extends object, R extends object>(
+		code: C,
+		handler: (data: T) => Promise<R>
+	) => {
+		map.set(code, async (data) => {
+			try {
+				return { Code: ResponseCode.OK, Data: await handler(data) };
+			} catch {
+				return { Code: ResponseCode.InternalError, Data: {} };
+			}
+		});
+	};
+
+	setHandler(ClientSideRequestCode.Ping, async (data) => {
+		return {};
+	});
+
+	setHandler(ClientSideRequestCode.Notify, async (data) => {
+		const context = get(notification);
+
+		if (context != null) {
+			context.reload();
+		}
+
+		return {};
+	});
+}
 
 function getServerFunctions(
 	context: ClientContext,
@@ -715,6 +762,11 @@ function getServerFunctions(
 	};
 
 	return functions;
+}
+
+export enum ClientSideRequestCode {
+	Ping,
+	Notify
 }
 
 export enum ServerSideRequestCode {

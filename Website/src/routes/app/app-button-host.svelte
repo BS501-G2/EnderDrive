@@ -115,6 +115,6 @@
 		background-color: var(--color-9);
 
 		border: solid 1px var(--color-5);
-		box-shadow: 2px 2px 4px var(--color-5);
+		// box-shadow: 2px 2px 4px var(--color-5);
 	}
 </style>

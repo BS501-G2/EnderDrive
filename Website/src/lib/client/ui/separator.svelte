@@ -12,6 +12,8 @@
 	@use '../../../global.scss' as *;
 
 	div.separator {
+		align-self: stretch;
+
 		background-color: var(--color-5);
 	}
 

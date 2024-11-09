@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using MongoDB.Bson;
@@ -7,76 +8,12 @@ using Newtonsoft.Json.Linq;
 
 namespace RizzziGit.EnderDrive.Server.Services;
 
-using System.Collections.Generic;
 using Commons.Memory;
 using Resources;
 using Utilities;
 
 public sealed partial class Connection
 {
-    private static void RegisterHandler<S, R>(
-        ConnectionContext context,
-        ServerSideRequestCode code,
-        RequestHandler<S, R> handler
-    )
-    {
-        if (
-            !context.Handlers.TryAdd(
-                code,
-                async (transaction, requestBuffer) =>
-                {
-                    try
-                    {
-                        S request = requestBuffer.DeserializeData<S>();
-                        R response = await handler(transaction, request);
-
-                        return ConnectionPacket<ResponseCode>.Create(ResponseCode.OK, response);
-                    }
-                    catch (ConnectionResponseException exception)
-                    {
-                        return ConnectionPacket<ResponseCode>.Create(
-                            exception.Code,
-                            exception.Data
-                        );
-                    }
-                }
-            )
-        )
-        {
-            throw new InvalidOperationException("Handler is already added.");
-        }
-    }
-
-    private void RegisterHandlers(ConnectionContext context)
-    {
-        void registerHandler<S, R>(ServerSideRequestCode code, RequestHandler<S, R> handler) =>
-            RegisterHandler<S, R>(context, code, handler);
-
-        registerHandler(ServerSideRequestCode.SetupRequirements, SetupRequirements);
-        registerHandler(ServerSideRequestCode.CreateAdmin, CreateAdmin);
-        registerHandler(ServerSideRequestCode.ResolveUsername, ResolveUsername);
-        registerHandler(ServerSideRequestCode.AuthenticatePassword, AuthenticatePassword);
-        registerHandler(ServerSideRequestCode.AuthenticateGoogle, AuthenticateGoogle);
-        registerHandler(ServerSideRequestCode.AuthenticateToken, AuthenticateToken);
-        registerHandler(ServerSideRequestCode.WhoAmI, WhoAmI);
-        registerHandler(ServerSideRequestCode.Deauthenticate, Deauthenticate);
-        registerHandler(ServerSideRequestCode.GetUser, GetUser);
-        registerHandler(ServerSideRequestCode.GetUsers, GetUsers);
-        registerHandler(ServerSideRequestCode.GetFile, GetFile);
-        registerHandler(ServerSideRequestCode.GetFiles, GetFiles);
-        registerHandler(ServerSideRequestCode.GetFileAccesses, GetFileAccesses);
-        registerHandler(ServerSideRequestCode.GetFileStars, GetFileStars);
-        registerHandler(ServerSideRequestCode.GetFilePath, GetFilePath);
-        registerHandler(ServerSideRequestCode.UploadFile, UploadFile);
-        registerHandler(ServerSideRequestCode.CreateFolder, CreateFolder);
-        registerHandler(ServerSideRequestCode.GetFileMime, GetFileMime);
-        registerHandler(ServerSideRequestCode.GetFileContents, GetFileContents);
-        registerHandler(ServerSideRequestCode.GetFileSnapshots, GetFileSnapshots);
-        registerHandler(ServerSideRequestCode.AmIAdmin, AmIAdmin);
-        registerHandler(ServerSideRequestCode.ReadFile, ReadFile);
-        registerHandler(ServerSideRequestCode.UpdateFile, UpdateFile);
-    }
-
     private UnlockedUserAuthentication Internal_EnsureAuthentication()
     {
         UnlockedUserAuthentication unlockedUserAuthentication =
@@ -560,7 +497,7 @@ public sealed partial class Connection
             File file = await Internal_GetFile(transaction, me, Internal_ParseId(request.FileId));
 
             FileAccessResult result =
-                await Resources.FindFileAccess(transaction, file, me)
+                await Resources.FindFileAccess(transaction, file, me, userAuthentication)
                 ?? throw new InvalidOperationException("No access to this file");
 
             return new() { File = JToken.FromObject(file).ToString() };
@@ -606,8 +543,12 @@ public sealed partial class Connection
             if (parentFolder != null)
             {
                 FileAccessResult result =
-                    await Resources.FindFileAccess(transaction, parentFolder, me)
-                    ?? throw new InvalidOperationException("No access to this file");
+                    await Resources.FindFileAccess(
+                        transaction,
+                        parentFolder,
+                        me,
+                        userAuthentication
+                    ) ?? throw new InvalidOperationException("No access to this file");
             }
 
             User? ownerUser =
@@ -696,6 +637,7 @@ public sealed partial class Connection
                     transaction,
                     targetFile,
                     me,
+                    userAuthentication,
                     FileAccessLevel.Manage
                 );
 
@@ -779,6 +721,7 @@ public sealed partial class Connection
                             transaction,
                             file,
                             me,
+                            userAuthentication,
                             FileAccessLevel.Read
                         );
 
@@ -849,8 +792,13 @@ public sealed partial class Connection
             {
                 file = await Internal_GetFile(transaction, me, request.FileId);
                 FileAccessResult fileAccessResult =
-                    await Resources.FindFileAccess(transaction, file, me, FileAccessLevel.Read)
-                    ?? throw new InvalidOperationException("Insufficient permissions.");
+                    await Resources.FindFileAccess(
+                        transaction,
+                        file,
+                        me,
+                        userAuthentication,
+                        FileAccessLevel.Read
+                    ) ?? throw new InvalidOperationException("Insufficient permissions.");
             }
 
             FileStar[] fileStars = await Resources
@@ -869,6 +817,7 @@ public sealed partial class Connection
                             transaction,
                             file,
                             me,
+                            userAuthentication,
                             FileAccessLevel.Read
                         );
 
@@ -908,7 +857,13 @@ public sealed partial class Connection
 
             File currentFile = await Internal_GetFile(transaction, me, request.FileId);
             FileAccessResult result =
-                await Resources.FindFileAccess(transaction, currentFile, me, FileAccessLevel.Read)
+                await Resources.FindFileAccess(
+                    transaction,
+                    currentFile,
+                    me,
+                    userAuthentication,
+                    FileAccessLevel.Read
+                )
                 ?? throw new InvalidOperationException(
                     "Insufficient permissions to access the file."
                 );
@@ -918,16 +873,27 @@ public sealed partial class Connection
                     ? result.File
                     : await Resources.GetRootFolder(transaction, me);
 
-            List<File> path = [];
-            do
+            List<File> path = [currentFile];
+            while (true)
             {
                 currentFile = await Internal_GetFile(transaction, me, currentFile.ParentId);
-                path.Insert(0, currentFile);
-            } while (currentFile.Id != rootFile.Id);
+
+                if (path.Last().Id != currentFile.Id)
+                {
+                    path.Add(currentFile);
+                }
+
+                if (currentFile.Id == rootFile.Id)
+                {
+                    break;
+                }
+            }
 
             return new()
             {
-                Path = path.Select((entry) => JToken.FromObject(entry).ToString()).ToArray(),
+                Path = path.Reverse<File>()
+                    .Select((entry) => JToken.FromObject(entry).ToString())
+                    .ToArray(),
             };
         };
 
@@ -963,17 +929,14 @@ public sealed partial class Connection
                     transaction,
                     parentFolder,
                     me,
+                    userAuthentication,
                     FileAccessLevel.ReadWrite
                 ) ?? throw new InvalidOperationException("Insufficient permissions.");
-
-            UnlockedFile unlockedParentFolder = parentFolder.WithAesKey(
-                fileAccessResult.Unlock(userAuthentication)
-            );
 
             UnlockedFile file = await Resources.CreateFile(
                 transaction,
                 me,
-                unlockedParentFolder,
+                fileAccessResult.File,
                 FileType.File,
                 request.Name
             );
@@ -1031,17 +994,14 @@ public sealed partial class Connection
                     transaction,
                     parentFolder,
                     me,
+                    userAuthentication,
                     FileAccessLevel.ReadWrite
                 ) ?? throw new InvalidOperationException("Insufficient permissions.");
-
-            UnlockedFile unlockedParentFolder = parentFolder.WithAesKey(
-                fileAccessResult.Unlock(userAuthentication)
-            );
 
             UnlockedFile file = await Resources.CreateFile(
                 transaction,
                 me,
-                unlockedParentFolder,
+                fileAccessResult.File,
                 FileType.Folder,
                 request.Name
             );
@@ -1071,19 +1031,20 @@ public sealed partial class Connection
 
             File file = await Internal_GetFile(transaction, me, request.FileId);
             FileAccessResult fileAccessResult =
-                await Resources.FindFileAccess(transaction, file, me, FileAccessLevel.ReadWrite)
-                ?? throw new InvalidOperationException("Insufficient permissions.");
-
-            UnlockedFile unlockedFile = file.WithAesKey(
-                fileAccessResult.Unlock(userAuthentication)
-            );
+                await Resources.FindFileAccess(
+                    transaction,
+                    file,
+                    me,
+                    userAuthentication,
+                    FileAccessLevel.ReadWrite
+                ) ?? throw new InvalidOperationException("Insufficient permissions.");
 
             FileContent fileContent = await Resources.GetMainFileContent(transaction, file);
             FileSnapshot fileSnapshot =
                 await Resources.GetLatestFileSnapshot(transaction, file, fileContent)
                 ?? await Resources.CreateFileSnapshot(
                     transaction,
-                    unlockedFile,
+                    fileAccessResult.File,
                     fileContent,
                     userAuthentication,
                     null
@@ -1091,7 +1052,7 @@ public sealed partial class Connection
 
             System.IO.Stream stream = await Resources.CreateReadStream(
                 transaction,
-                unlockedFile,
+                fileAccessResult.File,
                 fileContent,
                 fileSnapshot
             );
@@ -1129,8 +1090,13 @@ public sealed partial class Connection
 
             File file = await Internal_GetFile(transaction, me, request.FileId);
             FileAccessResult fileAccessResult =
-                await Resources.FindFileAccess(transaction, file, me, FileAccessLevel.ReadWrite)
-                ?? throw new InvalidOperationException("Insufficient permissions.");
+                await Resources.FindFileAccess(
+                    transaction,
+                    file,
+                    me,
+                    userAuthentication,
+                    FileAccessLevel.ReadWrite
+                ) ?? throw new InvalidOperationException("Insufficient permissions.");
 
             FileContent[] fileContents = await Resources
                 .GetFileContents(transaction, file)
@@ -1174,8 +1140,13 @@ public sealed partial class Connection
 
             File file = await Internal_GetFile(transaction, me, request.FileId);
             FileAccessResult fileAccessResult =
-                await Resources.FindFileAccess(transaction, file, me, FileAccessLevel.ReadWrite)
-                ?? throw new InvalidOperationException("Insufficient permissions.");
+                await Resources.FindFileAccess(
+                    transaction,
+                    file,
+                    me,
+                    userAuthentication,
+                    FileAccessLevel.ReadWrite
+                ) ?? throw new InvalidOperationException("Insufficient permissions.");
 
             FileContent fileContent =
                 await Resources
@@ -1235,12 +1206,13 @@ public sealed partial class Connection
 
             File file = await Internal_GetFile(transaction, me, request.FileId);
             FileAccessResult fileAccessResult =
-                await Resources.FindFileAccess(transaction, file, me, FileAccessLevel.ReadWrite)
-                ?? throw new InvalidOperationException("Insufficient permissions.");
-
-            UnlockedFile unlockedFile = file.WithAesKey(
-                fileAccessResult.Unlock(userAuthentication)
-            );
+                await Resources.FindFileAccess(
+                    transaction,
+                    file,
+                    me,
+                    userAuthentication,
+                    FileAccessLevel.ReadWrite
+                ) ?? throw new InvalidOperationException("Insufficient permissions.");
 
             FileContent fileContent =
                 await Resources
@@ -1271,7 +1243,7 @@ public sealed partial class Connection
                 [
                     .. await Resources.ReadFile(
                         transaction,
-                        unlockedFile,
+                        fileAccessResult.File,
                         fileContent,
                         fileSnapshot,
                         request.Position,
@@ -1308,12 +1280,13 @@ public sealed partial class Connection
 
             File file = await Internal_GetFile(transaction, me, request.FileId);
             FileAccessResult fileAccessResult =
-                await Resources.FindFileAccess(transaction, file, me, FileAccessLevel.ReadWrite)
-                ?? throw new InvalidOperationException("Insufficient permissions.");
-
-            UnlockedFile unlockedFile = file.WithAesKey(
-                fileAccessResult.Unlock(userAuthentication)
-            );
+                await Resources.FindFileAccess(
+                    transaction,
+                    file,
+                    me,
+                    userAuthentication,
+                    FileAccessLevel.ReadWrite
+                ) ?? throw new InvalidOperationException("Insufficient permissions.");
 
             FileContent fileContent = await Resources.GetMainFileContent(transaction, file);
 
@@ -1331,7 +1304,7 @@ public sealed partial class Connection
 
             await Resources.WriteFile(
                 transaction,
-                unlockedFile,
+                fileAccessResult.File,
                 fileContent,
                 fileSnapshot,
                 userAuthentication,
@@ -1365,41 +1338,4 @@ public sealed partial class Connection
                     .AnyAsync(transaction.CancellationToken)
             };
         };
-}
-
-public enum ServerSideRequestCode : byte
-{
-    Echo,
-
-    WhoAmI,
-
-    AuthenticatePassword,
-    AuthenticateGoogle,
-    AuthenticateToken,
-    Deauthenticate,
-
-    CreateAdmin,
-    SetupRequirements,
-
-    ResolveUsername,
-
-    GetUser,
-    GetUsers,
-
-    GetFile,
-    GetFiles,
-
-    GetFileAccesses,
-    GetFileStars,
-    GetFilePath,
-
-    UploadFile,
-    CreateFolder,
-    GetFileMime,
-    GetFileContents,
-    GetFileSnapshots,
-    ReadFile,
-    UpdateFile,
-
-    AmIAdmin
 }

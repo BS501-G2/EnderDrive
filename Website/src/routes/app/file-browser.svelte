@@ -18,7 +18,7 @@
 </script>
 
 <div class="file-browser">
-	<div class="left" >
+	<div class="left">
 		{#if $top.length}
 			<div class="top">
 				{#each $top as { id, snippet }, index (id)}
@@ -81,6 +81,7 @@
 
 		> div.left {
 			flex-grow: 1;
+			min-height: 0;
 
 			> div.top {
 				flex-direction: column;

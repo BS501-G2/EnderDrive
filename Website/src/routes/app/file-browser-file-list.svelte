@@ -25,7 +25,7 @@
 	});
 
 	let createButton: HTMLButtonElement = $state(null as never);
-	let create: boolean = $state(true);
+	let create: boolean = $state(false);
 </script>
 
 {#if current.type === 'folder'}
@@ -41,6 +41,7 @@
 
 	{#if create}
 		<FileBrowserCreate
+			file={current.file}
 			ondismiss={() => {
 				create = false;
 			}}
@@ -63,6 +64,7 @@
 		flex-grow: 1;
 
 		overflow: auto auto;
+		min-height: 0;
 
 		> div.list {
 			> div.header {
