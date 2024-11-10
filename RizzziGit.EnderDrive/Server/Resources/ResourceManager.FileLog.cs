@@ -1,16 +1,25 @@
 using System.Linq;
 using System.Threading.Tasks;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
 public sealed record class FileLog : ResourceData
 {
+    [BsonElement("type")]
     public required FileLogType Type;
 
+    [BsonElement("actorUserId")]
     public required ObjectId ActorUserId;
+
+    [BsonElement("fileId")]
     public required ObjectId FileId;
+
+    [BsonElement("fileContentId")]
     public required ObjectId? FileContentId;
+
+    [BsonElement("fileSnapshotId")]
     public required ObjectId? FileSnapshotId;
 }
 
@@ -40,7 +49,7 @@ public sealed partial class ResourceManager
                 ActorUserId = actorUser.Id,
                 FileId = file.Id,
                 FileContentId = fileContent?.Id,
-                FileSnapshotId = fileSnapshot?.Id
+                FileSnapshotId = fileSnapshot?.Id,
             };
 
         await Insert(transaction, [log]);

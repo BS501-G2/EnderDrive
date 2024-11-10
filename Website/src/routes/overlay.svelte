@@ -131,6 +131,9 @@
 
 		div.window-button {
 			padding: 8px 16px;
+
+			align-items: center;
+			justify-content: center;
 		}
 	}
 

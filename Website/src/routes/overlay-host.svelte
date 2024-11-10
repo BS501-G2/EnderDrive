@@ -11,10 +11,10 @@
 
 {#if $overlay.length != 0}
 	<div class="overlay" class:dim={$dim} transition:fade={{ duration: 250 }}>
-		<div class="overlay-a">
-		{#each $overlay as [id, snippet] (id)}
-			{@render snippet()}
-		{/each}
+		<div class:overlay-a={$dim}>
+			{#each $overlay as [id, snippet] (id)}
+				{@render snippet()}
+			{/each}
 		</div>
 	</div>
 {/if}

@@ -664,23 +664,6 @@ function getServerFunctions(
 			return path.map((entry: any) => JSON.parse(entry)) as FileResource[];
 		},
 
-		uploadFile: async (parentFileId: string, name: string) => {
-			const { streamId } = await request(ServerSideRequestCode.UploadFile, {
-				parentFileId,
-				name
-			});
-
-			return streamId as number;
-		},
-
-		uploadBuffer: async (streamId: number, data: Buffer | Blob) => {
-			await request(ServerSideRequestCode.UploadBuffer, { streamId, data });
-		},
-
-		finishBuffer: async (streamId: number) => {
-			await request(ServerSideRequestCode.FinishBuffer, { streamId });
-		},
-
 		createFolder: async (parentFileId: string, name: string) => {
 			const { file } = await request(ServerSideRequestCode.CreateFolder, { parentFileId, name });
 
@@ -718,7 +701,7 @@ function getServerFunctions(
 
 			return fileSnapshots.map((fileSnapshot: string) =>
 				JSON.parse(fileSnapshot)
-			) as FileSnapshotResource;
+			) as FileSnapshotResource[];
 		},
 
 		readFile: async ({
@@ -745,35 +728,49 @@ function getServerFunctions(
 			return fileData as Buffer;
 		},
 
-		updateFile: async ({
-			fileId,
-			fileContextId,
-			fileSnapshotId,
-			position
-		}: {
-			fileId: string;
-			fileContextId: string;
-			fileSnapshotId?: string;
-			position: number;
-		}) => {
-			const { streamId } = await request(ServerSideRequestCode.UpdateFile, {
-				fileId,
-				fileContextId,
-				fileSnapshotId,
-				position
-			});
-
-			return streamId as number;
-		},
-
 		amIAdmin: async () => {
 			const { amIAdmin } = await request(ServerSideRequestCode.AmIAdmin, {});
 
 			return amIAdmin as number;
 		},
 
-		getFileLogs: async () => {
+		getFileLogs: async ({
+			fileId,
+			fileContentId,
+			fileSnapshotId,
+			userId,
+			offset,
+			count
+		}: {
+			fileId?: string;
+			fileContentId?: string;
+			fileSnapshotId?: string;
+			userId?: string;
+			offset?: number;
+			count?: number;
+		}) => {
+			const { fileLogs } = await request(ServerSideRequestCode.GetFileLogs, {
+				fileId,
+				fileContentId,
+				fileSnapshotId,
+				userId,
+				pagination: {
+					offset,
+					count
+				}
+			});
 
+			return fileLogs.map((fileLog: any) => JSON.parse(fileLog)) as FileLogResource[];
+		},
+
+		scanFile: async (fileId: string, fileContentId: string, fileSnapshotId: string) => {
+			const { fileViruses } = await request(ServerSideRequestCode.ScanFile, {
+				fileId,
+				fileContentId,
+				fileSnapshotId
+			});
+
+			return fileViruses as string[];
 		}
 	};
 
@@ -810,9 +807,6 @@ export enum ServerSideRequestCode {
 	GetFileStars,
 	GetFilePath,
 
-	UploadFile,
-	UploadBuffer,
-	FinishBuffer,
 	CreateFolder,
 	GetFileMime,
 	GetFileContents,
@@ -823,7 +817,15 @@ export enum ServerSideRequestCode {
 	AmIAdmin,
 
 	GetFileLogs,
-	ScanFile
+	ScanFile,
+
+	OpenStream,
+	CloseStream,
+	ReadStream,
+	WriteStream,
+	SeekStream,
+	GetStreamSize,
+	GetStreamPosition
 }
 
 export interface SearchParams {
@@ -872,6 +874,21 @@ export interface FileSnapshotResource extends ResourceData {
 	baseFileSnapshotId?: string;
 }
 
+export interface FileLogResource extends ResourceData {
+	type: FileType;
+	fileId: string;
+	actorUserId?: string;
+	fileContentId?: string;
+	fileSnapshotId?: string;
+}
+
+export interface FileVirusReportResource extends ResourceData {
+	fileId: string;
+	fileContentId: string;
+	fileSnapshotId: string;
+	viruses: string[];
+}
+
 export interface FileStarResource extends ResourceData {
 	fileId: string;
 	userId: string;
@@ -912,4 +929,10 @@ export enum TrashOptions {
 	NotIncluded,
 	Included,
 	Exclusive
+}
+
+export enum FileLogType {
+	CreateFile,
+	TrashFile,
+	ModifyFile
 }

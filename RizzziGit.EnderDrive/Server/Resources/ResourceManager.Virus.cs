@@ -41,7 +41,7 @@ public sealed partial class ResourceManager
                 FileContentId = fileContent.Id,
                 FileSnapshotId = fileSnapshot.Id,
 
-                Viruses = viruses
+                Viruses = viruses,
             };
 
         await Insert(transaction, [report]);

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace RizzziGit.EnderDrive.Server.Services;
+namespace RizzziGit.EnderDrive.Server.Connections;
 
 using System;
 using System.Net.WebSockets;

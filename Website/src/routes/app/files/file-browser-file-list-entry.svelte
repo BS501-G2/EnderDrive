@@ -7,6 +7,7 @@
 	import Icon from '$lib/client/ui/icon.svelte';
 	import { onMount, type Snippet } from 'svelte';
 	import { get } from 'svelte/store';
+	import { fly } from 'svelte/transition';
 
 	const { file }: { file: FileEntry } = $props();
 	const { pushFile, selectedFileIds, selectFile, deselectFile } = useFileBrowserListContext();
@@ -52,7 +53,7 @@
 	onkeypress={() => {}}
 >
 	{#if $isDesktop || ($isMobile && $selectedFileIds.length)}
-		<div class="check">
+		<div class="check" transition:fly={{ x: -16, duration: 150 }}>
 			{#if hover || $selectedFileIds.includes(file.file.id)}
 				<button
 					class="check"
@@ -89,7 +90,7 @@
 			</a>
 		</div>
 
-		{#if (hover || $isMobile) && ($isDesktop || $selectedFileIds.length === 0)}
+		{#if hover && $isDesktop}
 			<div class="actions">
 				{#snippet buttonForeground(view: Snippet)}
 					<div class="foreground">
@@ -192,6 +193,12 @@
 				}
 			}
 		}
+
+		> div.modified {
+			flex-shrink: 0;
+
+			@include force-size(256px, &);
+		}
 	}
 
 	div.file.mobile {
@@ -210,7 +217,6 @@
 		}
 
 		> div.modified {
-			flex-shrink: 0;
 		}
 	}
 </style>

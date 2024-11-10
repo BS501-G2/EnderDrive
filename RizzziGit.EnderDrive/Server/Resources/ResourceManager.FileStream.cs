@@ -24,7 +24,8 @@ public sealed partial class ResourceManager
         ResourceManagerContext context = GetContext();
 
         FileStreamKey key = new(file.Id, content.Id, snapshot.Id);
-        if (context.FileStreams.TryGetValue(key, out FileStream? stream))
+        FileStream? stream;
+        if (context.FileStreams.TryGetValue(key, out _))
         {
             throw new InvalidOperationException("Existing file stream is active.");
         }
@@ -99,6 +100,15 @@ public sealed partial class ResourceManager
         UnlockedUserAuthentication? userAuthentication
     ) : Stream
     {
+        protected override void Dispose(bool disposing)
+        {
+            manager
+                .GetContext()
+                .FileStreams.TryRemove(new(File.Id, FileContent.Id, FileSnapshot.Id), out _);
+
+            base.Dispose(disposing);
+        }
+
         public readonly UnlockedFile File = file;
         public readonly FileContent FileContent = content;
         public readonly FileSnapshot FileSnapshot = snapshot;

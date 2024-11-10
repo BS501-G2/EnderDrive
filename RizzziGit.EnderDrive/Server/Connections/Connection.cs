@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
 
-namespace RizzziGit.EnderDrive.Server.Services;
+namespace RizzziGit.EnderDrive.Server.Connections;
 
 using Commons.Memory;
 using Commons.Net.WebConnection;
@@ -28,12 +28,15 @@ public sealed partial class ConnectionContext
     public required ConcurrentDictionary<ulong, Stream> FileStreams;
 }
 
+public sealed record ConnectionUploadToken();
+
 public delegate Task<ConnectionPacket<ResponseCode>> RawRequestHandler(
-    ResourceTransaction transaction,
-    ConnectionPacket<ServerSideRequestCode> request
+    ConnectionPacket<ServerSideRequestCode> request,
+    CancellationToken cancellationToken
 );
 
-public delegate Task<R> RequestHandler<S, R>(ResourceTransaction transaction, S request);
+public delegate Task<R> TransactedRequestHandler<S, R>(ResourceTransaction transaction, S request);
+public delegate Task<R> RequestHandler<S, R>(S request, CancellationToken cancellationToken);
 
 public enum ResponseCode : byte
 {
@@ -42,7 +45,7 @@ public enum ResponseCode : byte
     InvalidParameters,
     NoHandlerFound,
     InvalidRequestCode,
-    InternalError
+    InternalError,
 }
 
 public sealed partial class ConnectionPacket<T>
@@ -107,7 +110,7 @@ public sealed partial class Connection(
                 Handlers = new(),
 
                 NextFileStreamId = 0,
-                FileStreams = new()
+                FileStreams = new(),
             };
 
         RegisterHandlers(context);
@@ -125,7 +128,7 @@ public sealed partial class Connection(
         Task[] tasks =
         [
             WatchService(context.Internal, serviceCancellationToken),
-            RunWorker(context, serviceCancellationToken)
+            RunWorker(context, serviceCancellationToken),
         ];
 
         await await Task.WhenAny(tasks);
@@ -157,6 +160,7 @@ public sealed partial class Connection(
                         ? webConnectionResponseException.Data
                         : []
                 );
+
                 continue;
             }
         }

@@ -11,13 +11,14 @@ using Newtonsoft.Json;
 namespace RizzziGit.EnderDrive.Server.Resources;
 
 using System.Text.RegularExpressions;
+using MongoDB.Bson.Serialization.Attributes;
 using Services;
 
 public enum UserAuthenticationType
 {
     Password,
     Google,
-    Token
+    Token,
 }
 
 public record class UserAuthentication : ResourceData
@@ -46,6 +47,10 @@ public record class UserAuthentication : ResourceData
     [JsonIgnore]
     public required byte[] EncryptedUserPrivateRsaKey;
 
+    [JsonIgnore]
+    [BsonRepresentation(representation: BsonType.DateTime)]
+    public required DateTimeOffset CreateTime;
+
     public UnlockedUserAuthentication Unlock(UnlockedUserAuthentication userAuthentication) =>
         Unlock(userAuthentication.Payload);
 
@@ -62,7 +67,6 @@ public record class UserAuthentication : ResourceData
             aesKey = rfc2898DeriveBytes.GetBytes(32);
         }
 
-
         byte[] rsaPrivateKey = KeyManager.Decrypt(aesKey, EncryptedUserPrivateRsaKey);
 
         return new()
@@ -77,6 +81,7 @@ public record class UserAuthentication : ResourceData
             AesIv = AesIv,
             UserPublicRsaKey = UserPublicRsaKey,
             EncryptedUserPrivateRsaKey = EncryptedUserPrivateRsaKey,
+            CreateTime = CreateTime,
 
             Payload = payload,
             AesKey = payload,
@@ -104,7 +109,7 @@ public enum PasswordVerification
     TooShort = 1 << 0,
     TooLong = 1 << 1,
     NoRequiredChars = 1 << 2,
-    PasswordMismatch = 1 << 3
+    PasswordMismatch = 1 << 3,
 }
 
 public sealed partial class ResourceManager
@@ -188,6 +193,7 @@ public sealed partial class ResourceManager
                 AesIv = iv,
                 UserPublicRsaKey = rsaPublicKey,
                 EncryptedUserPrivateRsaKey = encryptedRsaPrivateKey,
+                CreateTime = DateTimeOffset.UtcNow,
             };
 
         await UserAuthentications.InsertOneAsync(
@@ -211,6 +217,7 @@ public sealed partial class ResourceManager
                 Payload = payload,
                 AesKey = aesKey,
                 UserRsaPrivateKey = rsaPrivateKey,
+                CreateTime = userAuthentication.CreateTime,
             }
         );
     }
@@ -251,6 +258,7 @@ public sealed partial class ResourceManager
                 AesIv = iv,
                 UserPublicRsaKey = sourceUserAuthentication.UserPublicRsaKey,
                 EncryptedUserPrivateRsaKey = encryptedRsaPrivateKey,
+                CreateTime = DateTimeOffset.UtcNow,
             };
 
         await UserAuthentications.InsertOneAsync(
@@ -273,6 +281,7 @@ public sealed partial class ResourceManager
             AesKey = sourceUserAuthentication.AesKey,
             UserRsaPrivateKey = sourceUserAuthentication.UserRsaPrivateKey,
             Payload = payload,
+            CreateTime = userAuthentication.CreateTime,
         };
     }
 

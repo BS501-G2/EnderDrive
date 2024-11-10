@@ -3,9 +3,10 @@ using System.Linq;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace RizzziGit.EnderDrive.Server.Services;
+namespace RizzziGit.EnderDrive.Server.Connections;
 
 using Resources;
+using RizzziGit.EnderDrive.Utilities;
 
 public sealed partial class Connection
 {
@@ -22,6 +23,9 @@ public sealed partial class Connection
 
         [BsonElement("userId")]
         public required ObjectId? UserId;
+
+        [BsonElement("pagination")]
+        public required PaginationOptions? Pagination;
     }
 
     private sealed record class GetFileLogsResponse
@@ -30,7 +34,7 @@ public sealed partial class Connection
         public required string[] FileLogs;
     }
 
-    private RequestHandler<GetFileLogsRequest, GetFileLogsResponse> GetFileLogs =>
+    private TransactedRequestHandler<GetFileLogsRequest, GetFileLogsResponse> GetFileLogs =>
         async (transaction, request) =>
         {
             UnlockedUserAuthentication userAuthentication = Internal_EnsureAuthentication();
@@ -126,6 +130,7 @@ public sealed partial class Connection
 
             FileLog[] fileLogs = await Resources
                 .GetFileLogs(transaction, file, fileContent, fileSnapshot, user)
+                .ApplyPagination(request.Pagination)
                 .ToAsyncEnumerable()
                 .ToArrayAsync(transaction.CancellationToken);
 

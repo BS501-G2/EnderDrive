@@ -264,7 +264,7 @@
 			margin: 5px;
 		}
 		.file-icons {
-			isplay: grid;
+			display: grid;
 			grid-template-columns: auto;
 			grid-area: 1 / 3 / 3 / 4;
 			align-items: center;

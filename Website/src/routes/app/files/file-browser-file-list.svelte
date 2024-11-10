@@ -8,14 +8,15 @@
 	import FileBrowserCreateFolder from './file-browser-create-folder.svelte';
 	import { useServerContext } from '$lib/client/client';
 	import FileBrowserRefresh from './file-browser-refresh.svelte';
+	import Title from '../title.svelte';
 
 	const {
 		current
 	}: { current: CurrentFile & { type: 'folder' | 'shared' | 'starred' | 'trash' } } = $props();
 
 	const { setFileListContext, refresh } = useFileBrowserContext();
-	const { uploadFile, uploadBuffer, finishBuffer } = useServerContext();
-	const { context } = createFileBrowserListContext();
+	// const { uploadFile, uploadBuffer, finishBuffer } = useServerContext();
+	const { context, selectedFileIds } = createFileBrowserListContext();
 
 	onMount(() => setFileListContext(context));
 
@@ -25,6 +26,10 @@
 </script>
 
 <FileBrowserRefresh />
+
+{#if $selectedFileIds.length > 0}
+	<Title title="{$selectedFileIds.length} Selected" />
+{/if}
 
 {#if current.type === 'folder'}
 	<FileBrowserAction
@@ -50,18 +55,22 @@
 					uploadPromise = { resolve };
 				});
 
-				for (const file of files) {
-					const streamId = await uploadFile(current.file.id, file.name);
-					const bufferSize = 1024 * 256;
-
-					for (let index = 0; index < file.size; index += bufferSize) {
-						const buffer = file.slice(index, index + bufferSize);
-
-						await uploadBuffer(streamId, buffer);
-					}
-
-					await finishBuffer(streamId);
+				if (files.length === 0) {
+					return;
 				}
+
+				// for (const file of files) {
+				// 	const streamId = await uploadFile(current.file.id, file.name);
+				// 	const bufferSize = 1024 * 256;
+
+				// 	for (let index = 0; index < file.size; index += bufferSize) {
+				// 		const buffer = file.slice(index, index + bufferSize);
+
+				// 		await uploadBuffer(streamId, buffer);
+				// 	}
+
+				// 	await finishBuffer(streamId);
+				// }
 
 				refresh();
 			} finally {
@@ -91,6 +100,7 @@
 
 	{#if newFolder}
 		<FileBrowserCreateFolder
+			parentFolder={current.file}
 			ondismiss={() => {
 				newFolder = false;
 			}}
@@ -98,26 +108,36 @@
 	{/if}
 {/if}
 
-<div class="list-container">
-	<div class="list">
-		<div class="header"></div>
+<div class="container">
+	<div class="list-header"></div>
 
-		{#each current.files as file}
-			<FileBrowserFileListEntry {file} />
-		{/each}
+	<div class="list-container">
+		<div class="list">
+			<div class="header"></div>
+
+			{#each current.files as file}
+				<FileBrowserFileListEntry {file} />
+			{/each}
+		</div>
 	</div>
 </div>
 
 <style lang="scss">
-	div.list-container {
+	div.container {
 		flex-grow: 1;
 
-		overflow: auto auto;
 		min-height: 0;
 
-		// > div.list {
-		// 	> div.header {
-		// 	}
-		// }
+		div.list-container {
+			flex-grow: 1;
+
+			overflow: auto auto;
+			min-height: 0;
+
+			// > div.list {
+			// 	> div.header {
+			// 	}
+			// }
+		}
 	}
 </style>

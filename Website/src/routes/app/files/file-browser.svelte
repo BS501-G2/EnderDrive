@@ -13,6 +13,7 @@
 	import FileBrowserAction from './file-browser-action.svelte';
 	import { fly } from 'svelte/transition';
 	import { onMount } from 'svelte';
+	import FileBrowserPropertiesMobile from './file-browser-properties-mobile.svelte';
 
 	const { resolve, onFileId }: FileBrowserOptions = $props();
 	const { actions, top, current, middle, bottom } = createFileBrowserContext(onFileId);
@@ -27,6 +28,14 @@
 				fileListContext.selectedFileIds.subscribe((selectedFileIds) => {
 					flattenedSelectedIds = selectedFileIds;
 				});
+			}
+		})
+	);
+
+	onMount(() =>
+		isMobile.subscribe((isMobile) => {
+			if (isMobile) {
+				$showDetails = false;
 			}
 		})
 	);
@@ -88,13 +97,17 @@
 
 <FileManagerActionHost {actions} />
 
-{#if $current.type !== 'loading'}
+{#if $current.type !== 'loading' && ($isDesktop || ($isMobile && flattenedSelectedIds.length))}
 	<FileBrowserAction
 		label="Details"
 		icon={{ icon: 'info', thickness: 'solid' }}
 		onclick={() => showDetails.update((value) => !value)}
 		type="right-main"
 	/>
+{/if}
+
+{#if $isMobile && $showDetails && $fileListContext != null && flattenedSelectedIds.length > 0}
+	<FileBrowserPropertiesMobile selectedFileIds={flattenedSelectedIds} />
 {/if}
 
 <style lang="scss">

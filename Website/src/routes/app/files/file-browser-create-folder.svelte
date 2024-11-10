@@ -6,11 +6,26 @@
 	import Icon from '$lib/client/ui/icon.svelte';
 	import Separator from '$lib/client/ui/separator.svelte';
 	import { useAppContext } from '$lib/client/contexts/app';
+	import { useServerContext, type FileResource } from '$lib/client/client';
+	import { useFileBrowserContext } from '$lib/client/contexts/file-browser';
 
-	const { ondismiss }: { ondismiss: () => void } = $props();
+	const { parentFolder, ondismiss }: { parentFolder: FileResource; ondismiss: () => void } =
+		$props();
 	const { isMobile } = useAppContext();
+	const { createFolder } = useServerContext();
+	const { onFileId } = useFileBrowserContext();
 
 	let name: string = $state('');
+
+	async function onclick(
+		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
+	): Promise<void> {
+		const folder = await createFolder(parentFolder.id, name);
+
+		ondismiss();
+
+		onFileId?.(event, folder.id);
+	}
 </script>
 
 <Overlay {ondismiss}>
@@ -32,13 +47,14 @@
 						Creating a new folder named
 						<b class="folder-name">{name}</b> will automatically redirect you inside it.
 					</p>
+
 					<Input id="folder-name" type="text" name="Folder Name" bind:value={name} />
 				</div>
 
 				<Separator horizontal />
 
 				<div class="footer">
-					<Button onclick={() => {}}>
+					<Button {onclick}>
 						<div class="button">
 							<Icon icon="plus" />
 							<p>Create</p>

@@ -12,7 +12,7 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 public record class FileSnapshot : ResourceData
 {
     [JsonProperty("createTime")]
-    [BsonRepresentation(BsonType.DateTime)]
+    [BsonRepresentation(representation: BsonType.DateTime)]
     public required DateTimeOffset CreateTime;
 
     [JsonProperty("fileId")]

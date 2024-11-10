@@ -60,7 +60,9 @@ export function createAppContext() {
 		isFullscreen: derived(windowMode, (value) => (value & WindowMode.Fullscreen) != 0),
 		isMinimal: derived(windowMode, (value) => (value & WindowMode.Minimal) != 0),
 
-		currentTitle: derived(titleStack, (value) => value.at(-1))
+		currentTitle: derived(titleStack, (value) => value.at(-1)),
+
+		titleStack: derived(titleStack, (value) => [...value]),
 	});
 
 	return { viewMode, windowMode, overlay, titleStack, context };

@@ -12,8 +12,6 @@
 	import { onMount, type Snippet } from 'svelte';
 	import { createNavigationContext } from '$lib/client/contexts/navigation';
 	import NavigationHost from './navigation-host.svelte';
-	import Navigation from './navigation.svelte';
-	import { derived } from 'svelte/store';
 	import AppButtonHost from './app-button-host.svelte';
 	import NotificationButtonDesktop from './notification-button-desktop.svelte';
 

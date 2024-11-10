@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace RizzziGit.EnderDrive.Server.Services;
+namespace RizzziGit.EnderDrive.Server.Connections;
 
 using Commons.Memory;
 using MessagePack;

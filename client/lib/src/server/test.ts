@@ -10,7 +10,7 @@ process.on("uncaughtException", () => {});
 export const testFunctions: TestFunctions = {
   server: async () => {
     const server = new Server();
-    await server.start(8082);
+    await server.start(8085);
 
     const onStop = () => {
       server.stop();
