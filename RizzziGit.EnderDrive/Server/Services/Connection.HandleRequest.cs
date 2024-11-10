@@ -128,7 +128,7 @@ public sealed partial class Connection
         registerHandler(ServerSideRequestCode.AmIAdmin, AmIAdmin);
         registerHandler(ServerSideRequestCode.ReadFile, ReadFile);
         registerHandler(ServerSideRequestCode.UpdateFile, UpdateFile);
-
+        registerHandler(ServerSideRequestCode.GetFileLogs, GetFileLogs);
     }
 }
 
@@ -170,6 +170,6 @@ public enum ServerSideRequestCode : byte
 
     AmIAdmin,
 
-GetFileLogs,
-    ScanFile
+    GetFileLogs,
+    ScanFile,
 }

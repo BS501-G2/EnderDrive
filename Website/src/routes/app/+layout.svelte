@@ -171,6 +171,7 @@
 			min-height: 48px;
 			gap: 8px;
 			padding: 0 8px;
+			box-sizing: border-box;
 
 			> div.nav {
 				margin: 8px 0;

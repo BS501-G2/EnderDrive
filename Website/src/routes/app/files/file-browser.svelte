@@ -10,11 +10,26 @@
 	import FileBrowserProperties from './file-browser-properties.svelte';
 	import { useAppContext } from '$lib/client/contexts/app';
 	import FileBrowserResolver from './file-browser-resolver.svelte';
+	import FileBrowserAction from './file-browser-action.svelte';
+	import { fly } from 'svelte/transition';
+	import { onMount } from 'svelte';
 
 	const { resolve, onFileId }: FileBrowserOptions = $props();
 	const { actions, top, current, middle, bottom } = createFileBrowserContext(onFileId);
-	const { showDetails } = useFileBrowserContext();
+	const { showDetails, fileListContext } = useFileBrowserContext();
 	const { isMobile, isDesktop } = useAppContext();
+
+	let flattenedSelectedIds: string[] = $state([]);
+
+	onMount(() =>
+		fileListContext.subscribe((fileListContext) => {
+			if (fileListContext != null) {
+				fileListContext.selectedFileIds.subscribe((selectedFileIds) => {
+					flattenedSelectedIds = selectedFileIds;
+				});
+			}
+		})
+	);
 </script>
 
 <div class="file-browser">
@@ -58,9 +73,11 @@
 		{/if}
 	</div>
 
-	{#if $isMobile && $showDetails}
-		<div class="right">
-			<FileBrowserProperties />
+	{#if $isDesktop && $showDetails && $fileListContext != null}
+		<Separator vertical />
+
+		<div class="right" transition:fly={{ x: 16 }}>
+			<FileBrowserProperties selectedFileIds={flattenedSelectedIds} />
 		</div>
 	{/if}
 </div>
@@ -68,19 +85,31 @@
 {#if $current.type === 'file' || $current.type === 'folder' || $current.type === 'loading'}
 	<FileBrowserPath current={$current} />
 {/if}
+
 <FileManagerActionHost {actions} />
 
+{#if $current.type !== 'loading'}
+	<FileBrowserAction
+		label="Details"
+		icon={{ icon: 'info', thickness: 'solid' }}
+		onclick={() => showDetails.update((value) => !value)}
+		type="right-main"
+	/>
+{/if}
+
 <style lang="scss">
-	@use '../../global.scss' as *;
+	@use '../../../global.scss' as *;
 
 	div.file-browser {
 		flex-grow: 1;
+		flex-direction: row;
 
 		min-width: 0;
 		min-height: 0;
 
 		> div.left {
 			flex-grow: 1;
+			min-width: 0;
 			min-height: 0;
 
 			> div.top {
@@ -103,9 +132,6 @@
 			> div.bottom {
 				flex-direction: row;
 			}
-		}
-
-		> div.right {
 		}
 	}
 </style>

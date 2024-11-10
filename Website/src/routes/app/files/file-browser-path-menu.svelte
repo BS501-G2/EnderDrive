@@ -3,7 +3,7 @@
 	import Icon from '$lib/client/ui/icon.svelte';
 	import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte';
 	import Separator from '$lib/client/ui/separator.svelte';
-	import Overlay from '../overlay.svelte';
+	import Overlay from '../../overlay.svelte';
 	import FileBrowserPathMenuEntry from './file-browser-path-menu-entry.svelte';
 	import FileBrowserPathMenu from './file-browser-path-menu.svelte';
 
@@ -49,7 +49,7 @@
 </Overlay>
 
 <style lang="scss">
-	@use '../../global.scss' as *;
+	@use '../../../global.scss' as *;
 
 	div.menu {
 		background-color: var(--color-9);

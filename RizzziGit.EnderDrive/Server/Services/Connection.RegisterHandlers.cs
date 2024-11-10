@@ -87,7 +87,7 @@ public sealed partial class Connection
                 AdminSetupRequired = !await Resources
                     .GetAdminAccesses(transaction)
                     .ToAsyncEnumerable()
-                    .AnyAsync(transaction.CancellationToken)
+                    .AnyAsync(transaction.CancellationToken),
             };
 
     private sealed record class CreateAdminRequest()
@@ -177,7 +177,7 @@ public sealed partial class Connection
                         .GetUsers(transaction, request.Username)
                         .ToAsyncEnumerable()
                         .FirstOrDefaultAsync(transaction.CancellationToken)
-                )?.Id
+                )?.Id,
             };
 
     private sealed record class AuthenticatePasswordRequest
@@ -473,7 +473,7 @@ public sealed partial class Connection
 
             return new()
             {
-                Users = users.Select((user) => JToken.FromObject(user).ToString()).ToArray()
+                Users = users.Select((user) => JToken.FromObject(user).ToString()).ToArray(),
             };
         };
 
@@ -591,7 +591,7 @@ public sealed partial class Connection
 
             return new()
             {
-                Files = files.Select((file) => JToken.FromObject(file).ToString()).ToArray()
+                Files = files.Select((file) => JToken.FromObject(file).ToString()).ToArray(),
             };
         };
 
@@ -734,7 +734,7 @@ public sealed partial class Connection
             {
                 FileAccesses = fileAccesses
                     .Select((fileAccess) => JToken.FromObject(fileAccess).ToString())
-                    .ToArray()
+                    .ToArray(),
             };
         };
 
@@ -830,7 +830,7 @@ public sealed partial class Connection
             {
                 FileStars = fileStars
                     .Select((fileStar) => JToken.FromObject(fileStar).ToString())
-                    .ToArray()
+                    .ToArray(),
             };
         };
 
@@ -964,7 +964,7 @@ public sealed partial class Connection
                 throw new InvalidOperationException("Failed ");
             }
 
-            return new() { StreamId = fileStreamId, };
+            return new() { StreamId = fileStreamId };
         };
 
     private sealed record class UploadBufferRequest
@@ -1054,7 +1054,7 @@ public sealed partial class Connection
                 request.Name
             );
 
-            return new() { File = JToken.FromObject(file.Original).ToString(), };
+            return new() { File = JToken.FromObject(file.Original).ToString() };
         };
 
     private sealed class GetFileMimeRequest
@@ -1156,7 +1156,7 @@ public sealed partial class Connection
             {
                 FileContents = fileContents
                     .Select((fileContent) => JToken.FromObject(fileContent).ToString())
-                    .ToArray()
+                    .ToArray(),
             };
         };
 
@@ -1215,8 +1215,8 @@ public sealed partial class Connection
                 [
                     .. fileSnapshots.Select(
                         (fileSnapshot) => JToken.FromObject(fileSnapshot).ToString()
-                    )
-                ]
+                    ),
+                ],
             };
         };
 
@@ -1296,8 +1296,8 @@ public sealed partial class Connection
                         fileSnapshot,
                         request.Position,
                         request.Length
-                    )
-                ]
+                    ),
+                ],
             };
         };
 
@@ -1386,70 +1386,7 @@ public sealed partial class Connection
                 AmIAdmin = await Resources
                     .GetAdminAccesses(transaction, me.Id)
                     .ToAsyncEnumerable()
-                    .AnyAsync(transaction.CancellationToken)
+                    .AnyAsync(transaction.CancellationToken),
             };
-        };
-
-    private sealed record class GetFileLogsRequest
-    {
-        [BsonElement("fileId")]
-        public required ObjectId FileId;
-
-        [BsonElement("fileContentId")]
-        public required ObjectId? FileContentId;
-
-        [BsonElement("fileSnapshotId")]
-        public required ObjectId? FileSnapshotId;
-
-        [BsonElement("userId")]
-        public required ObjectId? UserId;
-    }
-
-    private sealed record class GetFileLogsResponse
-    {
-        [BsonElement("fileLogs")]
-        public required string[] FileLogs;
-    }
-
-    private RequestHandler<GetFileLogsRequest, GetFileLogsResponse> GetFileLogs =>
-        async (transaction, request) =>
-        {
-            UnlockedUserAuthentication userAuthentication = Internal_EnsureAuthentication();
-            User me = await Internal_Me(transaction, userAuthentication);
-
-            if (
-                me.Id != request.UserId
-                && !await Resources
-                    .GetAdminAccesses(transaction, me.Id)
-                    .ToAsyncEnumerable()
-                    .AnyAsync(transaction)
-            )
-            {
-                throw new InvalidOperationException(
-                    "User ID other than self is not allowed when not an administrator."
-                );
-            }
-
-            User? user =
-                request.UserId != null
-                    ? await Resources
-                        .GetUsers(transaction, id: request.UserId)
-                        .ToAsyncEnumerable()
-                        .FirstOrDefaultAsync(transaction)
-                    : null;
-
-            File? file = request.FileId!= null
-                ? await Internal_GetFile(transaction, me, request.FileId)
-                : null;
-            FileAccessResult fileAccessResult =
-                await Resources.FindFileAccess(
-                    transaction,
-                    file,
-                    me,
-                    userAuthentication,
-                    FileAccessLevel.ReadWrite
-                ) ?? throw new InvalidOperationException("Insufficient permissions.");
-
-            // return new() { };
         };
 }

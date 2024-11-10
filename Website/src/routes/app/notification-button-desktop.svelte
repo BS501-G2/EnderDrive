@@ -31,6 +31,8 @@
 
 <style lang="scss">
 	div.notification {
+		-webkit-app-region: no-drag;
+
 		flex-direction: row;
 
 		align-items: center;

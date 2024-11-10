@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { useDashboardContext } from '$lib/client/contexts/dashboard';
 	import { derived, type Readable } from 'svelte/store';
-	import AppButton from './app-button.svelte';
+	import AppButton from '../app-button.svelte';
 	import { useFileBrowserContext, type FileBrowserAction } from '$lib/client/contexts/file-browser';
 	import { onMount } from 'svelte';
 	import Separator from '$lib/client/ui/separator.svelte';

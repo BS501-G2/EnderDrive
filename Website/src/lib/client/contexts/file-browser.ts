@@ -104,6 +104,8 @@ export function createFileBrowserContext(onFileId?: FileBrowserOptions['onFileId
 
 		onFileId,
 
+		fileListContext: derived(fileListContext, (value) => value),
+
 		setFileListContext: (context: FileBrowserListContext) => {
 			fileListContext.set(context);
 

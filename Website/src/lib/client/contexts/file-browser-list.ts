@@ -1,6 +1,6 @@
 import { getContext, setContext } from 'svelte';
 import type { FileEntry } from './file-browser';
-import { writable, type Writable } from 'svelte/store';
+import { derived, writable, type Writable } from 'svelte/store';
 
 const contextName = 'File Browser List Context';
 
@@ -19,10 +19,18 @@ export function createFileBrowserListContext() {
 			return () => files.update((value) => value.filter((file) => file.id !== id));
 		},
 
-		selectedFileIds
+		selectFile: (id: string) => {
+			selectedFileIds.update((value) => [...value, id]);
+		},
+
+		deselectFile: (id: string) => {
+			selectedFileIds.update((value) => value.filter((value) => value !== id));
+		},
+
+		selectedFileIds: derived(selectedFileIds, (value) => [...value])
 	});
 
-	return { files, context };
+	return { files, selectedFileIds, context };
 }
 
 export function useFileBrowserListContext() {

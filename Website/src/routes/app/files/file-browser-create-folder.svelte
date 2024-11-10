@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Input from '$lib/client/ui/input.svelte';
 	import { type Snippet } from 'svelte';
-	import Overlay from '../overlay.svelte';
+	import Overlay from '../../overlay.svelte';
 	import Button from '$lib/client/ui/button.svelte';
 	import Icon from '$lib/client/ui/icon.svelte';
 	import Separator from '$lib/client/ui/separator.svelte';
@@ -51,7 +51,7 @@
 </Overlay>
 
 <style lang="scss">
-	@use '../../global.scss' as *;
+	@use '../../../global.scss' as *;
 
 	div.folder {
 		background-color: var(--color-9);

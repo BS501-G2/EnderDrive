@@ -147,7 +147,7 @@
 {/if}
 
 <style lang="scss">
-	@use '../../global.scss' as *;
+	@use '../../../global.scss' as *;
 
 	div.loading {
 		flex-grow: 1;

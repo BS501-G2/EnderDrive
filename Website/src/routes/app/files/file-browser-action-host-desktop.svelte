@@ -22,37 +22,42 @@
 
 {#snippet desktopContent()}
 	<div class="actions-container">
-		<div class="actions left main">
-			{#each $leftMain as { id, snippet } (id)}
-				{@render snippet()}
-			{/each}
-		</div>
-        {#if $leftMain.length}
-            <Separator vertical />
-        {/if}
+		{#if $leftMain.length}
+			<div class="actions left main">
+				{#each $leftMain as { id, snippet } (id)}
+					{@render snippet()}
+				{/each}
+			</div>
+
+			<Separator vertical />
+		{/if}
+
 		<div class="actions left not-main">
 			{#each $left as { id, snippet } (id)}
 				{@render snippet()}
 			{/each}
 		</div>
+
 		<div class="actions right not-main">
 			{#each $right as { id, snippet } (id)}
 				{@render snippet()}
 			{/each}
 		</div>
-        {#if $rightMain.length}
-            <Separator vertical />
-        {/if}
-		<div class="actions right main">
-			{#each $rightMain as { id, snippet } (id)}
-				{@render snippet()}
-			{/each}
-		</div>
+
+		{#if $rightMain.length}
+			<Separator vertical />
+
+			<div class="actions right main">
+				{#each $rightMain as { id, snippet } (id)}
+					{@render snippet()}
+				{/each}
+			</div>
+		{/if}
 	</div>
 {/snippet}
 
 <style lang="scss">
-	@use '../../global.scss' as *;
+	@use '../../../global.scss' as *;
 
 	div.actions-container {
 		flex-direction: row;

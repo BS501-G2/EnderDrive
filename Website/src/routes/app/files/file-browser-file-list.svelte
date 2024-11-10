@@ -7,6 +7,7 @@
 	import FileBrowserAction from './file-browser-action.svelte';
 	import FileBrowserCreateFolder from './file-browser-create-folder.svelte';
 	import { useServerContext } from '$lib/client/client';
+	import FileBrowserRefresh from './file-browser-refresh.svelte';
 
 	const {
 		current
@@ -22,6 +23,8 @@
 	let uploadElement: HTMLInputElement & { type: 'file' } = $state(null as never);
 	let uploadPromise: { resolve: (data: File[]) => void } | null = $state(null);
 </script>
+
+<FileBrowserRefresh />
 
 {#if current.type === 'folder'}
 	<FileBrowserAction
@@ -60,7 +63,7 @@
 					await finishBuffer(streamId);
 				}
 
-				refresh()
+				refresh();
 			} finally {
 				uploadPromise = null;
 			}
@@ -112,9 +115,9 @@
 		overflow: auto auto;
 		min-height: 0;
 
-		> div.list {
-			> div.header {
-			}
-		}
+		// > div.list {
+		// 	> div.header {
+		// 	}
+		// }
 	}
 </style>
