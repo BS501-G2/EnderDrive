@@ -9,7 +9,7 @@
 
 	const { isMobile } = useAppContext();
 	const { clientState } = useClientContext();
-	const { whoAmI, getUser } = useServerContext();
+	const { whoAmI, getUser, amIAdmin } = useServerContext();
 	const { navigationEntries }: { navigationEntries: Readable<NavigationEntry[]> } = $props();
 </script>
 
@@ -100,14 +100,14 @@
 	{#await whoAmI() then userId}
 		{#if userId != null}
 			{#if !$isMobile}
-				{#await getUser(userId) then user}
-					{#if (user?.role ?? 0) & UserRole.Admin}
+				{#await amIAdmin() then isAdmin}
+					{#if isAdmin}
 						<Navigation
 							label="Admin"
 							onclick={async () => goto('/app/admin')}
 							icon={(isActive) => ({ icon: 'user-shield', thickness: 'solid' })}
 							isActive={derived(page, ({ url: { pathname } }) => {
-								if (pathname === '/app/admin') {
+								if (pathname.startsWith('/app/admin')) {
 									return true;
 								}
 

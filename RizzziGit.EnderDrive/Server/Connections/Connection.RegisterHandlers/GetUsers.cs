@@ -37,8 +37,8 @@ public sealed partial class Connection
         public required string[] Users;
     }
 
-    private TransactedRequestHandler<GetUsersRequest, GetUsersResponse> GetUsers =>
-        async (transaction, request) =>
+    private AuthenticatedRequestHandler<GetUsersRequest, GetUsersResponse> GetUsers =>
+        async (transaction, request, _, _) =>
         {
             User[] users = await Resources
                 .GetUsers(

@@ -177,7 +177,7 @@ public sealed partial class ResourceManager
     }
 }
 
-public sealed record class ResourceTransaction
+public sealed record class ResourceTransaction 
 {
     public static implicit operator CancellationToken(ResourceTransaction parameters) =>
         parameters.CancellationToken;

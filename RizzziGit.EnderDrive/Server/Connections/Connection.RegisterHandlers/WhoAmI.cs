@@ -13,11 +13,9 @@ public sealed partial class Connection
         public required string? UserId;
     }
 
-    private TransactedRequestHandler<WhoAmIRequest, WhoAmIResponse> WhoAmI =>
-        (transaction, request) =>
-        {
-            return Task.FromResult<WhoAmIResponse>(
+    private RequestHandler<WhoAmIRequest, WhoAmIResponse> WhoAmI =>
+        (_, _) =>
+            Task.FromResult<WhoAmIResponse>(
                 new() { UserId = GetContext().CurrentUser?.UserId.ToString() }
             );
-        };
 }

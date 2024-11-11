@@ -12,11 +12,11 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 
 using Services;
 
-// [Flags]
-public enum UserRole
+[Flags]
+public enum UserRole : byte
 {
-    None = 0,
-    NewsEditor = 1,
+    None = 0b01,
+    NewsEditor = 0b10,
 }
 
 public record class User : ResourceData
@@ -40,7 +40,7 @@ public record class User : ResourceData
     public required string? DisplayName;
 
     [JsonProperty("role")]
-    public required UserRole Role;
+    public required UserRole[] Roles;
 
     [JsonIgnore]
     public required byte[] RsaPublicKey;
@@ -128,7 +128,7 @@ public sealed partial class ResourceManager
                 LastName = lastName,
                 DisplayName = displayName,
 
-                Role = UserRole.None,
+                Roles = [],
 
                 RsaPublicKey = rsaPublicKey,
 
@@ -136,7 +136,7 @@ public sealed partial class ResourceManager
                 RootFileId = null,
                 ProfilePictureId = null,
 
-                PrivacyPolicyAgreement = false
+                PrivacyPolicyAgreement = false,
             };
 
         await Insert(transaction, [user]);
@@ -217,47 +217,44 @@ public sealed partial class ResourceManager
     }
 
     public ValueTask SetUserRole(ResourceTransaction transaction, User user, UserRole role) =>
-        Update(transaction, user, Builders<User>.Update.Set((item) => item.Role, role));
+        Update(transaction, user, Builders<User>.Update.Set((item) => item.Roles, [role]));
 
     public IQueryable<User> GetUsers(
         ResourceTransaction transaction,
         string? searchString = null,
-        UserRole? minRole = null,
-        UserRole? maxRole = null,
+        UserRole[]? includeRole = null,
+        UserRole[]? excludeRole = null,
         string? username = null,
         ObjectId? id = null
     )
     {
-        return Query<User>(
-            transaction,
-            (query) =>
-                query.Where(
-                    (user) =>
-                        (
-                            searchString == null
+        return Query<User>(transaction)
+            .Where(
+                (user) =>
+                    (
+                        searchString == null
+                        || (
+                            user.FirstName.Contains(
+                                searchString,
+                                StringComparison.CurrentCultureIgnoreCase
+                            )
                             || (
-                                user.FirstName.Contains(
-                                    searchString,
-                                    StringComparison.CurrentCultureIgnoreCase
-                                )
-                                || (
-                                    user.MiddleName != null
-                                    && user.MiddleName.Contains(
-                                        searchString,
-                                        StringComparison.CurrentCultureIgnoreCase
-                                    )
-                                )
-                                || user.LastName.Contains(
+                                user.MiddleName != null
+                                && user.MiddleName.Contains(
                                     searchString,
                                     StringComparison.CurrentCultureIgnoreCase
                                 )
                             )
+                            || user.LastName.Contains(
+                                searchString,
+                                StringComparison.CurrentCultureIgnoreCase
+                            )
                         )
-                        && (minRole == null || (user.Role >= minRole))
-                        && (maxRole == null || (user.Role <= maxRole))
-                        && (username == null || user.Username == username)
-                        && (id == null || user.Id == id)
-                )
-        );
+                    )
+                    && (includeRole == null || user.Roles.Intersect(includeRole).Any())
+                    && (excludeRole == null || (!user.Roles.Intersect(excludeRole).Any()))
+                    && (username == null || user.Username == username)
+                    && (id == null || user.Id == id)
+            );
     }
 }

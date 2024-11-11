@@ -14,6 +14,7 @@ using Commons.Memory;
 using Commons.Net.WebConnection;
 using Commons.Services;
 using Core;
+using MongoDB.Bson;
 using Resources;
 
 public sealed partial class ConnectionContext
@@ -25,18 +26,22 @@ public sealed partial class ConnectionContext
     public required ConcurrentDictionary<ServerSideRequestCode, RawRequestHandler> Handlers;
 
     public required ulong NextFileStreamId;
-    public required ConcurrentDictionary<ulong, Stream> FileStreams;
+    public required ConcurrentDictionary<ObjectId, ConnectionByteStream> FileStreams;
 }
-
-public sealed record ConnectionUploadToken();
 
 public delegate Task<ConnectionPacket<ResponseCode>> RawRequestHandler(
     ConnectionPacket<ServerSideRequestCode> request,
     CancellationToken cancellationToken
 );
 
-public delegate Task<R> TransactedRequestHandler<S, R>(ResourceTransaction transaction, S request);
 public delegate Task<R> RequestHandler<S, R>(S request, CancellationToken cancellationToken);
+public delegate Task<R> TransactedRequestHandler<S, R>(ResourceTransaction transaction, S request);
+public delegate Task<R> AuthenticatedRequestHandler<S, R>(
+    ResourceTransaction transaction,
+    S request,
+    UnlockedUserAuthentication userAuthentication,
+    User me
+);
 
 public enum ResponseCode : byte
 {
@@ -171,9 +176,9 @@ public sealed partial class Connection(
         ExceptionDispatchInfo? exception
     )
     {
-        foreach ((_, Stream stream) in context.FileStreams)
+        foreach ((_, ConnectionByteStream stream) in context.FileStreams)
         {
-            await stream.DisposeAsync();
+            stream.Queue.Dispose();
         }
 
         context.FileStreams.Clear();

@@ -21,6 +21,11 @@ public abstract record class ResourceData
     [BsonId]
     [JsonProperty("id")]
     public required ObjectId Id;
+
+    internal object ToJSON()
+    {
+        throw new NotImplementedException();
+    }
 }
 
 public sealed class ResourceManagerContext

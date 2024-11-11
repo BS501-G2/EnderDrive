@@ -48,7 +48,7 @@ public sealed partial class VirusScanner(Server server, string unixSocketPath)
         Info(version.ProgramVersion, "Version");
         Info($"Virus Database {version.VirusDbVersion}", "Version");
 
-        return new() { Client = client, WaitQueue = new(), };
+        return new() { Client = client, WaitQueue = new() };
     }
 
     private async Task<(IPEndPoint ipEndPoint, TcpForwarder tcpForwarder)> StartTcpForwarder(
@@ -104,7 +104,11 @@ public sealed partial class VirusScanner(Server server, string unixSocketPath)
                 }
                 catch (Exception exception)
                 {
-                    source.SetException(exception);
+                    source.SetException(
+                        ExceptionDispatchInfo.SetCurrentStackTrace(
+                            new AggregateException("Virus scanner has failed.", exception)
+                        )
+                    );
 
                     Error(exception);
                 }
@@ -117,7 +121,7 @@ public sealed partial class VirusScanner(Server server, string unixSocketPath)
         CancellationToken cancellationToken
     )
     {
-        await Task.WhenAll([RunScanQueue(cancellationToken),]);
+        await Task.WhenAll([RunScanQueue(cancellationToken)]);
     }
 
     protected override Task OnStop(VirusScannerParams data, ExceptionDispatchInfo? exception)
@@ -137,11 +141,12 @@ public sealed partial class VirusScanner(Server server, string unixSocketPath)
         return await source.Task;
     }
 
-    public async Task<string[]> Scan(
+    public async Task<VirusReport> Scan(
         ResourceTransaction transaction,
         UnlockedFile file,
         FileContent fileContent,
         FileSnapshot fileSnapshot,
+        bool forceRescan,
         CancellationToken cancellationToken = default
     )
     {
@@ -152,24 +157,41 @@ public sealed partial class VirusScanner(Server server, string unixSocketPath)
             fileSnapshot
         );
 
-        if (virusReport == null)
+        if (forceRescan || virusReport == null)
         {
-            using Stream stream = await server.ResourceManager.CreateReadStream(
-                transaction,
-                file,
-                fileContent,
-                fileSnapshot
-            );
+            try
+            {
+                using Stream stream = await server.ResourceManager.CreateReadStream(
+                    transaction,
+                    file,
+                    fileContent,
+                    fileSnapshot
+                );
 
-            virusReport = await server.ResourceManager.SetVirusReport(
-                transaction,
-                file,
-                fileContent,
-                fileSnapshot,
-                [(await Scan(stream, cancellationToken)).VirusName]
-            );
+                ScanResult result = await Scan(stream, cancellationToken);
+
+                virusReport = await server.ResourceManager.SetVirusReport(
+                    transaction,
+                    file,
+                    fileContent,
+                    fileSnapshot,
+                    VirusReportStatus.Completed,
+                    result.VirusName != null ? [result.VirusName] : []
+                );
+            }
+            catch
+            {
+                virusReport = await server.ResourceManager.SetVirusReport(
+                    transaction,
+                    file,
+                    fileContent,
+                    fileSnapshot,
+                    VirusReportStatus.Failed,
+                    []
+                );
+            }
         }
 
-        return virusReport.Viruses;
+        return virusReport;
     }
 }

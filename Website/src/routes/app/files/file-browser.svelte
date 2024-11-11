@@ -82,11 +82,17 @@
 		{/if}
 	</div>
 
-	{#if $isDesktop && $showDetails && $fileListContext != null}
+	{#if $isDesktop && $showDetails }
 		<Separator vertical />
 
 		<div class="right" transition:fly={{ x: 16 }}>
-			<FileBrowserProperties selectedFileIds={flattenedSelectedIds} />
+			<FileBrowserProperties
+				selectedFileIds={$current.type === 'folder'
+					? flattenedSelectedIds
+					: $current.type === 'file'
+						? [$current.file.id]
+						: []}
+			/>
 		</div>
 	{/if}
 </div>

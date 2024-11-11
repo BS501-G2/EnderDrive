@@ -44,6 +44,12 @@ public sealed partial class ResourceManager
         await Delete(transaction, news);
     }
 
-    public IQueryable<News> GetNews(ResourceTransaction transaction) =>
-        Query<News>(transaction, (query) => query.OrderByDescending((item) => item.Id));
+    public IQueryable<News> GetNews(ResourceTransaction transaction, ObjectId? id = null) =>
+        Query<News>(
+            transaction,
+            (query) =>
+                query
+                    .Where((item) => id == null || item.Id == id)
+                    .OrderByDescending((item) => item.Id)
+        );
 }

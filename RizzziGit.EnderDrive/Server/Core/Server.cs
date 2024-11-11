@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 namespace RizzziGit.EnderDrive.Server.Core;
 
 using Commons.Services;
+using Connections;
 using Resources;
 using Services;
 
@@ -60,7 +61,7 @@ public sealed class Server(
             ApiServer = apiServer,
             GoogleService = googleService,
             ConnectionManager = connectionManager,
-            MimeDetector = mimeDetector
+            MimeDetector = mimeDetector,
         };
     }
 

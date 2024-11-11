@@ -3,6 +3,7 @@
 	import type { Snippet } from 'svelte';
 	import Overlay from '../../overlay.svelte';
 	import Separator from '$lib/client/ui/separator.svelte';
+	import FileBrowserProperties from './file-browser-properties.svelte';
 
 	const { selectedFileIds }: { selectedFileIds: string[] } = $props();
 	const { showDetails } = useFileBrowserContext();
@@ -24,10 +25,10 @@
 				{@render windowButtons()}
 			</div>
 
-			<Separator horizontal/>
+			<Separator horizontal />
 
 			<div class="body">
-
+				<FileBrowserProperties {selectedFileIds} />
 			</div>
 		</div>
 	{/snippet}
@@ -56,8 +57,8 @@
 			}
 		}
 
-			> div.body {
-				flex-grow: 1;
-			}
+		> div.body {
+			flex-grow: 1;
+		}
 	}
 </style>

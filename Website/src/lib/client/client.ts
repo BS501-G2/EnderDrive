@@ -676,7 +676,7 @@ function getServerFunctions(
 			return fileMimeType;
 		},
 
-		getFileContents: async (fileId: string, offset?: number, count?: string) => {
+		getFileContents: async (fileId: string, offset?: number, count?: number) => {
 			const { fileContents } = await request(ServerSideRequestCode.GetFileContents, {
 				fileId,
 				pagination: { offset, count }
@@ -702,30 +702,6 @@ function getServerFunctions(
 			return fileSnapshots.map((fileSnapshot: string) =>
 				JSON.parse(fileSnapshot)
 			) as FileSnapshotResource[];
-		},
-
-		readFile: async ({
-			fileId,
-			fileContentId,
-			fileSnapshotId,
-			position,
-			length
-		}: {
-			fileId: string;
-			fileContentId?: string;
-			fileSnapshotId?: string;
-			position: number;
-			length: number;
-		}) => {
-			const { fileData } = await request(ServerSideRequestCode.ReadFile, {
-				fileId,
-				fileContentId,
-				fileSnapshotId,
-				position,
-				length
-			});
-
-			return fileData as Buffer;
 		},
 
 		amIAdmin: async () => {
@@ -764,17 +740,77 @@ function getServerFunctions(
 		},
 
 		scanFile: async (fileId: string, fileContentId: string, fileSnapshotId: string) => {
-			const { fileViruses } = await request(ServerSideRequestCode.ScanFile, {
+			const { result } = await request(ServerSideRequestCode.ScanFile, {
 				fileId,
 				fileContentId,
 				fileSnapshotId
 			});
 
-			return fileViruses as string[];
+			return JSON.parse(result) as VirusReportResource;
+		},
+
+		createFile: async (parentFolderId: string, name: string) => {
+			const { streamId } = await request(ServerSideRequestCode.CreateFile, {
+				parentFolderId,
+				name
+			});
+
+			return streamId as string;
+		},
+
+		openStream: async (fileId: string, fileContentId: string, fileSnapshotId: string) => {
+			const { streamId } = await request(ServerSideRequestCode.OpenStream, {
+				fileId,
+				fileContentId,
+				fileSnapshotId
+			});
+
+			return streamId as string;
+		},
+
+		closeStream: async (streamId: string) => {
+			await request(ServerSideRequestCode.CloseStream, { streamId });
+		},
+
+		readStream: async (streamId: string, length: number) => {
+			const { data } = await request(ServerSideRequestCode.ReadStream, {
+				streamId,
+				length
+			});
+
+			return Buffer.from(data);
+		},
+
+		writeStream: async (streamId: string, data: Buffer | Blob) => {
+			await request(ServerSideRequestCode.WriteStream, { streamId, data });
+		},
+
+		setPosition: async (streamId: string, newPosition: number) => {
+			await request(ServerSideRequestCode.SetPosition, { streamId, newPosition });
+		},
+
+		getStreamSize: async (streamId: string) => {
+			const { size } = await request(ServerSideRequestCode.GetStreamSize, { streamId });
+
+			return size as number;
+		},
+
+		getPosition: async (streamId: string) => {
+			const { position } = await request(ServerSideRequestCode.GetPosition, { streamId });
+
+			return position as number;
 		}
 	};
 
 	return functions;
+}
+
+export interface VirusReportResource extends ResourceData {
+	fileId: string;
+	fileContentId: string;
+	fileSnapshotId: string;
+	status: VirusReportStatus;
+	viruses: string[];
 }
 
 export enum ClientSideRequestCode {
@@ -807,25 +843,30 @@ export enum ServerSideRequestCode {
 	GetFileStars,
 	GetFilePath,
 
-	CreateFolder,
 	GetFileMime,
 	GetFileContents,
 	GetFileSnapshots,
-	ReadFile,
-	UpdateFile,
 
 	AmIAdmin,
 
 	GetFileLogs,
 	ScanFile,
 
+	CreateFolder,
+	CreateFile,
+
 	OpenStream,
 	CloseStream,
 	ReadStream,
 	WriteStream,
-	SeekStream,
+	SetPosition,
 	GetStreamSize,
-	GetStreamPosition
+	GetPosition,
+
+	CreateNews,
+	UpdateNews,
+	DeleteNews,
+	GetNews
 }
 
 export interface SearchParams {
@@ -907,6 +948,12 @@ export interface FileContentResource extends ResourceData {
 	name: string;
 }
 
+export interface NewsResource extends ResourceData {
+	title: string;
+	imageFileIds: string[];
+	authorUserId: string;
+}
+
 export enum FileAccessTargetEntityType {
 	User,
 	Group
@@ -935,4 +982,11 @@ export enum FileLogType {
 	CreateFile,
 	TrashFile,
 	ModifyFile
+}
+
+export enum VirusReportStatus {
+	NotScanned,
+	Failed,
+	Scanning,
+	Completed
 }

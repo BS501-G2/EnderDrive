@@ -8,14 +8,13 @@ public sealed partial class Connection
 
     private sealed record class DeauthenticateResponse { }
 
-    private TransactedRequestHandler<
+    private AuthenticatedRequestHandler<
         DeauthenticateRequest,
         DeauthenticateResponse
     > Deauthenticate =>
-        (transaction, request) =>
+        (_, _, _, _) =>
         {
             GetContext().CurrentUser = null;
-
             return Task.FromResult<DeauthenticateResponse>(new());
         };
 }

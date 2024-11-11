@@ -114,7 +114,7 @@ public sealed partial class ResourceManager
                 AuthorUserId = authorUser.Id,
                 TargetEntity = null,
                 EncryptedAesKey = file.AesKey,
-                Level = level
+                Level = level,
             };
 
         await Insert(transaction, access);
@@ -132,7 +132,7 @@ public sealed partial class ResourceManager
             EncryptedAesKey = access.EncryptedAesKey,
 
             Level = access.Level,
-            AesKey = access.EncryptedAesKey
+            AesKey = access.EncryptedAesKey,
         };
     }
 
@@ -158,7 +158,7 @@ public sealed partial class ResourceManager
                 TargetEntity = new()
                 {
                     EntityType = FileAccessTargetEntityType.User,
-                    EntityId = targetUser.Id
+                    EntityId = targetUser.Id,
                 },
 
                 EncryptedAesKey = encryptedAesKey,
@@ -200,7 +200,7 @@ public sealed partial class ResourceManager
                 TargetEntity = new()
                 {
                     EntityType = FileAccessTargetEntityType.Group,
-                    EntityId = group.Id
+                    EntityId = group.Id,
                 },
 
                 EncryptedAesKey = encryptedAesKey,
@@ -221,7 +221,7 @@ public sealed partial class ResourceManager
             TargetEntity = new()
             {
                 EntityType = FileAccessTargetEntityType.Group,
-                EntityId = group.Id
+                EntityId = group.Id,
             },
 
             EncryptedAesKey = access.EncryptedAesKey,
@@ -275,7 +275,7 @@ public sealed partial class ResourceManager
         FileAccessLevel minLevel = FileAccessLevel.Read
     )
     {
-        if (file.OwnerUserId == userAuthentication.UserId && file.ParentId == null)
+        if (file.OwnerUserId == userAuthentication.UserId || file.ParentId == null)
         {
             return new(user, file.Unlock(userAuthentication), null);
         }
@@ -292,6 +292,11 @@ public sealed partial class ResourceManager
 
             if (access != null)
             {
+                if (access.TargetEntity == null)
+                {
+                    return new(user, file.WithAesKey(access.EncryptedAesKey), access);
+                }
+
                 return new(user, file.WithAesKey(access.Unlock(userAuthentication)), access);
             }
         }

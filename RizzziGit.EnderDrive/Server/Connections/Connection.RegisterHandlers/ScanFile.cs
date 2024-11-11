@@ -2,6 +2,7 @@ using System;
 using ClamAV.Net.Client.Results;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using Newtonsoft.Json.Linq;
 using RizzziGit.EnderDrive.Server.Resources;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
@@ -22,8 +23,8 @@ public sealed partial class Connection
 
     private sealed record class ScanFileResponse
     {
-        [BsonElement("fileViruses")]
-        public required string[] FileViruses;
+        [BsonElement("result")]
+        public required string Result;
     };
 
     private TransactedRequestHandler<ScanFileRequest, ScanFileResponse> ScanFile =>
@@ -52,13 +53,18 @@ public sealed partial class Connection
 
             return new()
             {
-                FileViruses = await Server.VirusScanner.Scan(
-                    transaction,
-                    result.File,
-                    fileContent,
-                    fileSnapshot,
-                    transaction
-                ),
+                Result = JToken
+                    .FromObject(
+                        await Server.VirusScanner.Scan(
+                            transaction,
+                            result.File,
+                            fileContent,
+                            fileSnapshot,
+                            false,
+                            transaction
+                        )
+                    )
+                    .ToString(),
             };
         };
 }

@@ -18,8 +18,17 @@ public record class VirusReport : ResourceData
     [JsonProperty("fileSnapshotId")]
     public required ObjectId FileSnapshotId;
 
+    [JsonProperty("status")]
+    public required VirusReportStatus Status;
+
     [JsonProperty("viruses")]
     public required string[] Viruses;
+}
+
+public enum VirusReportStatus
+{
+    Failed,
+    Completed,
 }
 
 public sealed partial class ResourceManager
@@ -29,6 +38,7 @@ public sealed partial class ResourceManager
         File file,
         FileContent fileContent,
         FileSnapshot fileSnapshot,
+        VirusReportStatus status,
         string[] viruses
     )
     {
@@ -41,6 +51,7 @@ public sealed partial class ResourceManager
                 FileContentId = fileContent.Id,
                 FileSnapshotId = fileSnapshot.Id,
 
+                Status = status,
                 Viruses = viruses,
             };
 

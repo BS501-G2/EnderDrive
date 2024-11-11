@@ -15,7 +15,7 @@
 	}: { current: CurrentFile & { type: 'folder' | 'shared' | 'starred' | 'trash' } } = $props();
 
 	const { setFileListContext, refresh } = useFileBrowserContext();
-	// const { uploadFile, uploadBuffer, finishBuffer } = useServerContext();
+	const { createFile, writeStream, closeStream } = useServerContext();
 	const { context, selectedFileIds } = createFileBrowserListContext();
 
 	onMount(() => setFileListContext(context));
@@ -59,18 +59,18 @@
 					return;
 				}
 
-				// for (const file of files) {
-				// 	const streamId = await uploadFile(current.file.id, file.name);
-				// 	const bufferSize = 1024 * 256;
+				for (const file of files) {
+					const streamId = await createFile(current.file.id, file.name);
+					const bufferSize = 1024 * 256;
 
-				// 	for (let index = 0; index < file.size; index += bufferSize) {
-				// 		const buffer = file.slice(index, index + bufferSize);
+					for (let index = 0; index < file.size; index += bufferSize) {
+						const buffer = file.slice(index, index + bufferSize);
 
-				// 		await uploadBuffer(streamId, buffer);
-				// 	}
+						await writeStream(streamId, buffer);
+					}
 
-				// 	await finishBuffer(streamId);
-				// }
+					await closeStream(streamId);
+				}
 
 				refresh();
 			} finally {

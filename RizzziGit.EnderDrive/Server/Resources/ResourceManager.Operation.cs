@@ -149,6 +149,9 @@ public sealed partial class ResourceManager
         }
     }
 
+    private IQueryable<T> Query<T>(ResourceTransaction transaction)
+        where T : ResourceData => Query<T>(transaction, (query) => query);
+
     private IQueryable<T> Query<T>(ResourceTransaction transaction, QueryBuilder<T> query)
         where T : ResourceData
     {

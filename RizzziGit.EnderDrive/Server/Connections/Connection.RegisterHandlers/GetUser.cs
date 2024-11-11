@@ -21,8 +21,8 @@ public sealed partial class Connection
         public required string? User;
     };
 
-    private TransactedRequestHandler<GetUserRequest, GetUserResponse> GetUser =>
-        async (transaction, request) =>
+    private AuthenticatedRequestHandler<GetUserRequest, GetUserResponse> GetUser =>
+        async (transaction, request, _, _) =>
         {
             User? user = await Resources
                 .GetUsers(transaction, id: request.UserId)

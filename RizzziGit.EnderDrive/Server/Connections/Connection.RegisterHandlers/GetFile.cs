@@ -4,6 +4,7 @@ using Newtonsoft.Json.Linq;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
+using MongoDB.Bson;
 using Resources;
 
 public sealed partial class Connection
@@ -11,7 +12,7 @@ public sealed partial class Connection
     private sealed record class GetFileRequest
     {
         [BsonElement("fileId")]
-        public required string? FileId;
+        public required ObjectId? FileId;
     }
 
     private sealed record class GetFileResponse
@@ -20,12 +21,10 @@ public sealed partial class Connection
         public required string File;
     }
 
-    private TransactedRequestHandler<GetFileRequest, GetFileResponse> GetFile =>
-        async (transaction, request) =>
+    private AuthenticatedRequestHandler<GetFileRequest, GetFileResponse> GetFile =>
+        async (transaction, request, userAuthentication, me) =>
         {
-            UnlockedUserAuthentication userAuthentication = Internal_EnsureAuthentication();
-            User me = await Internal_Me(transaction, userAuthentication);
-            File file = await Internal_GetFile(transaction, me, Internal_ParseId(request.FileId));
+            File file = await Internal_GetFile(transaction, me, request.FileId);
 
             FileAccessResult result =
                 await Resources.FindFileAccess(transaction, file, me, userAuthentication)

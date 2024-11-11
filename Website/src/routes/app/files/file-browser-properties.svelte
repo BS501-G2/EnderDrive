@@ -1,5 +1,9 @@
 <script lang="ts">
-	import { useServerContext, type FileResource } from '$lib/client/client';
+	import {
+		useServerContext,
+		type FileResource,
+		type VirusReportResource
+	} from '$lib/client/client';
 	import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte';
 	import { fly } from 'svelte/transition';
 
@@ -7,8 +11,8 @@
 	const { getFile, scanFile, getFileContents, getFileSnapshots } = useServerContext();
 
 	interface FileProperties {
-		files: FileResource[]
-		viruses: string[];
+		files: FileResource[];
+		viruses: VirusReportResource[];
 	}
 
 	let promises: Promise<FileProperties> = $state(null as never);
@@ -33,16 +37,25 @@
 </script>
 
 <div class="properties" transition:fly={{ x: 16, duration: 150 }}>
-	<h2>asdasd</h2>
+	<h2>File</h2>
 	{#await promises}
-		<LoadingSpinner />
+		<div class="loading">
+			<LoadingSpinner size="3em" />
+		</div>
 	{:then files}
-		{JSON.stringify(files)}
+		{#if files}
+			<pre>{JSON.stringify(files.viruses, undefined, '  ')}</pre>
+		{/if}
 	{/await}
 </div>
 
 <style lang="scss">
 	@use '../../../global.scss' as *;
+
+	div.loading {
+		align-items: center;
+		flex-direction: row;
+	}
 
 	div.properties {
 		@include force-size(256px, &);

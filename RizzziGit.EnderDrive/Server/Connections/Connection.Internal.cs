@@ -35,6 +35,13 @@ public sealed partial class Connection
             await query.ToAsyncEnumerable().FirstOrDefaultAsync(transaction.CancellationToken)
         );
 
+    private static async Task<T> Internal_EnsureFirst<T>(
+        ResourceTransaction transaction,
+        IQueryable<T> query
+    )
+        where T : ResourceData =>
+        Internal_EnsureExists(await Internal_GetFirst(transaction, query));
+
     private static T Internal_EnsureExists<T>(T? item)
         where T : ResourceData =>
         item ?? throw new InvalidOperationException($"Resource item not found");
@@ -42,12 +49,12 @@ public sealed partial class Connection
     private async Task<File> Internal_GetFile(
         ResourceTransaction transaction,
         User me,
-        ObjectId? objectId
+        ObjectId? fileId
     ) =>
         Internal_EnsureExists(
-            objectId != null
+            fileId != null
                 ? await Resources
-                    .GetFiles(transaction, id: objectId)
+                    .GetFiles(transaction, id: fileId)
                     .ToAsyncEnumerable()
                     .FirstOrDefaultAsync(transaction.CancellationToken)
                 : await Resources.GetRootFolder(transaction, me)
@@ -61,7 +68,4 @@ public sealed partial class Connection
     ) =>
         await Resources.FindFileAccess(transaction, file, user, userAuthentication)
         ?? throw new InvalidOperationException("No access to this file");
-
-    private static ObjectId? Internal_ParseId(string? objectId) =>
-        objectId != null ? ObjectId.Parse(objectId) : null;
 }

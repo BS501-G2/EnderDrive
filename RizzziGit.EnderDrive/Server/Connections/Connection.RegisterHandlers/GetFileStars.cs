@@ -79,10 +79,7 @@ public sealed partial class Connection
                 .WhereAwait(
                     async (fileStar) =>
                     {
-                        File file = await Resources
-                            .GetFiles(transaction, id: fileStar.FileId)
-                            .ToAsyncEnumerable()
-                            .FirstAsync(transaction.CancellationToken);
+                        File file = await Internal_GetFile(transaction, me, request.FileId);
 
                         FileAccessResult? fileAccessResult = await Resources.FindFileAccess(
                             transaction,
