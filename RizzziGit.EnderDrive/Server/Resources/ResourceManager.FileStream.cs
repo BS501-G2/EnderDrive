@@ -21,31 +21,17 @@ public sealed partial class ResourceManager
         FileSnapshot snapshot
     )
     {
-        ResourceManagerContext context = GetContext();
-
         FileStreamKey key = new(file.Id, content.Id, snapshot.Id);
-        FileStream? stream;
-        if (context.FileStreams.TryGetValue(key, out _))
-        {
-            throw new InvalidOperationException("Existing file stream is active.");
-        }
-        else if (
-            !context.FileStreams.TryAdd(
-                key,
-                stream = new FileStream(
-                    this,
-                    transaction,
-                    file,
-                    content,
-                    snapshot,
-                    await GetFileSize(transaction, snapshot),
-                    null
-                )
-            )
-        )
-        {
-            throw new InvalidOperationException("Failed to create new file stream.");
-        }
+        FileStream stream =
+            new(
+                this,
+                transaction,
+                file,
+                content,
+                snapshot,
+                await GetFileSize(transaction, snapshot),
+                null
+            );
 
         return stream;
     }
@@ -56,17 +42,14 @@ public sealed partial class ResourceManager
         FileContent content,
         FileSnapshot snapshot,
         UnlockedUserAuthentication userAuthentication,
-        bool createNewSnapshot,
-        bool currentTransaction = false
+        bool createNewSnapshot
     )
     {
-        ResourceManagerContext context = GetContext();
-
         FileStreamKey key = new(file.Id, content.Id, snapshot.Id);
         FileStream stream =
             new(
                 this,
-                currentTransaction ? transaction : null,
+                transaction,
                 file,
                 content,
                 createNewSnapshot
@@ -82,17 +65,12 @@ public sealed partial class ResourceManager
                 userAuthentication
             );
 
-        if (!context.FileStreams.TryAdd(key, stream))
-        {
-            throw new InvalidOperationException("Existing file stream is active.");
-        }
-
         return stream;
     }
 
     internal sealed class FileStream(
         ResourceManager manager,
-        ResourceTransaction? transaction,
+        ResourceTransaction transaction,
         UnlockedFile file,
         FileContent content,
         FileSnapshot snapshot,
@@ -100,15 +78,6 @@ public sealed partial class ResourceManager
         UnlockedUserAuthentication? userAuthentication
     ) : Stream
     {
-        protected override void Dispose(bool disposing)
-        {
-            manager
-                .GetContext()
-                .FileStreams.TryRemove(new(File.Id, FileContent.Id, FileSnapshot.Id), out _);
-
-            base.Dispose(disposing);
-        }
-
         public readonly UnlockedFile File = file;
         public readonly FileContent FileContent = content;
         public readonly FileSnapshot FileSnapshot = snapshot;
@@ -170,7 +139,7 @@ public sealed partial class ResourceManager
                                 .WaitAsync(cancellationTokenSource.Token),
                         cancellationTokenSource.Token
                     );
-
+                    
                     fileRead.ToByteArray().CopyTo(buffer.Span);
                     position += fileRead.Length;
                     return (int)fileRead.Length;

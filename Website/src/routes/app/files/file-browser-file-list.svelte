@@ -9,14 +9,16 @@
 	import { useServerContext } from '$lib/client/client';
 	import FileBrowserRefresh from './file-browser-refresh.svelte';
 	import Title from '../title.svelte';
+	import { useAppContext } from '$lib/client/contexts/app';
 
 	const {
 		current
 	}: { current: CurrentFile & { type: 'folder' | 'shared' | 'starred' | 'trash' } } = $props();
 
-	const { setFileListContext, refresh } = useFileBrowserContext();
+	const { setFileListContext, refresh, selectMode } = useFileBrowserContext();
 	const { createFile, writeStream, closeStream } = useServerContext();
 	const { context, selectedFileIds } = createFileBrowserListContext();
+	const { isMobile } = useAppContext()
 
 	onMount(() => setFileListContext(context));
 
@@ -31,7 +33,8 @@
 	<Title title="{$selectedFileIds.length} Selected" />
 {/if}
 
-{#if current.type === 'folder'}
+{#if current.type === 'folder' && selectMode == null}
+
 	<FileBrowserAction
 		type="left-main"
 		icon={{ icon: 'plus', thickness: 'solid' }}
@@ -79,6 +82,15 @@
 		}}
 	/>
 
+	{#if $selectedFileIds.length > 0}
+		<FileBrowserAction
+			type="left"
+			icon={{ icon: 'trash', thickness: 'solid' }}
+			label="Delete"
+			onclick={() => {}}
+		/>
+	{/if}
+
 	<input
 		type="file"
 		hidden
@@ -112,8 +124,10 @@
 	<div class="list-header"></div>
 
 	<div class="list-container">
-		<div class="list">
-			<div class="header"></div>
+			<div class="header">
+
+			</div>
+		<div class="list" class:mobile={$isMobile}>
 
 			{#each current.files as file}
 				<FileBrowserFileListEntry {file} />
@@ -127,17 +141,18 @@
 		flex-grow: 1;
 
 		min-height: 0;
+		min-width: 0;
 
 		div.list-container {
 			flex-grow: 1;
 
 			overflow: auto auto;
 			min-height: 0;
+			min-width: 0;
 
-			// > div.list {
-			// 	> div.header {
-			// 	}
-			// }
+			> div.list.mobile {
+				// gap: 8px;
+			}
 		}
 	}
 </style>

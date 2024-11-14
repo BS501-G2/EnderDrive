@@ -46,16 +46,11 @@ public sealed partial class Connection
                     null
                 );
 
-            System.IO.Stream stream = await Resources.CreateReadStream(
+            MimeDetective.Storage.Definition? definition = await Server.MimeDetector.Inspect(
                 transaction,
                 fileAccessResult.File,
                 fileContent,
                 fileSnapshot
-            );
-
-            MimeDetective.Storage.Definition? definition = await Server.MimeDetector.Inspect(
-                stream,
-                transaction.CancellationToken
             );
 
             return new() { FileMimeType = definition?.File.MimeType ?? "application/octet-stream" };

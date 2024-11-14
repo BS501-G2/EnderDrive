@@ -1,13 +1,19 @@
 <script lang="ts">
 	import { useDashboardContext } from '$lib/client/contexts/dashboard';
-	import { derived, type Readable } from 'svelte/store';
+	import { derived, writable, type Readable } from 'svelte/store';
 	import AppButton from '../app-button.svelte';
 	import { useFileBrowserContext, type FileBrowserAction } from '$lib/client/contexts/file-browser';
-	import { onMount } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
 	import Separator from '$lib/client/ui/separator.svelte';
+	import Button from '$lib/client/ui/button.svelte';
+	import Icon from '$lib/client/ui/icon.svelte';
+	import { useAppContext } from '$lib/client/contexts/app';
+	import Overlay from '../../overlay.svelte';
+	import FileBrowserActionHostMobileExtra from './file-browser-action-host-mobile-extra.svelte';
 
 	const { actions }: { actions: Readable<FileBrowserAction[]> } = $props();
 	const { pushBottom } = useFileBrowserContext();
+	const { isMobile } = useAppContext();
 
 	const appButtons = derived(actions, (actions) =>
 		actions.filter((action) => action.type === 'left-main' || action.type === 'right-main')
@@ -29,6 +35,8 @@
 	});
 
 	onMount(() => pushBottom(button));
+
+	let extraMenu = writable<{ element: HTMLButtonElement } | null>(null);
 </script>
 
 {#each $appButtons as { id, icon, label, onclick } (id)}
@@ -46,6 +54,39 @@
 				{@render snippet()}
 			</div>
 		{/each}
+
+		{#if $buttons[1].length}
+			{#snippet foreground(view: Snippet)}
+				<div class="extra" class:mobile={$isMobile}>
+					{@render view()}
+				</div>
+			{/snippet}
+
+			<div class="button">
+				<Button
+					onclick={({ currentTarget }) => {
+						$extraMenu = {
+							element: currentTarget
+						};
+					}}
+					{foreground}
+				>
+					<Icon icon="ellipsis-vertical" thickness="solid" size="1.2em" />
+
+					<p>More</p>
+				</Button>
+			</div>
+
+			{#if $extraMenu != null}
+				<FileBrowserActionHostMobileExtra
+					element={$extraMenu.element}
+					actions={$buttons[1]}
+					ondismiss={() => {
+						$extraMenu = null;
+					}}
+				/>
+			{/if}
+		{/if}
 	</div>
 {/snippet}
 
@@ -57,5 +98,20 @@
 		> div.button {
 			flex-grow: 1;
 		}
+	}
+
+	div.extra {
+		padding: 8px;
+		gap: 8px;
+
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+
+		line-height: 1em;
+	}
+
+	div.extra.mobile {
+		flex-direction: column;
 	}
 </style>

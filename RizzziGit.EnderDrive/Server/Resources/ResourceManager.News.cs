@@ -1,6 +1,8 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 using Newtonsoft.Json;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
@@ -9,6 +11,10 @@ public record class News : ResourceData
 {
     [JsonProperty("title")]
     public required string Title;
+
+    [JsonProperty("publishTime")]
+    [BsonRepresentation(BsonType.DateTime)]
+    public required DateTimeOffset? PublishTime;
 
     [JsonProperty("imageFileIds")]
     public required ObjectId[] ImageFileIds;
@@ -23,7 +29,8 @@ public sealed partial class ResourceManager
         ResourceTransaction transaction,
         string title,
         File[] images,
-        User newsAuthor
+        User newsAuthor,
+        DateTimeOffset? publishTime
     )
     {
         News news =
@@ -33,6 +40,7 @@ public sealed partial class ResourceManager
                 Title = title,
                 ImageFileIds = images.Select((item) => item.Id).ToArray(),
                 AuthorUserId = newsAuthor.Id,
+                PublishTime = publishTime,
             };
 
         await Insert(transaction, news);
@@ -44,12 +52,26 @@ public sealed partial class ResourceManager
         await Delete(transaction, news);
     }
 
-    public IQueryable<News> GetNews(ResourceTransaction transaction, ObjectId? id = null) =>
+    public IQueryable<News> GetNews(
+        ResourceTransaction transaction,
+        bool? published = null,
+        ObjectId? id = null
+    ) =>
         Query<News>(
             transaction,
             (query) =>
                 query
-                    .Where((item) => id == null || item.Id == id)
+                    .Where(
+                        (item) =>
+                            (
+                                (published == null)
+                                || (
+                                    (bool)published
+                                        ? item.PublishTime != null
+                                        : item.PublishTime == null
+                                )
+                            ) && (id == null || item.Id == id)
+                    )
                     .OrderByDescending((item) => item.Id)
         );
 }

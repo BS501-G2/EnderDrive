@@ -275,7 +275,7 @@ public sealed partial class ResourceManager
         FileAccessLevel minLevel = FileAccessLevel.Read
     )
     {
-        if (file.OwnerUserId == userAuthentication.UserId || file.ParentId == null)
+        if (file.OwnerUserId == userAuthentication.UserId &&file.ParentId == null)
         {
             return new(user, file.Unlock(userAuthentication), null);
         }

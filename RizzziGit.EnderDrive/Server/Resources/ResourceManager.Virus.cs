@@ -76,6 +76,7 @@ public sealed partial class ResourceManager
                             && item.FileSnapshotId == fileSnapshot.Id
                     )
             )
+            .OrderByDescending((item) => item.Id)
             .ToAsyncEnumerable()
             .FirstOrDefaultAsync(GetCancellationToken());
 }

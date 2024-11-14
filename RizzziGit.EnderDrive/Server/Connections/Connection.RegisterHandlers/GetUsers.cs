@@ -15,11 +15,11 @@ public sealed partial class Connection
         [BsonElement("searchString")]
         public required string? SearchString;
 
-        [BsonElement("minRole")]
-        public required UserRole? MinRole;
+        [BsonElement("includeRole")]
+        public required UserRole[]? IncludeRole;
 
-        [BsonElement("maxRole")]
-        public required UserRole? MaxRole;
+        [BsonElement("excludeRole")]
+        public required UserRole[]? ExcludeRole;
 
         [BsonElement("username")]
         public required string? Username;
@@ -44,8 +44,8 @@ public sealed partial class Connection
                 .GetUsers(
                     transaction,
                     request.SearchString,
-                    request.MinRole,
-                    request.MaxRole,
+                    request.IncludeRole,
+                    request.ExcludeRole,
                     request.Username,
                     request.Id
                 )

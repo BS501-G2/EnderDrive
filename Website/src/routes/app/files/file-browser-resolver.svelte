@@ -19,9 +19,9 @@
 		resolve,
 		current
 	}: { resolve: Readable<FileBrowserResolve>; current: Writable<CurrentFile> } = $props();
-	const { getFiles, getFileAccesses, getFilePath, getFileStars, getFile, whoAmI } =
+	const { getFiles, getFileAccesses, getFilePath, getFileStars, getFile, getFileMime, whoAmI } =
 		useServerContext();
-		const {pushRefresh } = useFileBrowserContext();
+	const { pushRefresh, selectMode } = useFileBrowserContext();
 
 	async function load(resolve: FileBrowserResolve): Promise<void> {
 		const load = async (): Promise<CurrentFile> => {
@@ -51,10 +51,26 @@
 						return {
 							type: 'folder',
 							path,
-							files: files.map((file) => ({
-								type: 'normal',
-								file
-							})),
+							files: await Promise.all(
+								files.map(async (file): Promise<FileEntry> => {
+									if (file.type === FileType.File) {
+										const mime = await getFileMime(file.id);
+
+										return {
+											type: 'file',
+											file,
+											mime
+										} as never;
+									} else if (file.type === FileType.Folder) {
+										return {
+											type: 'folder',
+											file
+										} as never;
+									} else {
+										throw new Error('Invalid file type.');
+									}
+								})
+							),
 							file
 						};
 					} else {
@@ -101,7 +117,7 @@
 				}
 
 				case FileBrowserResolveType.Trash: {
-					const files = await getFiles(void 0, void 0, void 0, void 0, TrashOptions.Exclusive);
+					const files = await getFiles(void 0, void 0, void 0, myId, TrashOptions.Exclusive);
 
 					return {
 						type: 'trash',
@@ -117,7 +133,55 @@
 		try {
 			current.set({ type: 'loading' });
 			// await new Promise<void>((resolve) => setTimeout(resolve, 10000));
-			current.set(await load());
+
+			const result = await load();
+
+			if (
+				(result.type === 'folder' ||
+					result.type === 'shared' ||
+					result.type === 'starred' ||
+					result.type === 'trash') &&
+				selectMode != null
+			) {
+				const filtered: FileEntry[] = [];
+
+				const promises: Promise<void>[] = [];
+				for (const file of result.files) {
+					if (file.file.type === FileType.Folder) {
+						filtered.push(file);
+						continue;
+					}
+
+					promises.push(
+						(async () => {
+							const fileMime = await getFileMime(file.file.id);
+
+							if (
+								selectMode.allowedFileMimeTypes.some((mimeType) => {
+									if (typeof mimeType === 'string') {
+										if (fileMime === mimeType) {
+											return true;
+										}
+									} else {
+										if (mimeType.test(fileMime)) {
+											return true;
+										}
+									}
+
+									return false;
+								})
+							) {
+								filtered.push(file);
+							}
+						})()
+					);
+				}
+
+				await Promise.all(promises);
+				result.files = filtered;
+			}
+
+			current.set(result);
 		} catch (error: any) {
 			current.set({ type: 'error', error });
 		}

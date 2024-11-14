@@ -130,8 +130,7 @@ public sealed partial class VirusScanner
                     );
 
                     await source.Task;
-                    Info($"ClamAV client connected. Stopping the service...");
-                    break;
+                    Info($"ClamAV client connected.");
                 }
             }
             catch

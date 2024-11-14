@@ -31,6 +31,14 @@ export async function main() {
       }
     };
 
+    externalSocket.on("error", () => {
+      internalWebSocket.close();
+    });
+
+    internalWebSocket.onerror = () => {
+      externalSocket.disconnect(true);
+    };
+
     externalSocket.once("disconnect", () => {
       console.log("External WebSocket connection has been closed.");
       socketConnected = false;

@@ -61,6 +61,10 @@
 
 	div.actions-container {
 		flex-direction: row;
+
+		overflow: auto hidden ;
+
+		min-width: 0;
 	}
 
 	div.actions {

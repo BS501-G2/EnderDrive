@@ -192,6 +192,7 @@ public sealed partial class Connection
         registerTransactedHandler(ServerSideRequestCode.GetFilePath, GetFilePath);
         registerTransactedHandler(ServerSideRequestCode.CreateFolder, CreateFolder);
         registerTransactedHandler(ServerSideRequestCode.GetFileMime, GetFileMime);
+        registerAuthenticatedHandler(ServerSideRequestCode.GetFileSize, GetFileSize);
         registerTransactedHandler(ServerSideRequestCode.GetFileContents, GetFileContents);
         registerTransactedHandler(ServerSideRequestCode.GetFileSnapshots, GetFileSnapshots);
         registerTransactedHandler(ServerSideRequestCode.AmIAdmin, AmIAdmin);
@@ -205,6 +206,8 @@ public sealed partial class Connection
         registerHandler(ServerSideRequestCode.SetPosition, SetPosition);
         registerHandler(ServerSideRequestCode.GetStreamSize, GetStreamSize);
         registerHandler(ServerSideRequestCode.GetPosition, GetPosition);
+        registerAuthenticatedHandler(ServerSideRequestCode.GetMainFileContent,GetMainFileContent);
+        registerAuthenticatedHandler(ServerSideRequestCode.GetLatestFileSnapshot, GetLatestFileSnapshot);
         registerAuthenticatedHandler(
             ServerSideRequestCode.CreateNews,
             CreateNews,
@@ -246,8 +249,11 @@ public enum ServerSideRequestCode : byte
     GetFilePath,
 
     GetFileMime,
+    GetFileSize,
     GetFileContents,
+    GetMainFileContent,
     GetFileSnapshots,
+    GetLatestFileSnapshot,
 
     AmIAdmin,
 

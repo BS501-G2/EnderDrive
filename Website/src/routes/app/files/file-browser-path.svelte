@@ -29,7 +29,7 @@
 		{:then me}
 			{#if current.type === 'loading' || me == null}
 				{@render loading()}
-			{:else}
+			{:else if current.path != null}
 				{@const root = current.path[0]}
 
 				{#snippet rootForeground(view: Snippet)}

@@ -4,10 +4,10 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Driver;
+using System.Linq;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
-using System.Linq;
 using Commons.Collections;
 using Commons.Logging;
 using Commons.Services;
@@ -177,7 +177,7 @@ public sealed partial class ResourceManager
     }
 }
 
-public sealed record class ResourceTransaction 
+public sealed record class ResourceTransaction
 {
     public static implicit operator CancellationToken(ResourceTransaction parameters) =>
         parameters.CancellationToken;

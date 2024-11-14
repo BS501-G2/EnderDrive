@@ -60,8 +60,7 @@ public sealed partial class Connection
                             result.File,
                             fileContent,
                             fileSnapshot,
-                            false,
-                            transaction
+                            false
                         )
                     )
                     .ToString(),

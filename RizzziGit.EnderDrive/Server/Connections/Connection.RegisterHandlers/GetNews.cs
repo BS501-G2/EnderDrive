@@ -3,6 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
+using MongoDB.Bson;
 using Resources;
 using Utilities;
 
@@ -12,6 +13,12 @@ public sealed partial class Connection
     {
         [BsonElement("pagination")]
         public required PaginationOptions? Pagination;
+
+        [BsonElement("afterId")]
+        public required ObjectId? AfterId;
+
+        [BsonElement("published")]
+        public required bool? Published;
     }
 
     private sealed record class GetNewsResponse
@@ -24,7 +31,7 @@ public sealed partial class Connection
         async (transaction, request, userAuthentication, me) =>
         {
             News[] news = await Resources
-                .GetNews(transaction, me.Id)
+                .GetNews(transaction, request.Published, me.Id)
                 .ApplyPagination(request.Pagination)
                 .ToAsyncEnumerable()
                 .ToArrayAsync(transaction.CancellationToken);

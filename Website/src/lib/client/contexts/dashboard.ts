@@ -28,8 +28,6 @@ export function createDashboardContext() {
 	const desktopTopMiddle: Writable<{ id: number; snippet: Snippet }[]> = writable([]);
 	const desktopTopRight: Writable<{ id: number; snippet: Snippet }[]> = writable([]);
 
-	const showNotifications = writable<boolean>(false);
-
 	const context = setContext(contextName, {
 		pushMobileAppButton: (
 			snippet: Snippet<[ondismiss: () => void]>,
@@ -91,8 +89,6 @@ export function createDashboardContext() {
 
 			return () => desktopTopRight.update((value) => value.filter((value) => value.id !== id));
 		},
-
-		showNotifications,
 	});
 
 	return {

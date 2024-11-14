@@ -33,8 +33,6 @@ public sealed class ResourceManagerContext
     public required ILoggerFactory LoggerFactory;
     public required IMongoClient Client;
     public required RandomNumberGenerator RandomNumberGenerator;
-
-    internal ConcurrentDictionary<FileStreamKey, ResourceManager.FileStream> FileStreams = new();
 }
 
 public sealed record FileStreamKey(

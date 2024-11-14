@@ -16,11 +16,13 @@ using Commons.Collections;
 using Commons.Services;
 using Commons.Utilities;
 using Core;
+using Resources;
 
 public sealed class MimeDetectorContext
 {
     public required ContentInspector ContentInspector;
     public required WaitQueue<MimeDetectorRequest> WaitQueue;
+    public required ImmutableArray<Definition> Definitions;
 }
 
 public sealed record MimeDetectorRequest(
@@ -32,6 +34,9 @@ public sealed record MimeDetectorRequest(
 public sealed partial class MimeDetector(Server server)
     : Service<MimeDetectorContext>("Mime Detector", server)
 {
+    public Server Server => server;
+    public ResourceManager Resources => Server.ResourceManager;
+
     protected override Task<MimeDetectorContext> OnStart(
         CancellationToken startupCancellationToken,
         CancellationToken serviceCancellationToken
@@ -40,7 +45,7 @@ public sealed partial class MimeDetector(Server server)
         Info("Building definitions...");
         ImmutableArray<Definition> definitions = new ExhaustiveBuilder()
         {
-            UsageType = UsageType.PersonalNonCommercial
+            UsageType = UsageType.PersonalNonCommercial,
         }.Build();
 
         Info("Building content inspector...");
@@ -49,13 +54,18 @@ public sealed partial class MimeDetector(Server server)
             Definitions = definitions,
             StringSegmentOptions = new()
             {
-                OptimizeFor = StringSegmentResourceOptimization.HighSpeed
-            }
+                OptimizeFor = StringSegmentResourceOptimization.HighSpeed,
+            },
         }.Build();
 
         Info("Initialization done!");
         return Task.FromResult<MimeDetectorContext>(
-            new() { ContentInspector = contentInspector, WaitQueue = new() }
+            new()
+            {
+                ContentInspector = contentInspector,
+                WaitQueue = new(),
+                Definitions = definitions,
+            }
         );
     }
 
@@ -74,8 +84,6 @@ public sealed partial class MimeDetector(Server server)
         {
             using CancellationTokenSource linked = serviceCancellationToken.Link(cancellationToken);
 
-            ImmutableArray<DefinitionMatch> result = context.ContentInspector.Inspect(stream);
-
             DefinitionMatch? match = await context
                 .ContentInspector.Inspect(stream)
                 .OrderByDescending((match) => match.Percentage)
@@ -93,6 +101,50 @@ public sealed partial class MimeDetector(Server server)
 
         await context.WaitQueue.Enqueue(new(output, stream, cancellationToken), cancellationToken);
         return await output.Task;
+    }
+
+    public async Task<Definition?> Inspect(
+        ResourceTransaction transaction,
+        UnlockedFile file,
+        FileContent fileContent,
+        FileSnapshot fileSnapshot
+    )
+    {
+        MimeDetectorContext context = GetContext();
+        MimeDetectionReport? mimeDetectionReport = await Resources.GetMimeDetectionReport(
+            transaction,
+            file,
+            fileContent,
+            fileSnapshot
+        );
+
+        if (mimeDetectionReport == null)
+        {
+            using Stream stream = await server.ResourceManager.CreateReadStream(
+                transaction,
+                file,
+                fileContent,
+                fileSnapshot
+            );
+
+            Definition? definition = await Inspect(stream, transaction.CancellationToken);
+
+            mimeDetectionReport = await Resources.SetMimeDetectionReport(
+                transaction,
+                file,
+                fileContent,
+                fileSnapshot,
+                definition?.File.MimeType
+            );
+
+            return definition;
+        }
+        else
+        {
+            return context
+                .Definitions.Where((item) => item.File.MimeType == mimeDetectionReport.Mime)
+                .FirstOrDefault();
+        }
     }
 
     protected override Task OnStop(MimeDetectorContext context, ExceptionDispatchInfo? exception)

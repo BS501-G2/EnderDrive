@@ -26,7 +26,7 @@
 		desktopTopRight
 	} = createDashboardContext();
 	const { navigationEntries } = createNavigationContext();
-	const { isMobile, isDesktop, isCustomBar, isFullscreen } = useAppContext();
+	const { isMobile, isDesktop, isCustomBar, isFullscreen, titleStack } = useAppContext();
 	const { authentication } = useClientContext();
 
 	const { children }: { children: Snippet } = $props();
@@ -40,6 +40,14 @@
 			}
 		})
 	);
+
+	onMount(() => {
+		window.document.body.classList.add('app');
+
+		return () => {
+			window.document.body.classList.remove('app');
+		};
+	});
 </script>
 
 {#if $authentication != null}
@@ -68,7 +76,17 @@
 						<Favicon size={16} />
 					{/if}
 
-					<p>EnderDrive</p>
+					<p class="title">
+						{#if $isMobile}
+							{$titleStack
+								.map((e) => e.title)
+								.slice($titleStack.length > 1 ? 1 : 0)
+								.toReversed()
+								.join(' - ')}
+						{:else}
+							EnderDrive
+						{/if}
+					</p>
 				</div>
 			{/if}
 			<div class="left">
@@ -139,12 +157,15 @@
 
 <Search />
 <AppButtonHost {mobileAppButtons} />
+
+{#if $isDesktop}
 <NotificationButtonDesktop />
+{/if}
 
 <style lang="scss">
 	@use '../../global.scss' as *;
 
-	:global(body) {
+	:global(body.app) {
 		min-height: 0;
 		min-width: 0;
 	}
@@ -195,6 +216,18 @@
 
 				gap: 8px;
 				padding: 8px;
+
+				min-width: 0;
+
+				> p.title {
+					text-overflow: ellipsis;
+					text-wrap: nowrap;
+					overflow: hidden;
+
+					flex-shrink: 1;
+
+					min-width: 0;
+				}
 			}
 
 			> div.left,

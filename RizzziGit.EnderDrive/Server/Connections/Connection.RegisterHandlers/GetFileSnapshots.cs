@@ -17,7 +17,7 @@ public sealed partial class Connection
         public required ObjectId FileId;
 
         [BsonElement("fileContentId")]
-        public required ObjectId FileContentId;
+        public required ObjectId? FileContentId;
 
         [BsonElement("pagination")]
         public required PaginationOptions? Pagination;

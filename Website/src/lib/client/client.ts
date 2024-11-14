@@ -578,8 +578,8 @@ function getServerFunctions(
 
 		getUsers: async (
 			searchString?: string,
-			minRole?: UserRole,
-			maxRole?: UserRole,
+			includeRole?: UserRole[],
+			excludeRole?: UserRole[],
 			username?: string,
 			id?: string,
 			offset?: number,
@@ -587,8 +587,8 @@ function getServerFunctions(
 		) => {
 			const { users } = await request(ServerSideRequestCode.GetUsers, {
 				searchString,
-				minRole,
-				maxRole,
+				includeRole,
+				excludeRole,
 				username,
 				id,
 				pagination: { offset, count }
@@ -610,7 +610,7 @@ function getServerFunctions(
 			ownerUserId?: string,
 			trashOptions?: TrashOptions,
 			offset?: number,
-			count?: string
+			count?: number
 		) => {
 			const { files } = await request(ServerSideRequestCode.GetFiles, {
 				parentFolderId,
@@ -671,9 +671,9 @@ function getServerFunctions(
 		},
 
 		getFileMime: async (fileId: string) => {
-			const { fileMimeType } = await request(ServerSideRequestCode.CreateFolder, { fileId });
+			const { fileMimeType } = await request(ServerSideRequestCode.GetFileMime, { fileId });
 
-			return fileMimeType;
+			return fileMimeType as string;
 		},
 
 		getFileContents: async (fileId: string, offset?: number, count?: number) => {
@@ -687,9 +687,15 @@ function getServerFunctions(
 			) as FileContentResource[];
 		},
 
+		getMainFileContent: async (fileId: string) => {
+			const { fileContent } = await request(ServerSideRequestCode.GetMainFileContent, { fileId });
+
+			return JSON.parse(fileContent) as FileContentResource;
+		},
+
 		getFileSnapshots: async (
 			fileId: string,
-			fileContentId: string,
+			fileContentId?: string,
 			offset?: number,
 			count?: number
 		) => {
@@ -737,6 +743,16 @@ function getServerFunctions(
 			});
 
 			return fileLogs.map((fileLog: any) => JSON.parse(fileLog)) as FileLogResource[];
+		},
+
+		getFileSize: async (fileId: string, fileContentId: string, fileSnapshotId: string) => {
+			const { size } = await request(ServerSideRequestCode.GetFileSize, {
+				fileId,
+				fileContentId,
+				fileSnapshotId
+			});
+
+			return size as number;
 		},
 
 		scanFile: async (fileId: string, fileContentId: string, fileSnapshotId: string) => {
@@ -799,6 +815,42 @@ function getServerFunctions(
 			const { position } = await request(ServerSideRequestCode.GetPosition, { streamId });
 
 			return position as number;
+		},
+
+		createNews: async (title: string, imageFileIds: string[], publishTime?: Date) => {
+			const { news } = await request(ServerSideRequestCode.CreateNews, {
+				title,
+				imageFileIds,
+				publishTime
+			});
+
+			return JSON.parse(news) as NewsResource;
+		},
+
+		deleteNews: async (newsId: string) => {
+			await request(ServerSideRequestCode.DeleteNews, { newsId });
+		},
+
+		getNews: async (afterId?: string, published?: boolean, offset?: number, count?: number) => {
+			const { newsEntries } = await request(ServerSideRequestCode.GetNews, {
+				afterId,
+				published,
+				pagination: {
+					offset,
+					count
+				}
+			});
+
+			return newsEntries.map((newsEntry: any) => JSON.parse(newsEntry)) as NewsResource[];
+		},
+
+		getLatestFileSnapshot: async (fileId: string, fileContentId?: string) => {
+			const { fileSnapshot } = await request(ServerSideRequestCode.GetLatestFileSnapshot, {
+				fileId,
+				fileContentId
+			});
+
+			return fileSnapshot != null ? JSON.parse(fileSnapshot) : null;
 		}
 	};
 
@@ -844,8 +896,11 @@ export enum ServerSideRequestCode {
 	GetFilePath,
 
 	GetFileMime,
+	GetFileSize,
 	GetFileContents,
+	GetMainFileContent,
 	GetFileSnapshots,
+	GetLatestFileSnapshot,
 
 	AmIAdmin,
 
@@ -864,7 +919,6 @@ export enum ServerSideRequestCode {
 	GetPosition,
 
 	CreateNews,
-	UpdateNews,
 	DeleteNews,
 	GetNews
 }

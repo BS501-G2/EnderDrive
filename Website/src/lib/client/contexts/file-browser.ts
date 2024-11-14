@@ -1,7 +1,7 @@
 import { getContext, setContext, type Snippet } from 'svelte';
 import { persisted } from 'svelte-persisted-store';
 import { derived, get, writable, type Readable, type Writable } from 'svelte/store';
-import type { FileResource, FileAccessResource, FileStarResource } from '../client';
+import type { FileResource, FileAccessResource, FileStarResource, FileType } from '../client';
 import type { IconOptions } from '../ui/icon.svelte';
 import type { FileBrowserListContext } from './file-browser-list';
 
@@ -22,6 +22,14 @@ export type FileBrowserResolve =
 
 export interface FileBrowserOptions {
 	resolve: Readable<FileBrowserResolve>;
+
+	customContext?: ReturnType<typeof createFileBrowserContext>;
+
+	selectMode?: {
+		maxSelectionCount: number;
+
+		allowedFileMimeTypes: (RegExp | string)[];
+	} | null;
 
 	onFileId?: (
 		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement },
@@ -45,7 +53,10 @@ export interface FileBrowserAction {
 	type: 'left-main' | 'left' | 'right-main' | 'right';
 }
 
-export function createFileBrowserContext(onFileId?: FileBrowserOptions['onFileId']) {
+export function createFileBrowserContext(
+	onFileId?: FileBrowserOptions['onFileId'],
+	selectMode?: FileBrowserOptions['selectMode']
+) {
 	const showDetails = persisted('file-browser-config-show-details', false);
 	const isLoading = writable(false);
 	const top = writable<{ id: number; snippet: Snippet }[]>([]);
@@ -57,6 +68,7 @@ export function createFileBrowserContext(onFileId?: FileBrowserOptions['onFileId
 	});
 	const refresh = writable<(() => void) | null>(null);
 
+	console.log(selectMode);
 	const fileListContext: Writable<FileBrowserListContext | null> = writable(null);
 
 	const context = setContext(contextName, {
@@ -103,6 +115,7 @@ export function createFileBrowserContext(onFileId?: FileBrowserOptions['onFileId
 		current: derived(current, (value) => value),
 
 		onFileId,
+		selectMode,
 
 		fileListContext: derived(fileListContext, (value) => value),
 
@@ -155,7 +168,8 @@ export function createFileBrowserContext(onFileId?: FileBrowserOptions['onFileId
 export type FileEntry = {
 	file: FileResource;
 } & (
-	| { type: 'normal' }
+	| { type: 'folder'; file: FileResource & { type: FileType.Folder } }
+	| { type: 'file'; mime: string; file: FileResource & { type: FileType.File } }
 	| {
 			type: 'shared';
 			fileAccess: FileAccessResource;

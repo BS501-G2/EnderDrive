@@ -24,19 +24,19 @@
 	{/snippet}
 
 	<div class="background">
-		<Button foreground={buttonForeground} onclick={() => goto(path)}>
+		<Button foreground={buttonForeground} onclick={() => {goto(path)}}>
 			<Icon {...icon} />
-			<p>{label}</p>
+			<p class="label">{label}</p>
 		</Button>
 	</div>
 {/snippet}
 
 <div class="buttons-container">
 	<div class="buttons">
-		{@render buttons({ icon: 'folder', size: '1em' }, 'Files', '/app/files')}
-		{@render buttons({ icon: 'folder', size: '1em' }, 'Shared', '/app/shared')}
-		{@render buttons({ icon: 'folder', size: '1em' }, 'Starred', '/app/starred')}
-		{@render buttons({ icon: 'folder', size: '1em' }, 'Trash', '/app/trash')}
+		{@render buttons({ icon: 'folder', size: '2em' }, 'Files', '/app/files')}
+		{@render buttons({ icon: 'user', size: '2em' }, 'Shared', '/app/shared')}
+		{@render buttons({ icon: 'star', size: '2em' }, 'Starred', '/app/starred')}
+		{@render buttons({ icon: 'trash-can', size: '2em' }, 'Trash', '/app/trash')}
 	</div>
 </div>
 
@@ -64,8 +64,28 @@
 
 		box-sizing: border-box;
 
+		flex-shrink: 0;
+
         > :global(button) {
             flex-grow: 1;
         }
+	}
+
+	div.foreground {
+		flex-direction: column;
+		flex-grow: 1;
+
+		align-items: center;
+
+		border-radius: 16px;
+		box-shadow: 2px 2px 4px var(--color-10);
+
+		padding: 16px;
+		margin: 8px;
+		gap: 8px;
+
+		p.label {
+			font-size: 1.5em;
+		}
 	}
 </style>

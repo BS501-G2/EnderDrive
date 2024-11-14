@@ -5,10 +5,10 @@
 	import Button from '$lib/client/ui/button.svelte';
 	import Input from '$lib/client/ui/input.svelte';
 	import { useAppContext } from '$lib/client/contexts/app';
+	import SearchFiles from './search-files.svelte';
 
-	const {getUsers} = useServerContext();
 	const { isMobile } = useAppContext();
-	const { windowButtons }: { windowButtons: Snippet } = $props();
+	const { windowButtons, ondismiss }: { windowButtons: Snippet, ondismiss: () => void } = $props();
 
 	let searchString: string = $state('');
 </script>
@@ -47,24 +47,27 @@
 
 <div class="search" class:mobile={$isMobile}>
 	<div class="header">
-			<p class="title">Search</p>
+		<p class="title">Search</p>
 		{@render windowButtons()}
 	</div>
 
-	<div class="search-field">
-		<Input id="search" type="text" name="Search String" bind:value={searchString} />
-	</div>
+	<div class="body">
+		<div class="search-field">
+			<Input id="search" type="text" name="Search String" bind:value={searchString} />
+		</div>
 
-	{#if searchString.length}
-		<div class="result">
-			<SearchUsers {searchString} card={resultBox} />
-		</div>
-	{:else}
-		<div class="placeholder">
-			<h2>Search</h2>
-			<p>You can use the search feature to find users and files.</p>
-		</div>
-	{/if}
+		{#if searchString.length}
+			<div class="result">
+				<SearchUsers {searchString} card={resultBox} {ondismiss} />
+				<SearchFiles {searchString} card={resultBox} {ondismiss} />
+			</div>
+		{:else}
+			<div class="placeholder">
+				<h2>Search</h2>
+				<p>You can use the search feature to find users and files.</p>
+			</div>
+		{/if}
+	</div>
 </div>
 
 <style lang="scss">
@@ -73,11 +76,12 @@
 	div.search {
 		background-color: var(--color-9);
 
-		padding: 16px;
 		// box-shadow: 2px 2px 4px;
 		gap: 8px;
 
 		text-align: start;
+
+		min-height: 0;
 
 		@include force-size(min(50dvw, 480px), min(50dvh, 720px));
 
@@ -88,34 +92,44 @@
 			> p.title {
 				flex-grow: 1;
 
-				font-size: 1.5em;
+				font-size: 1.2em;
 				font-weight: bold;
+
+				margin: 0 8px;
 			}
 		}
 
-		> div.search-field {
-			background-color: var(--color-9);
-		}
-
-		// > div.user-tab {
-
-		> div.placeholder {
-			flex-grow: 1;
-			gap: 8px;
-
-			align-items: center;
-			justify-content: center;
-
-			> h2 {
-				font-size: 1.2rem;
-			}
-		}
-
-		> div.result {
+		> div.body {
 			flex-grow: 1;
 
-			overflow: hidden auto;
 			min-height: 0;
+
+			padding: 8px;
+
+			> div.search-field {
+				background-color: var(--color-9);
+			}
+
+			// > div.user-tab {
+
+			> div.placeholder {
+				flex-grow: 1;
+				gap: 8px;
+
+				align-items: center;
+				justify-content: center;
+
+				> h2 {
+					font-size: 1.2rem;
+				}
+			}
+
+			> div.result {
+				flex-grow: 1;
+
+				overflow: hidden auto;
+				min-height: 0;
+			}
 		}
 	}
 

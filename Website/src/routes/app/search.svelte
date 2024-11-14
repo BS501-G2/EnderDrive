@@ -33,7 +33,7 @@
 		<div class="icon">
 			<Icon icon="magnifying-glass" thickness="solid" size="1em" />
 		</div>
-		<div class="space"></div>
+		<div class="space">Search...</div>
 	</button>
 {/snippet}
 
@@ -44,7 +44,12 @@
 		}}
 	>
 		{#snippet children(windowButtons)}
-			<SearchOverlay {windowButtons} />
+			<SearchOverlay
+				{windowButtons}
+				ondismiss={() => {
+					searchOverlay = false;
+				}}
+			/>
 		{/snippet}
 	</Overlay>
 {/if}
@@ -82,6 +87,8 @@
 
 		> div.space {
 			flex-grow: 1;
+
+			color: var(--color-1);
 		}
 	}
 

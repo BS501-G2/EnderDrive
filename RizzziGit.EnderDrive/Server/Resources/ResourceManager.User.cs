@@ -55,6 +55,9 @@ public record class User : ResourceData
     public required ObjectId? ProfilePictureId;
 
     [JsonIgnore]
+    public required ObjectId? LatestNewsId;
+
+    [JsonIgnore]
     public required bool PrivacyPolicyAgreement;
 }
 
@@ -135,6 +138,7 @@ public sealed partial class ResourceManager
                 TrashFileId = null,
                 RootFileId = null,
                 ProfilePictureId = null,
+                LatestNewsId = null,
 
                 PrivacyPolicyAgreement = false,
             };
@@ -176,6 +180,20 @@ public sealed partial class ResourceManager
         );
 
         user.ProfilePictureId = file?.Id;
+    }
+
+    public async Task SetUserLatestNewsId(
+        ResourceTransaction transaction,
+        User user,
+        News? news
+    ) {
+        await Update(
+            transaction,
+            user,
+            Builders<User>.Update.Set((item) => item.LatestNewsId, news?.Id)
+        );
+
+        user.LatestNewsId = news?.Id;
     }
 
     public async Task DeleteUser(

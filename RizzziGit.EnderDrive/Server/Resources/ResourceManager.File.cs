@@ -382,6 +382,6 @@ public sealed partial class ResourceManager
                                 ? item.TrashTime == null
                                 : trashOptions != TrashOptions.Exclusive || item.TrashTime != null
                         )
-                )
+                ).OrderBy((item) => item.Type)
         );
 }

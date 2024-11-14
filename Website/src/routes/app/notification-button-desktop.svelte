@@ -4,10 +4,14 @@
 	import Button from '$lib/client/ui/button.svelte';
 	import Icon from '$lib/client/ui/icon.svelte';
 	import { onMount, type Snippet } from 'svelte';
+	import { derived, writable, type Writable } from 'svelte/store';
+	import NotificationOverlay from './notification-overlay.svelte';
 
-	const { pushDesktopTopRight, showNotifications } = useDashboardContext();
+	const { pushDesktopTopRight } = useDashboardContext();
 
 	onMount(() => pushDesktopTopRight(desktop));
+
+	const notification: Writable<{ element: HTMLElement } | null> = writable(null);
 </script>
 
 {#snippet desktop()}
@@ -20,13 +24,20 @@
 	<div class="notification">
 		<Button
 			foreground={buttonForeground}
-			onclick={async () => {
-				$showNotifications = true;
-			}}
+			onclick={async (event) => notification.set({ element: event.currentTarget })}
 		>
 			<Icon icon="bell" />
 		</Button>
 	</div>
+
+	{#if $notification}
+		<NotificationOverlay
+			element={$notification.element}
+			ondismiss={() => {
+				$notification = null;
+			}}
+		/>
+	{/if}
 {/snippet}
 
 <style lang="scss">

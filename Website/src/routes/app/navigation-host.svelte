@@ -96,10 +96,25 @@
 	/>
 {/if}
 
+{#if $isMobile}
+
+	<Navigation
+		label="Notifications"
+		onclick={async () => goto('/app/notification')}
+		icon={(isActive) => ({ icon: 'bell', thickness: isActive ? 'solid' : 'regular' })}
+		isActive={derived(page, ({ url: { pathname } }) => {
+			if (pathname === '/app/notification') {
+				return true;
+			}
+
+			return false;
+		})}
+	/>
+{/if}
+
 {#key $clientState[0]}
 	{#await whoAmI() then userId}
 		{#if userId != null}
-			{#if !$isMobile}
 				{#await amIAdmin() then isAdmin}
 					{#if isAdmin}
 						<Navigation
@@ -116,7 +131,6 @@
 						/>
 					{/if}
 				{/await}
-			{/if}
 
 			<Navigation
 				label="Me"

@@ -15,7 +15,8 @@
 		click = $bindable(),
 		buttonElement = $bindable(),
 		disabled = false,
-		onerror
+		onerror,
+		reset = $bindable()
 	}: {
 		hint?: string;
 		children: Snippet;
@@ -28,10 +29,17 @@
 		click?: () => void;
 		buttonElement?: HTMLButtonElement;
 		disabled?: boolean;
+		reset?: () => void;
 	} = $props();
 
 	let promise: Promise<void> | null = $state(null);
 	let error: Error | null = $state(null);
+
+	$effect(() => {
+		reset = () => {
+			error = null;
+		};
+	});
 
 	$effect(() => {
 		click = clickButton;
@@ -78,7 +86,7 @@
 				})();
 			}
 		} catch (e: any) {
-			error = e
+			error = e;
 			onerror?.(error!);
 		}
 	}}

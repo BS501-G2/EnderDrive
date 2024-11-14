@@ -1,23 +1,37 @@
 <script lang="ts">
 	import { FileType, useServerContext } from '$lib/client/client';
 	import { useAppContext } from '$lib/client/contexts/app';
-	import type { FileEntry } from '$lib/client/contexts/file-browser';
+	import { useFileBrowserContext, type FileEntry } from '$lib/client/contexts/file-browser';
 	import { useFileBrowserListContext } from '$lib/client/contexts/file-browser-list';
+	import UserLink from '$lib/client/model/user-link.svelte';
 	import Button from '$lib/client/ui/button.svelte';
 	import Icon from '$lib/client/ui/icon.svelte';
+	import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte';
 	import { onMount, type Snippet } from 'svelte';
 	import { get } from 'svelte/store';
 	import { fly } from 'svelte/transition';
 
 	const { file }: { file: FileEntry } = $props();
 	const { pushFile, selectedFileIds, selectFile, deselectFile } = useFileBrowserListContext();
-	const { getFileContents, getFileSnapshots } = useServerContext();
+	const { getFileContents, getFileSnapshots, getMainFileContent, getUser } = useServerContext();
 	const { isMobile, isDesktop } = useAppContext();
+	const { onFileId } = useFileBrowserContext();
 
 	let fileElement: HTMLElement = $state(null as never);
 	let hover: boolean = $state(false);
 
 	onMount(() => pushFile(file, fileElement));
+
+	const getModified = async () => {
+		const fileSnapshot = (await getFileSnapshots(file.file.id, void 0, 0, 1))[0];
+		const user = await getUser(fileSnapshot.authorUserId);
+
+		return [fileSnapshot, user!] as const;
+	};
+
+	const getSize = async () => {
+
+	}
 </script>
 
 <!-- svelte-ignore a11y_interactive_supports_focus -->
@@ -74,19 +88,45 @@
 	{/if}
 
 	<div class="preview">
-		{#if file.file.type === FileType.Folder}
+		{#if file.type === 'folder'}
 			<Icon icon="folder" size="32px" />
-		{:else if file.file.type === FileType.File}
-			<Icon icon="file" size="32px" />
+		{:else if file.type === 'file'}
+			{#if file.mime.startsWith('image/')}
+				<Icon icon="image" size="32px" />
+			{:else if file.mime.startsWith('video/')}
+				<Icon icon="film" size="32px" thickness="solid" />
+			{:else if file.mime.startsWith('audio/')}
+				<Icon icon="music" size="32px" />
+			{:else if file.mime.startsWith('text/')}
+				<Icon icon="text" size="32px" />
+			{:else if file.mime.startsWith('application/')}
+				<Icon icon="file" size="32px" />
+			{:else}
+				<Icon icon="file" size="32px" />
+			{/if}
 		{/if}
 	</div>
 
 	<div class="name">
 		<div class="file-name">
-			<a href="/app/files?fileId={file.file.id}" class:mobile={$isMobile}>
-				<p class:mobile={$isMobile}>
+			<a
+				href="/app/files?fileId={file.file.id}"
+				onclick={(event) => {
+					event.preventDefault();
+
+					if (!($isMobile && $selectedFileIds.length)) {
+						onFileId?.(event as never, file.file.id);
+					}
+				}}
+				class:mobile={$isMobile}
+			>
+				<p class="name">
 					{file.file.name}
 				</p>
+
+				{#if $isMobile}
+					<p class="size">3 MB</p>
+				{/if}
 			</a>
 		</div>
 
@@ -112,10 +152,26 @@
 	</div>
 
 	{#if $isDesktop}
-		<div class="modified">
-			{#await getFileContents(file.file.id) then fileContents}
-				{JSON.stringify(fileContents)}
+		<div class="size">
+			{#await getSize()}
+					<LoadingSpinner size="1em" />
+			{:then size}
+			<p>{size} MB</p>
 			{/await}
+		</div>
+	{/if}
+
+	{#if $isDesktop}
+		<div class="modified">
+			{#if file.file.type === FileType.File}
+				{#await getModified()}
+					<LoadingSpinner size="1em" />
+				{:then [fileSnapshot, user]}
+					<p class="user">
+						{new Date(fileSnapshot.createTime).toLocaleString()} by <UserLink userId={user.id} />
+					</p>
+				{/await}
+			{/if}
 		</div>
 
 		<div class="date"></div>
@@ -158,7 +214,7 @@
 			align-items: center;
 
 			> div.file-name {
-				flex-direction: row;
+				flex-direction: column;
 				flex-grow: 1;
 
 				min-width: 0;
@@ -170,15 +226,14 @@
 
 					min-width: 0;
 
-					> p {
+					> p.name {
 						text-overflow: ellipsis;
 						text-wrap: nowrap;
 
 						overflow: hidden;
 					}
 
-					> p.mobile {
-						padding: 16px 0;
+					> p.size {
 					}
 				}
 
@@ -199,10 +254,14 @@
 
 			@include force-size(256px, &);
 		}
+
+		> div.size {
+			@include force-size(64px, &);
+		}
 	}
 
 	div.file.mobile {
-		padding: 0 8px;
+		padding: 8px;
 	}
 
 	div.file:hover {
@@ -214,9 +273,6 @@
 					text-decoration: underline;
 				}
 			}
-		}
-
-		> div.modified {
 		}
 	}
 </style>

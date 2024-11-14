@@ -1,5 +1,5 @@
 <script lang="ts">
-	import {  useServerContext, type UserResource } from '$lib/client/client';
+	import { useServerContext, type UserResource } from '$lib/client/client';
 	import Button from '$lib/client/ui/button.svelte';
 	import Icon from '$lib/client/ui/icon.svelte';
 	import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte';
@@ -9,10 +9,12 @@
 
 	const {
 		searchString,
-		card
+		card,
+		ondismiss
 	}: {
 		searchString: string;
 		card: Snippet<[name: string, seeMore: () => void, snippet: Snippet]>;
+		ondismiss: () => void;
 	} = $props();
 </script>
 
@@ -43,39 +45,6 @@
 		{#each users as entry}
 			{@render user(entry)}
 		{/each}
-		{#each users as entry}
-			{@render user(entry)}
-		{/each}
-		{#each users as entry}
-			{@render user(entry)}
-		{/each}
-		{#each users as entry}
-			{@render user(entry)}
-		{/each}
-		{#each users as entry}
-			{@render user(entry)}
-		{/each}
-		{#each users as entry}
-			{@render user(entry)}
-		{/each}
-		{#each users as entry}
-			{@render user(entry)}
-		{/each}
-		{#each users as entry}
-			{@render user(entry)}
-		{/each}
-		{#each users as entry}
-			{@render user(entry)}
-		{/each}
-		{#each users as entry}
-			{@render user(entry)}
-		{/each}
-		{#each users as entry}
-			{@render user(entry)}
-		{/each}
-		{#each users as entry}
-			{@render user(entry)}
-		{/each}
 	{/await}
 {/snippet}
 
@@ -88,6 +57,7 @@
 		flex-direction: row;
 		align-items: center;
 
+		flex-grow: 1;
 		border: none;
 
 		padding: 8px;

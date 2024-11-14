@@ -210,6 +210,8 @@ public sealed partial class Connection
                 }
                 catch (Exception exception)
                 {
+                    await Resources.DeleteFile(transaction, file);
+
                     Error(exception);
                     queue.Dispose(exception);
                 }

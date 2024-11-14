@@ -15,8 +15,8 @@
 	import { onMount } from 'svelte';
 	import FileBrowserPropertiesMobile from './file-browser-properties-mobile.svelte';
 
-	const { resolve, onFileId }: FileBrowserOptions = $props();
-	const { actions, top, current, middle, bottom } = createFileBrowserContext(onFileId);
+	const { resolve, onFileId,  selectMode, customContext }: FileBrowserOptions = $props();
+	const { actions, top, current, middle, bottom } = customContext ?? createFileBrowserContext(onFileId, selectMode);
 	const { showDetails, fileListContext } = useFileBrowserContext();
 	const { isMobile, isDesktop } = useAppContext();
 
@@ -97,7 +97,7 @@
 	{/if}
 </div>
 
-{#if $current.type === 'file' || $current.type === 'folder' || $current.type === 'loading'}
+{#if $current.type === 'file' || $current.type === 'folder' || $current.type === 'loading' }
 	<FileBrowserPath current={$current} />
 {/if}
 
@@ -151,6 +151,10 @@
 			> div.bottom {
 				flex-direction: row;
 			}
+		}
+
+		> div.right {
+			@include force-size(320px, &);
 		}
 	}
 </style>

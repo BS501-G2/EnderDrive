@@ -17,7 +17,7 @@
 		isActive: Readable<boolean>;
 	} = $props();
 
-	const { isMobile } = useAppContext();
+	const { isMobile ,isDesktop} = useAppContext();
 	const { pushNavigation } = useNavigationContext();
 
 	onMount(() => pushNavigation(content));
@@ -26,7 +26,7 @@
 </script>
 
 {#snippet content()}
-	<button {onclick} class:active={$isActive} class:mobile={$isMobile}>
+	<button {onclick} class:active={$isActive} class:mobile={$isMobile} class:desktop={$isDesktop}>
 		{#if $isMobile && $isActive}
 			<div class="indicator"></div>
 		{/if}
@@ -50,6 +50,8 @@
 		display: flex;
 		flex-direction: column;
 		align-items: stretch;
+
+		flex-basis: 0;
 
 		line-height: 1em;
 		padding: 8px 4px;
@@ -81,6 +83,10 @@
 		margin: 4px;
 
 		flex-grow: 1;
+	}
+
+	button.desktop {
+		border-radius: 8px;
 	}
 
 	button.active {

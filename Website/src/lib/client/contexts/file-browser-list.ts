@@ -27,7 +27,7 @@ export function createFileBrowserListContext() {
 			selectedFileIds.update((value) => value.filter((value) => value !== id));
 		},
 
-		selectedFileIds: derived(selectedFileIds, (value) => [...value])
+		selectedFileIds
 	});
 
 	return { files, selectedFileIds, context };

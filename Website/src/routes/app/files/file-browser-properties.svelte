@@ -56,8 +56,4 @@
 		align-items: center;
 		flex-direction: row;
 	}
-
-	div.properties {
-		@include force-size(256px, &);
-	}
 </style>
