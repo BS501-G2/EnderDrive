@@ -169,7 +169,7 @@ export type FileEntry = {
 	file: FileResource;
 } & (
 	| { type: 'folder'; file: FileResource & { type: FileType.Folder } }
-	| { type: 'file'; mime: string; file: FileResource & { type: FileType.File } }
+	| { type: 'file'; file: FileResource & { type: FileType.File } }
 	| {
 			type: 'shared';
 			fileAccess: FileAccessResource;

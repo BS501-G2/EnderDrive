@@ -56,6 +56,8 @@
 		color: var(--color-1);
 		// box-shadow: 2px 2px 4px var(--color-10);
 
+		overflow: hidden auto;
+
 		> div.loading {
 			align-items: center;
 			justify-content: center;

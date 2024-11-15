@@ -14,10 +14,10 @@ public sealed partial class Connection
         public required ObjectId FileId;
 
         [BsonElement("fileContentId")]
-        public required ObjectId FileContentId;
+        public required ObjectId? FileContentId;
 
         [BsonElement("fileSnapshotId")]
-        public required ObjectId FileSnapshotId;
+        public required ObjectId? FileSnapshotId;
     }
 
     private sealed record class GetFileSizeResponse
@@ -30,11 +30,22 @@ public sealed partial class Connection
         async (transaction, request, userAuthentication, me) =>
         {
             File file = await Internal_GetFile(transaction, me, request.FileId);
-            FileContent fileContent = await Resources.GetMainFileContent(transaction, file);
-            FileSnapshot? fileSnapshot = await Resources
-                .GetFileSnapshots(transaction, file, fileContent, request.FileSnapshotId)
-                .ToAsyncEnumerable()
-                .FirstOrDefaultAsync(transaction.CancellationToken);
+
+            FileContent fileContent =
+                request.FileContentId != null
+                    ? await Internal_EnsureFirst(
+                        transaction,
+                        Resources.GetFileContents(transaction, file, id: request.FileContentId)
+                    )
+                    : await Resources.GetMainFileContent(transaction, file);
+
+            FileSnapshot? fileSnapshot =
+                request.FileSnapshotId != null
+                    ? await Resources
+                        .GetFileSnapshots(transaction, file, fileContent, request.FileSnapshotId)
+                        .ToAsyncEnumerable()
+                        .FirstOrDefaultAsync(transaction.CancellationToken)
+                    : await Resources.GetLatestFileSnapshot(transaction, file, fileContent);
 
             return new()
             {

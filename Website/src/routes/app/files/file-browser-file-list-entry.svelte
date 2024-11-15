@@ -13,7 +13,14 @@
 
 	const { file }: { file: FileEntry } = $props();
 	const { pushFile, selectedFileIds, selectFile, deselectFile } = useFileBrowserListContext();
-	const { getFileContents, getFileSnapshots, getMainFileContent, getUser } = useServerContext();
+	const {
+		getFileContents,
+		getFileMime,
+		getFileSnapshots,
+		getMainFileContent,
+		getUser,
+		getFileSize
+	} = useServerContext();
 	const { isMobile, isDesktop } = useAppContext();
 	const { onFileId } = useFileBrowserContext();
 
@@ -30,8 +37,18 @@
 	};
 
 	const getSize = async () => {
+		let fileSize = await getFileSize(file.file.id);
 
-	}
+		let count = 0;
+		const dict = ['', 'K', 'M', 'G', 'T'] as const;
+
+		while (fileSize >= 1000) {
+			fileSize /= 1024;
+			count++;
+		}
+
+		return `${fileSize.toFixed(2)} ${dict[count]}iB`;
+	};
 </script>
 
 <!-- svelte-ignore a11y_interactive_supports_focus -->
@@ -91,19 +108,23 @@
 		{#if file.type === 'folder'}
 			<Icon icon="folder" size="32px" />
 		{:else if file.type === 'file'}
-			{#if file.mime.startsWith('image/')}
-				<Icon icon="image" size="32px" />
-			{:else if file.mime.startsWith('video/')}
-				<Icon icon="film" size="32px" thickness="solid" />
-			{:else if file.mime.startsWith('audio/')}
-				<Icon icon="music" size="32px" />
-			{:else if file.mime.startsWith('text/')}
-				<Icon icon="text" size="32px" />
-			{:else if file.mime.startsWith('application/')}
-				<Icon icon="file" size="32px" />
-			{:else}
-				<Icon icon="file" size="32px" />
-			{/if}
+			{#await getFileMime(file.file.id)}
+				<LoadingSpinner size="32px" />
+			{:then mime}
+				{#if mime.startsWith('image/')}
+					<Icon icon="image" size="32px" />
+				{:else if mime.startsWith('video/')}
+					<Icon icon="film" size="32px" thickness="solid" />
+				{:else if mime.startsWith('audio/')}
+					<Icon icon="music" size="32px" />
+				{:else if mime.startsWith('text/')}
+					<Icon icon="text" size="32px" />
+				{:else if mime.startsWith('application/')}
+					<Icon icon="file" size="32px" />
+				{:else}
+					<Icon icon="file" size="32px" />
+				{/if}
+			{/await}
 		{/if}
 	</div>
 
@@ -125,7 +146,13 @@
 				</p>
 
 				{#if $isMobile}
-					<p class="size">3 MB</p>
+					<p class="size">
+						{#await getSize()}
+							<LoadingSpinner size="1em" />
+						{:then size}
+							{size}
+						{/await}
+					</p>
 				{/if}
 			</a>
 		</div>
@@ -140,7 +167,13 @@
 
 				{#if $isDesktop}
 					<Button onclick={() => {}} foreground={buttonForeground}>
-						<Icon icon="folder" size="1em" />
+						<Icon icon="trash" thickness="solid" size="1em" />
+					</Button>
+					<Button onclick={() => {}} foreground={buttonForeground}>
+						<Icon icon="pencil" thickness="solid" size="1em" />
+					</Button>
+					<Button onclick={() => {}} foreground={buttonForeground}>
+						<Icon icon="download" thickness="solid" size="1em" />
 					</Button>
 				{:else if $isMobile}
 					<Button onclick={() => {}} foreground={buttonForeground}>
@@ -154,9 +187,9 @@
 	{#if $isDesktop}
 		<div class="size">
 			{#await getSize()}
-					<LoadingSpinner size="1em" />
+				<LoadingSpinner size="1em" />
 			{:then size}
-			<p>{size} MB</p>
+				<p>{size}</p>
 			{/await}
 		</div>
 	{/if}
@@ -234,6 +267,7 @@
 					}
 
 					> p.size {
+						font-size: 0.8em;
 					}
 				}
 
@@ -243,6 +277,8 @@
 			}
 
 			> div.actions {
+				flex-direction: row;
+
 				div.foreground {
 					padding: 8px;
 				}
@@ -256,7 +292,7 @@
 		}
 
 		> div.size {
-			@include force-size(64px, &);
+			@include force-size(96px, &);
 		}
 	}
 

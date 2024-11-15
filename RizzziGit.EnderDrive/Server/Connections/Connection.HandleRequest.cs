@@ -206,8 +206,11 @@ public sealed partial class Connection
         registerHandler(ServerSideRequestCode.SetPosition, SetPosition);
         registerHandler(ServerSideRequestCode.GetStreamSize, GetStreamSize);
         registerHandler(ServerSideRequestCode.GetPosition, GetPosition);
-        registerAuthenticatedHandler(ServerSideRequestCode.GetMainFileContent,GetMainFileContent);
-        registerAuthenticatedHandler(ServerSideRequestCode.GetLatestFileSnapshot, GetLatestFileSnapshot);
+        registerAuthenticatedHandler(ServerSideRequestCode.GetMainFileContent, GetMainFileContent);
+        registerAuthenticatedHandler(
+            ServerSideRequestCode.GetLatestFileSnapshot,
+            GetLatestFileSnapshot
+        );
         registerAuthenticatedHandler(
             ServerSideRequestCode.CreateNews,
             CreateNews,
@@ -219,6 +222,8 @@ public sealed partial class Connection
             [UserRole.NewsEditor]
         );
         registerAuthenticatedHandler(ServerSideRequestCode.GetNews, GetNews);
+        registerAuthenticatedHandler(ServerSideRequestCode.SetFileStar, SetFileStar);
+        registerAuthenticatedHandler(ServerSideRequestCode.GetFileStar, GetFileStar);
     }
 }
 
@@ -274,4 +279,6 @@ public enum ServerSideRequestCode : byte
     CreateNews,
     DeleteNews,
     GetNews,
+    SetFileStar,
+    GetFileStar,
 }

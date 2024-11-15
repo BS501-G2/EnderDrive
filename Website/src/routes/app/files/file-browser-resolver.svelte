@@ -4,6 +4,7 @@
 		FileBrowserResolveType,
 		useFileBrowserContext,
 		type CurrentFile,
+		type FileBrowserAction,
 		type FileBrowserResolve,
 		type FileEntry
 	} from '$lib/client/contexts/file-browser';
@@ -17,8 +18,9 @@
 
 	const {
 		resolve,
-		current
-	}: { resolve: Readable<FileBrowserResolve>; current: Writable<CurrentFile> } = $props();
+		current,
+		actions
+	}: { resolve: Readable<FileBrowserResolve>; current: Writable<CurrentFile>, actions: Readable<FileBrowserAction[]> } = $props();
 	const { getFiles, getFileAccesses, getFilePath, getFileStars, getFile, getFileMime, whoAmI } =
 		useServerContext();
 	const { pushRefresh, selectMode } = useFileBrowserContext();
@@ -80,7 +82,6 @@
 
 				case FileBrowserResolveType.Shared: {
 					const fileAccesses = await getFileAccesses();
-
 					return {
 						type: 'shared',
 						files: await Promise.all(
@@ -132,54 +133,7 @@
 
 		try {
 			current.set({ type: 'loading' });
-			// await new Promise<void>((resolve) => setTimeout(resolve, 10000));
-
 			const result = await load();
-
-			if (
-				(result.type === 'folder' ||
-					result.type === 'shared' ||
-					result.type === 'starred' ||
-					result.type === 'trash') &&
-				selectMode != null
-			) {
-				const filtered: FileEntry[] = [];
-
-				const promises: Promise<void>[] = [];
-				for (const file of result.files) {
-					if (file.file.type === FileType.Folder) {
-						filtered.push(file);
-						continue;
-					}
-
-					promises.push(
-						(async () => {
-							const fileMime = await getFileMime(file.file.id);
-
-							if (
-								selectMode.allowedFileMimeTypes.some((mimeType) => {
-									if (typeof mimeType === 'string') {
-										if (fileMime === mimeType) {
-											return true;
-										}
-									} else {
-										if (mimeType.test(fileMime)) {
-											return true;
-										}
-									}
-
-									return false;
-								})
-							) {
-								filtered.push(file);
-							}
-						})()
-					);
-				}
-
-				await Promise.all(promises);
-				result.files = filtered;
-			}
 
 			current.set(result);
 		} catch (error: any) {
@@ -187,7 +141,7 @@
 		}
 	}
 
-	resolve.subscribe(load);
+	onMount(() => resolve.subscribe(load));
 
 	onMount(() =>
 		pushRefresh(() => {
@@ -207,7 +161,7 @@
 {:else if $current.type === 'folder' || $current.type === 'shared' || $current.type === 'starred' || $current.type === 'trash'}
 	<FileBrowserFileList current={$current} />
 {:else if $current.type === 'file'}
-	<FileBrowserFileView file={$current.file} />
+	<FileBrowserFileView file={$current.file} {actions} />
 {/if}
 
 <style lang="scss">

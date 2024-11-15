@@ -100,7 +100,10 @@ export function createClientContext() {
 		});
 
 		socket.on('message', (packet: Packet<any>) => {
-			console.log('<-', JSON.stringify(packet));
+			console.log(
+				'<-',
+				JSON.stringify(packet) /**new Error().stack?.split('\n').slice(1).join('\n')u */
+			);
 			switch (packet.type) {
 				case PacketType.Request: {
 					if (incomingRequests.has(packet.id)) {
@@ -216,7 +219,10 @@ export function createClientContext() {
 		function send<T extends ClientSideRequestCode | ServerSideRequestCode | ResponseCode>(
 			packet: Packet<T>
 		) {
-			console.log('->', JSON.stringify(packet));
+			console.log(
+				'->',
+				JSON.stringify(packet) /** new Error().stack?.split('\n').slice(1).join('\n') */
+			);
 			socket.emit('message', packet);
 		}
 
@@ -745,7 +751,7 @@ function getServerFunctions(
 			return fileLogs.map((fileLog: any) => JSON.parse(fileLog)) as FileLogResource[];
 		},
 
-		getFileSize: async (fileId: string, fileContentId: string, fileSnapshotId: string) => {
+		getFileSize: async (fileId: string, fileContentId?: string, fileSnapshotId?: string) => {
 			const { size } = await request(ServerSideRequestCode.GetFileSize, {
 				fileId,
 				fileContentId,
@@ -851,6 +857,16 @@ function getServerFunctions(
 			});
 
 			return fileSnapshot != null ? JSON.parse(fileSnapshot) : null;
+		},
+
+		setFileStar: async (fileId: string, starred: boolean) => {
+			await request(ServerSideRequestCode.SetFileStar, { fileId, starred });
+		},
+
+		getFileStar: async (fileId: string) => {
+			const { starred } = await request(ServerSideRequestCode.GetFileStar, { fileId });
+
+			return starred as boolean;
 		}
 	};
 
@@ -920,7 +936,10 @@ export enum ServerSideRequestCode {
 
 	CreateNews,
 	DeleteNews,
-	GetNews
+	GetNews,
+
+	SetFileStar,
+	GetFileStar
 }
 
 export interface SearchParams {

@@ -1,16 +1,29 @@
 <script lang="ts">
 	import { useServerContext, type FileResource } from '$lib/client/client';
-	import { type Snippet } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
 	import Overlay from '../../overlay.svelte';
 	import FileBrowserRefresh from './file-browser-refresh.svelte';
 	import { useAppContext } from '$lib/client/contexts/app';
 	import FileBrowserFileContent from './file-browser-file-content.svelte';
+	import { useFileBrowserContext, type FileBrowserAction } from '$lib/client/contexts/file-browser';
+	import FileBrowserActionHostMobile from './file-browser-action-host-mobile.svelte';
+	import { derived, writable, type Readable } from 'svelte/store';
+	import { createFileBrowserListContext } from '$lib/client/contexts/file-browser-list';
 
-	const { file }: { file: FileResource } = $props();
+	const { file, actions }: { file: FileResource; actions: Readable<FileBrowserAction[]> } =
+		$props();
 	const { getFile, getFileContents, getFileSnapshots, scanFile } = useServerContext();
+	const { setFileListContext } = useFileBrowserContext();
 
 	const { isMobile, isDesktop } = useAppContext();
+	const { selectedFileIds, context } = createFileBrowserListContext();
 
+	onMount(() => {
+		const ondestroy = setFileListContext(context);
+		selectedFileIds.set([file.id]);
+
+		return ondestroy;
+	});
 </script>
 
 <FileBrowserRefresh />
@@ -30,6 +43,10 @@
 				<div class="main">
 					<FileBrowserFileContent fileId={file.id} />
 				</div>
+<!--
+				<div class="footer">
+					<FileBrowserActionHostMobile {actions} />
+				</div> -->
 			</div>
 		{/snippet}
 	</Overlay>
@@ -77,6 +94,10 @@
 					min-width: 0;
 				}
 			}
+		}
+
+		> div.main {
+			flex-grow: 1;
 		}
 	}
 </style>

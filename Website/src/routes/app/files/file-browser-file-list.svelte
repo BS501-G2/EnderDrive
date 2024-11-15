@@ -16,9 +16,17 @@
 	}: { current: CurrentFile & { type: 'folder' | 'shared' | 'starred' | 'trash' } } = $props();
 
 	const { setFileListContext, refresh, selectMode } = useFileBrowserContext();
-	const { createFile, writeStream, closeStream } = useServerContext();
+	const {
+		createFile,
+		writeStream,
+		closeStream,
+		getFileMime,
+		getFileStars,
+		setFileStar,
+		getFileStar
+	} = useServerContext();
 	const { context, selectedFileIds } = createFileBrowserListContext();
-	const { isMobile } = useAppContext()
+	const { isMobile } = useAppContext();
 
 	onMount(() => setFileListContext(context));
 
@@ -34,7 +42,6 @@
 {/if}
 
 {#if current.type === 'folder' && selectMode == null}
-
 	<FileBrowserAction
 		type="left-main"
 		icon={{ icon: 'plus', thickness: 'solid' }}
@@ -83,10 +90,46 @@
 	/>
 
 	{#if $selectedFileIds.length > 0}
+		{#await Promise.all($selectedFileIds.map(async (fileId) => {
+				return await getFileStar(fileId);
+			})) then starred}
+			<FileBrowserAction
+				type="left"
+				icon={starred.some((file) => file)
+					? { icon: 'star', thickness: 'solid' }
+					: { icon: 'star', thickness: 'regular' }}
+				label="Starred"
+				onclick={async () => {
+					for (const fileId of $selectedFileIds) {
+						if (starred.some((file) => file)) {
+							await setFileStar(fileId, false);
+						} else {
+							await setFileStar(fileId, true);
+						}
+					}
+
+					refresh();
+				}}
+			/>
+		{/await}
 		<FileBrowserAction
 			type="left"
-			icon={{ icon: 'trash', thickness: 'solid' }}
+			icon={{ icon: 'trash-can', thickness: 'regular' }}
 			label="Delete"
+			onclick={() => {}}
+		/>
+
+		<FileBrowserAction
+			type="left"
+			icon={{ icon: 'pencil', thickness: 'solid' }}
+			label="Rename"
+			onclick={() => {}}
+		/>
+
+		<FileBrowserAction
+			type="left"
+			icon={{ icon: 'download', thickness: 'solid' }}
+			label="Download"
 			onclick={() => {}}
 		/>
 	{/if}
@@ -124,13 +167,26 @@
 	<div class="list-header"></div>
 
 	<div class="list-container">
-			<div class="header">
-
-			</div>
+		<div class="header"></div>
 		<div class="list" class:mobile={$isMobile}>
-
 			{#each current.files as file}
-				<FileBrowserFileListEntry {file} />
+				{#if file.type === 'folder'}
+					<FileBrowserFileListEntry {file} />
+				{:else}
+					{#if selectMode}
+						{#if selectMode.allowedFileMimeTypes.length !== 0}
+							{#await getFileMime(file.file.id) then mime}
+								{#if selectMode.allowedFileMimeTypes.some( (mimeType) => (mimeType instanceof RegExp ? mimeType.test(mime) : mimeType === mime) )}
+									<FileBrowserFileListEntry {file} />
+								{/if}
+							{/await}
+						{:else}
+							<FileBrowserFileListEntry {file} />
+						{/if}
+					{:else}
+						<FileBrowserFileListEntry {file} />
+					{/if}
+				{/if}
 			{/each}
 		</div>
 	</div>
@@ -146,7 +202,7 @@
 		div.list-container {
 			flex-grow: 1;
 
-			overflow: auto auto;
+			overflow: auto;
 			min-height: 0;
 			min-width: 0;
 

@@ -4,6 +4,7 @@
 		type FileResource,
 		type VirusReportResource
 	} from '$lib/client/client';
+	import Icon from '$lib/client/ui/icon.svelte';
 	import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte';
 	import { fly } from 'svelte/transition';
 
@@ -37,16 +38,9 @@
 </script>
 
 <div class="properties" transition:fly={{ x: 16, duration: 150 }}>
-	<h2>File</h2>
-	{#await promises}
-		<div class="loading">
-			<LoadingSpinner size="3em" />
-		</div>
-	{:then files}
-		{#if files}
-			<pre>{JSON.stringify(files.viruses, undefined, '  ')}</pre>
-		{/if}
-	{/await}
+	<div class="preview">
+		<Icon icon="file" size="72px" />
+	</div>
 </div>
 
 <style lang="scss">
@@ -55,5 +49,14 @@
 	div.loading {
 		align-items: center;
 		flex-direction: row;
+	}
+
+	div.properties {
+		> div.preview {
+			flex-direction: row;
+			margin: 32px;
+
+			justify-content: center;
+		}
 	}
 </style>

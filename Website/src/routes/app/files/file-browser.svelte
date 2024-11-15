@@ -59,7 +59,7 @@
 
 		<div class="middle">
 			{#if resolve}
-				<FileBrowserResolver {resolve} {current} />
+				<FileBrowserResolver {resolve} {current} {actions} />
 			{/if}
 
 			{#each $middle as { id, snippet } (id)}
