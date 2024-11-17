@@ -1,7 +1,15 @@
-import { getContext, setContext, type Snippet } from 'svelte';
-import { writable, type Writable } from 'svelte/store';
+import {
+	getContext,
+	setContext,
+	type Snippet
+} from 'svelte';
+import {
+	writable,
+	type Writable
+} from 'svelte/store';
 
-const navigationContextName = 'Navigation Context';
+const navigationContextName =
+	'Navigation Context';
 
 export interface NavigationEntry {
 	id: number;
@@ -14,21 +22,65 @@ export interface NavigationPage {
 }
 
 export function useNavigationContext() {
-	return getContext<ReturnType<typeof createNavigationContext>['context']>(navigationContextName);
+	return getContext<
+		ReturnType<
+			typeof createNavigationContext
+		>['context']
+	>(
+		navigationContextName
+	);
 }
 
 export function createNavigationContext() {
-	const navigationEntries: Writable<NavigationEntry[]> = writable([]);
+	const navigationEntries: Writable<
+		NavigationEntry[]
+	> =
+		writable(
+			[]
+		);
 
-	const context = setContext(navigationContextName, {
-		pushNavigation: (snippet: Snippet) => {
-			const id = Math.random();
+	const context =
+		setContext(
+			navigationContextName,
+			{
+				pushNavigation:
+					(
+						snippet: Snippet
+					) => {
+						const id =
+							Math.random();
 
-			navigationEntries.update((value) => [...value, { id, snippet }]);
+						navigationEntries.update(
+							(
+								value
+							) => [
+								...value,
+								{
+									id,
+									snippet
+								}
+							]
+						);
 
-			return () => navigationEntries.update((value) => value.filter((value) => value.id !== id));
-		}
-	});
+						return () =>
+							navigationEntries.update(
+								(
+									value
+								) =>
+									value.filter(
+										(
+											value
+										) =>
+											value.id !==
+											id
+									)
+							);
+					}
+			}
+		);
 
-	return { context, navigationEntries };
+	return {
+		context,
+		navigationEntries
+	};
 }

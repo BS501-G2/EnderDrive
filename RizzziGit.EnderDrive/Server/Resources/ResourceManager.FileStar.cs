@@ -7,67 +7,123 @@ using Newtonsoft.Json;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
-public record class FileStar : ResourceData
+public record class FileStar
+	: ResourceData
 {
-    [JsonProperty("fileId")]
-    public required ObjectId FileId;
+	[JsonProperty(
+		"fileId"
+	)]
+	public required ObjectId FileId;
 
-    [JsonProperty("userId")]
-    public required ObjectId UserId;
+	[JsonProperty(
+		"userId"
+	)]
+	public required ObjectId UserId;
 
-    [JsonProperty("createTime")]
-    [BsonRepresentation(BsonType.DateTime)]
-    public required DateTimeOffset CreateTime;
+	[JsonProperty(
+		"createTime"
+	)]
+	[BsonRepresentation(
+		BsonType.DateTime
+	)]
+	public required DateTimeOffset CreateTime;
 }
 
 public sealed partial class ResourceManager
 {
-    public async Task<FileStar?> SetFileStar(
-        ResourceTransaction transaction,
-        File file,
-        User user,
-        bool starred
-    )
-    {
-        FileStar? star = await Query<FileStar>(
-                transaction,
-                (query) => query.Where((item) => item.FileId == file.Id)
-            )
-            .ToAsyncEnumerable()
-            .FirstOrDefaultAsync(transaction.CancellationToken);
+	public async Task<FileStar?> SetFileStar(
+		ResourceTransaction transaction,
+		File file,
+		User user,
+		bool starred
+	)
+	{
+		FileStar? star =
+			await Query<FileStar>(
+					transaction,
+					(
+						query
+					) =>
+						query.Where(
+							(
+								item
+							) =>
+								item.FileId
+								== file.Id
+						)
+				)
+				.ToAsyncEnumerable()
+				.FirstOrDefaultAsync(
+					transaction.CancellationToken
+				);
 
-        if (starred && star == null)
-        {
-            star = new()
-            {
-                Id = ObjectId.GenerateNewId(),
-                FileId = file.Id,
-                UserId = user.Id,
-                CreateTime = DateTimeOffset.Now
-            };
+		if (
+			starred
+			&& star
+				== null
+		)
+		{
+			star =
+				new()
+				{
+					Id =
+						ObjectId.GenerateNewId(),
+					FileId =
+						file.Id,
+					UserId =
+						user.Id,
+					CreateTime =
+						DateTimeOffset.Now,
+				};
 
-            await Insert(transaction, star);
-        }
-        else if (!starred && star != null)
-        {
-            await Delete(transaction, star);
-        }
+			await Insert(
+				transaction,
+				star
+			);
+		}
+		else if (
+			!starred
+			&& star
+				!= null
+		)
+		{
+			await Delete(
+				transaction,
+				star
+			);
+		}
 
-        return star;
-    }
+		return star;
+	}
 
-    public IQueryable<FileStar> GetFileStars(
-        ResourceTransaction transaction,
-        File? file = null,
-        User? user = null
-    ) =>
-        Query<FileStar>(
-            transaction,
-            (query) =>
-                query.Where(
-                    (item) =>
-                        (file == null || file.Id == item.FileId)
-                        && (user == null || user.Id == item.UserId)
-                )
-        );
+	public IQueryable<FileStar> GetFileStars(
+		ResourceTransaction transaction,
+		File? file =
+			null,
+		User? user =
+			null
+	) =>
+		Query<FileStar>(
+			transaction,
+			(
+				query
+			) =>
+				query.Where(
+					(
+						item
+					) =>
+						(
+							file
+								== null
+							|| file.Id
+								== item.FileId
+						)
+						&& (
+							user
+								== null
+							|| user.Id
+								== item.UserId
+						)
+				)
+		);
 }

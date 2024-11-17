@@ -1,7 +1,12 @@
-<script lang="ts">
+<script
+	lang="ts"
+>
 	import { useLandingContext } from '$lib/client/contexts/landing';
 	import type { IconOptions } from '$lib/client/ui/icon.svelte';
-	import { onMount, type Snippet } from 'svelte';
+	import {
+		onMount,
+		type Snippet
+	} from 'svelte';
 
 	const {
 		children,
@@ -14,9 +19,21 @@
 		isSecondary?: boolean;
 		onclick: () => void;
 	} = $props();
-	const { pushButton: pushAction } = useLandingContext();
+	const {
+		pushButton:
+			pushAction
+	} =
+		useLandingContext();
 
-	onMount(() => pushAction(container, icon, isSecondary, onclick));
+	onMount(
+		() =>
+			pushAction(
+				container,
+				icon,
+				isSecondary,
+				onclick
+			)
+	);
 </script>
 
 {#snippet container()}

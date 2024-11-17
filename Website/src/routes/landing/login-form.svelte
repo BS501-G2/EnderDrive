@@ -1,16 +1,33 @@
-<script lang="ts">
+<script
+	lang="ts"
+>
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { useServerContext } from '$lib/client/client';
 	import Button from '$lib/client/ui/button.svelte';
-	import Icon, { type IconOptions } from '$lib/client/ui/icon.svelte';
+	import Icon, {
+		type IconOptions
+	} from '$lib/client/ui/icon.svelte';
 	import Input from '$lib/client/ui/input.svelte';
 	import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte';
 	import RequireClient from '$lib/client/ui/require-client.svelte';
-	import { onMount, type Snippet } from 'svelte';
-	import { writable, derived, type Writable } from 'svelte/store';
+	import {
+		onMount,
+		type Snippet
+	} from 'svelte';
+	import {
+		writable,
+		derived,
+		type Writable
+	} from 'svelte/store';
 
-	const { username, password }: { username: Writable<string>; password: Writable<string> } =
+	const {
+		username,
+		password
+	}: {
+		username: Writable<string>;
+		password: Writable<string>;
+	} =
 		$props();
 
 	// let clickButton: () => void = $state(() => {});
@@ -22,65 +39,147 @@
 		onclick: () => Promise<void>;
 	}
 
-	const actions: Writable<AlternativeAction[]> = writable([]);
-	function pushAction(name: string, icon: IconOptions, onclick: () => Promise<void>): () => void {
-		const id = Math.random();
+	const actions: Writable<
+		AlternativeAction[]
+	> =
+		writable(
+			[]
+		);
+	function pushAction(
+		name: string,
+		icon: IconOptions,
+		onclick: () => Promise<void>
+	): () => void {
+		const id =
+			Math.random();
 
-		actions.update((actions) => [...actions, { id, name, icon, onclick }]);
+		actions.update(
+			(
+				actions
+			) => [
+				...actions,
+				{
+					id,
+					name,
+					icon,
+					onclick
+				}
+			]
+		);
 
-		return () => actions.update((actions) => actions.filter((action) => action.id !== id));
+		return () =>
+			actions.update(
+				(
+					actions
+				) =>
+					actions.filter(
+						(
+							action
+						) =>
+							action.id !==
+							id
+					)
+			);
 	}
 
-	const redirectPath = derived(page, (page) => page.url.searchParams.get('return') ?? null);
+	const redirectPath =
+		derived(
+			page,
+			(
+				page
+			) =>
+				page.url.searchParams.get(
+					'return'
+				) ??
+				null
+		);
 
 	async function redirect() {
-		await goto($redirectPath ?? '/app');
+		await goto(
+			$redirectPath ??
+				'/app'
+		);
 	}
 
-	onMount(() => pushAction('Google', { brand: true, icon: 'google' }, async () => {}));
-	onMount(() => pushAction('Reset Password', { thickness: 'solid', icon: 'key' }, async () => {}));
+	onMount(
+		() =>
+			pushAction(
+				'Google',
+				{
+					brand: true,
+					icon: 'google'
+				},
+				async () => {}
+			)
+	);
+	onMount(
+		() =>
+			pushAction(
+				'Reset Password',
+				{
+					thickness:
+						'solid',
+					icon: 'key'
+				},
+				async () => {}
+			)
+	);
 
 	const {
 		authenticatePassword,
 		authenticateGoogle,
 		resolveUsername,
-		whoAmI,
+		me,
 		getUser,
 		deauthenticate
-	} = useServerContext();
-
-	async function getCurrentUser() {
-		const userId = await whoAmI();
-
-		if (userId == null) {
-			return null;
-		}
-
-		return await getUser(userId);
-	}
+	} =
+		useServerContext();
 
 	async function onclick() {
-		const userId = await resolveUsername($username);
+		const userId =
+			await resolveUsername(
+				$username
+			);
 
-		if (userId == null) {
-			throw new Error('Inavlid username or password.');
+		if (
+			userId ==
+			null
+		) {
+			throw new Error(
+				'Inavlid username or password.'
+			);
 		}
 
-		await authenticatePassword(userId, $password);
+		await authenticatePassword(
+			userId,
+			$password
+		);
 		await redirect();
 	}
 
-	let click = $state(() => {});
+	let click =
+		$state(
+			() => {}
+		);
 </script>
 
-<RequireClient>
-	{#await getCurrentUser()}
-		<LoadingSpinner size="3em" />
+<RequireClient
+>
+	{#await me()}
+		<LoadingSpinner
+			size="3em"
+		/>
 	{:then user}
 		{#if user == null}
-			<div class="field">
+			<div
+				class="field"
+			>
 				<Input
-					icon={{ icon: 'user', thickness: 'solid' }}
+					icon={{
+						icon: 'user',
+						thickness:
+							'solid'
+					}}
 					id="username"
 					type="text"
 					name="Username"
@@ -89,7 +188,11 @@
 				/>
 
 				<Input
-					icon={{ icon: 'key', thickness: 'solid' }}
+					icon={{
+						icon: 'key',
+						thickness:
+							'solid'
+					}}
 					id="password"
 					type="password"
 					name="Password"
@@ -97,68 +200,133 @@
 					onsubmit={click}
 				/>
 
-				{#snippet background(view: Snippet)}
-					<div class="submit-outer">
+				{#snippet background(
+					view: Snippet
+				)}
+					<div
+						class="submit-outer"
+					>
 						{@render view()}
 					</div>
 				{/snippet}
 
-				{#snippet foreground(view: Snippet)}
-					<div class="submit">
+				{#snippet foreground(
+					view: Snippet
+				)}
+					<div
+						class="submit"
+					>
 						{@render view()}
 					</div>
 				{/snippet}
 
-				<Button {background} {foreground} bind:click {onclick}>
-					<p>Login</p>
+				<Button
+					{background}
+					{foreground}
+					bind:click
+					{onclick}
+				>
+					<p
+					>
+						Login
+					</p>
 				</Button>
 			</div>
 
-			<div class="choices">
-				<div class="or">
-					<div class="line"></div>
-					<p>or</p>
-					<div class="line"></div>
+			<div
+				class="choices"
+			>
+				<div
+					class="or"
+				>
+					<div
+						class="line"
+					></div>
+					<p
+					>
+						or
+					</p>
+					<div
+						class="line"
+					></div>
 				</div>
 
-				<div class="actions">
-					{#snippet background(view: Snippet)}
-						<div class="action-container-outer">
+				<div
+					class="actions"
+				>
+					{#snippet background(
+						view: Snippet
+					)}
+						<div
+							class="action-container-outer"
+						>
 							{@render view()}
 						</div>
 					{/snippet}
 
-					{#snippet foreground(view: Snippet)}
-						<div class="action-container">
+					{#snippet foreground(
+						view: Snippet
+					)}
+						<div
+							class="action-container"
+						>
 							{@render view()}
 						</div>
 					{/snippet}
 
 					{#each $actions as { id, name, icon, onclick } (id)}
-						<Button {background} {foreground} {onclick}>
-							<div class="action">
-								<Icon {...icon} />
-								<p>{name}</p>
+						<Button
+							{background}
+							{foreground}
+							{onclick}
+						>
+							<div
+								class="action"
+							>
+								<Icon
+									{...icon}
+								/>
+								<p
+								>
+									{name}
+								</p>
 							</div>
 						</Button>
 					{/each}
 				</div>
 			</div>
 		{:else}
-			<div class="existing-login">
-				{#snippet background(view: Snippet)}
-					<div class="main-button">
+			<div
+				class="existing-login"
+			>
+				{#snippet background(
+					view: Snippet
+				)}
+					<div
+						class="main-button"
+					>
 						{@render view()}
 					</div>
 				{/snippet}
-				{#snippet foreground(view: Snippet)}
-					<p class="main-button">
+				{#snippet foreground(
+					view: Snippet
+				)}
+					<p
+						class="main-button"
+					>
 						{@render view()}
 					</p>
 				{/snippet}
 
-				<Button {background} {foreground} onclick={() => redirect()}>
-					Proceed as @{user.username}
+				<Button
+					{background}
+					{foreground}
+					onclick={() =>
+						redirect()}
+				>
+					Proceed
+					as
+					@{user.username}
 				</Button>
 				<Button
 					{background}
@@ -169,24 +337,33 @@
 						window.location.reload();
 					}}
 				>
-					Log Out
+					Log
+					Out
 				</Button>
 			</div>
 		{/if}
 	{/await}
 </RequireClient>
 
-<style lang="scss">
-	@use '../../global.scss' as *;
+<style
+	lang="scss"
+>
+	@use '../../global.scss'
+		as *;
 
 	div.field {
 		gap: 16px;
 
-		justify-content: safe center;
+		justify-content: safe
+			center;
 
 		div.submit-outer {
-			background-color: var(--color-1);
-			color: var(--color-5);
+			background-color: var(
+				--color-1
+			);
+			color: var(
+				--color-5
+			);
 			flex-grow: 1;
 		}
 
@@ -210,9 +387,14 @@
 			div.line {
 				flex-grow: 1;
 
-				@include force-size(&, 1px);
+				@include force-size(
+					&,
+					1px
+				);
 
-				background-color: var(--color-1);
+				background-color: var(
+					--color-1
+				);
 			}
 		}
 
@@ -220,12 +402,24 @@
 			display: grid;
 			gap: 8px;
 
-			grid-template-columns: repeat(2, calc(50% - 4px));
+			grid-template-columns: repeat(
+				2,
+				calc(
+					50% -
+						4px
+				)
+			);
 
 			div.action-container-outer {
 				background-color: transparent;
-				color: var(--color-1);
-				border: solid 1px var(--color-1);
+				color: var(
+					--color-1
+				);
+				border: solid
+					1px
+					var(
+						--color-1
+					);
 
 				flex-grow: 1;
 			}
@@ -253,8 +447,12 @@
 
 		div.main-button {
 			flex-grow: 1;
-			background-color: var(--color-1);
-			color: var(--color-5);
+			background-color: var(
+				--color-1
+			);
+			color: var(
+				--color-5
+			);
 		}
 
 		p.main-button {

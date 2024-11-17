@@ -1,30 +1,72 @@
-<script lang="ts">
+<script
+	lang="ts"
+>
 	import { useAppContext } from '$lib/client/contexts/app';
-	import { useLandingContext, type LandingPageButton } from '$lib/client/contexts/landing';
+	import {
+		useLandingContext,
+		type LandingPageButton
+	} from '$lib/client/contexts/landing';
 	import Button from '$lib/client/ui/button.svelte';
 	import Icon from '$lib/client/ui/icon.svelte';
 	import { type Snippet } from 'svelte';
-	import { derived, type Readable } from 'svelte/store';
+	import {
+		derived,
+		type Readable
+	} from 'svelte/store';
 
 	const {
 		buttons,
 		opacity
-	}: { buttons: Readable<LandingPageButton[]>; opacity: Readable<number> } = $props();
+	}: {
+		buttons: Readable<
+			LandingPageButton[]
+		>;
+		opacity: Readable<number>;
+	} =
+		$props();
 
-	const { isDesktop } = useAppContext();
-	const { openLogin, closeLogin } = useLandingContext();
+	const {
+		isDesktop
+	} =
+		useAppContext();
+	const {
+		openLogin,
+		closeLogin
+	} =
+		useLandingContext();
 </script>
 
-{#snippet action({ id, icon, content, isSecondary, onclick }: LandingPageButton, index: number)}
-	{#snippet container(view: Snippet)}
-		<div class="action" class:secondary={isSecondary}>
+{#snippet action(
+	{
+		id,
+		icon,
+		content,
+		isSecondary,
+		onclick
+	}: LandingPageButton,
+	index: number
+)}
+	{#snippet container(
+		view: Snippet
+	)}
+		<div
+			class="action"
+			class:secondary={isSecondary}
+		>
 			{@render view()}
 		</div>
 	{/snippet}
 
-	<Button {onclick} background={container}>
-		<div class="action-inner">
-			<Icon {...icon} />
+	<Button
+		{onclick}
+		background={container}
+	>
+		<div
+			class="action-inner"
+		>
+			<Icon
+				{...icon}
+			/>
 
 			{#if $isDesktop}
 				{@render content()}
@@ -41,20 +83,31 @@
 	</button> -->
 {/snippet}
 
-<div class="actions">
+<div
+	class="actions"
+>
 	{#each $buttons as entry, index}
-		{@render action(entry, index)}
+		{@render action(
+			entry,
+			index
+		)}
 	{/each}
 
 	{@render action(
 		{
 			id: Date.now(),
-			icon: { icon: 'key', thickness: 'solid' },
-			content: login,
+			icon: {
+				icon: 'key',
+				thickness:
+					'solid'
+			},
+			content:
+				login,
 			isSecondary: false,
-			onclick: () => {
-				openLogin();
-			}
+			onclick:
+				() => {
+					openLogin();
+				}
 		},
 		0
 	)}
@@ -62,10 +115,16 @@
 	{@render action(
 		{
 			id: Date.now(),
-			icon: { icon: 'download', thickness: 'solid' },
-			content: download,
+			icon: {
+				icon: 'download',
+				thickness:
+					'solid'
+			},
+			content:
+				download,
 			isSecondary: true,
-			onclick: () => {}
+			onclick:
+				() => {}
 		},
 		0
 	)}
@@ -79,8 +138,11 @@
 	Login
 {/snippet}
 
-<style lang="scss">
-	@use '../../global.scss' as *;
+<style
+	lang="scss"
+>
+	@use '../../global.scss'
+		as *;
 
 	div.actions {
 		flex-direction: row;
@@ -93,7 +155,9 @@
 		border: none;
 		cursor: pointer;
 
-		background-color: var(--color-1);
+		background-color: var(
+			--color-1
+		);
 
 		-webkit-app-region: no-drag;
 	}

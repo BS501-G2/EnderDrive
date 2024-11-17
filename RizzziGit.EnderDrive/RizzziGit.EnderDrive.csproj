@@ -8,6 +8,7 @@
     <PackageReference Include="MongoDB.Driver" Version="2.29.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
+    <GlobalAnalyzerConfigFiles Include="RizzziGit.EnderDrive.ini" />
   </ItemGroup>
 
   <ItemGroup Condition="$(Configuration) == 'Debug'">
@@ -26,5 +27,4 @@
     <LangVersion>preview</LangVersion>
     <StartupObject>RizzziGit.EnderDrive.Program</StartupObject>
   </PropertyGroup>
-
 </Project>

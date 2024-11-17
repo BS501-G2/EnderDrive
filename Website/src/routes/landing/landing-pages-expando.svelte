@@ -1,16 +1,30 @@
-<script lang="ts">
+<script
+	lang="ts"
+>
 	import type { LandingPageEntry } from '$lib/client/contexts/landing';
 	import Icon from '$lib/client/ui/icon.svelte';
 	import Overlay from '../overlay.svelte';
-	import type { Readable, Writable } from 'svelte/store';
+	import type {
+		Readable,
+		Writable
+	} from 'svelte/store';
 	import { fly } from 'svelte/transition';
 
 	const {
 		pages,
 		currentPage
-	}: { pages: Writable<LandingPageEntry[]>; currentPage: Readable<number> } = $props();
+	}: {
+		pages: Writable<
+			LandingPageEntry[]
+		>;
+		currentPage: Readable<number>;
+	} =
+		$props();
 
-	let expanded: boolean = $state(false);
+	let expanded: boolean =
+		$state(
+			false
+		);
 </script>
 
 <button
@@ -19,33 +33,50 @@
 		expanded = true;
 	}}
 >
-	<Icon icon="bars" thickness="solid" />
+	<Icon
+		icon="bars"
+		thickness="solid"
+	/>
 </button>
 
 {#if expanded}
-	<Overlay>
-		<div class="test" transition:fly={{ duration: 250, y: -16 }}>
+	<Overlay
+	>
+		<div
+			class="test"
+			transition:fly={{
+				duration: 250,
+				y: -16
+			}}
+		>
 			<button
 				class="dismiss begin"
 				onclick={() => {
 					expanded = false;
 				}}
 				aria-label="Close Menu"
+
 			></button>
 
-			<div class="list">
+			<div
+				class="list"
+			>
 				{#each $pages as { id, name, content }, index (id)}
 					<button
 						onclick={() => {
-							$currentPage = index;
+							$currentPage =
+								index;
 							expanded = false;
 						}}
-						class:active={$currentPage === index}
+						class:active={$currentPage ===
+							index}
 					>
 						{name}
 					</button>
 
-					<div class="divider"></div>
+					<div
+						class="divider"
+					></div>
 				{/each}
 			</div>
 			<button
@@ -54,38 +85,57 @@
 					expanded = false;
 				}}
 				aria-label="Close Menu"
+
 			></button>
 		</div>
 	</Overlay>
 {/if}
 
-<style lang="scss">
-	@use '../../global.scss' as *;
+<style
+	lang="scss"
+>
+	@use '../../global.scss'
+		as *;
 
 	button.open {
-		margin: 8px 0px;
-		padding: 0px 16px;
+		margin: 8px
+			0px;
+		padding: 0px
+			16px;
 
 		border: none;
 
-		color: var(--color-5);
+		color: var(
+			--color-5
+		);
 		font-weight: lighter;
 
 		font-size: 1.5em;
 	}
 
 	div.test {
-		@include force-size(100dvw, 100dvh);
+		@include force-size(
+			100dvw,
+			100dvh
+		);
 
-		color: var(--color-5);
+		color: var(
+			--color-5
+		);
 
 		> div.list {
-			padding: 8px 16px;
+			padding: 8px
+				16px;
 
 			> div.divider {
-				@include force-size(&, 1px);
+				@include force-size(
+					&,
+					1px
+				);
 
-				background-color: var(--color-5);
+				background-color: var(
+					--color-5
+				);
 			}
 
 			> button {
@@ -107,7 +157,10 @@
 		}
 
 		> button.dismiss.begin {
-			@include force-size(&, 64px);
+			@include force-size(
+				&,
+				64px
+			);
 		}
 	}
 </style>

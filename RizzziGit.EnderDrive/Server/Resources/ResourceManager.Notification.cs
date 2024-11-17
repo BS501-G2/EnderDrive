@@ -3,12 +3,14 @@ using MongoDB.Bson;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
-public sealed record class Notification : ResourceData
+public sealed record class Notification
+	: ResourceData
 {
-    public required ObjectId TargetUserId;
+	public required ObjectId TargetUserId;
 }
 
-public sealed partial class ResourceManager {
+public sealed partial class ResourceManager
+{
 
-    // public async Task<Notification> PushNotification() {}
+	// public async Task<Notification> PushNotification() {}
 }

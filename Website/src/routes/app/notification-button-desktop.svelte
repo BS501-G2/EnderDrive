@@ -1,32 +1,70 @@
-<script lang="ts">
+<script
+	lang="ts"
+>
 	import { useAppContext } from '$lib/client/contexts/app';
 	import { useDashboardContext } from '$lib/client/contexts/dashboard';
 	import Button from '$lib/client/ui/button.svelte';
 	import Icon from '$lib/client/ui/icon.svelte';
-	import { onMount, type Snippet } from 'svelte';
-	import { derived, writable, type Writable } from 'svelte/store';
+	import {
+		onMount,
+		type Snippet
+	} from 'svelte';
+	import {
+		derived,
+		writable,
+		type Writable
+	} from 'svelte/store';
 	import NotificationOverlay from './notification-overlay.svelte';
 
-	const { pushDesktopTopRight } = useDashboardContext();
+	const {
+		pushDesktopTopRight
+	} =
+		useDashboardContext();
 
-	onMount(() => pushDesktopTopRight(desktop));
+	onMount(
+		() =>
+			pushDesktopTopRight(
+				desktop
+			)
+	);
 
-	const notification: Writable<{ element: HTMLElement } | null> = writable(null);
+	const notification: Writable<{
+		element: HTMLElement;
+	} | null> =
+		writable(
+			null
+		);
 </script>
 
 {#snippet desktop()}
-	{#snippet buttonForeground(view: Snippet)}
-		<div class="button-foreground">
+	{#snippet buttonForeground(
+		view: Snippet
+	)}
+		<div
+			class="button-foreground"
+		>
 			{@render view()}
 		</div>
 	{/snippet}
 
-	<div class="notification">
+	<div
+		class="notification"
+	>
 		<Button
 			foreground={buttonForeground}
-			onclick={async (event) => notification.set({ element: event.currentTarget })}
+			onclick={async (
+				event
+			) =>
+				notification.set(
+					{
+						element:
+							event.currentTarget
+					}
+				)}
 		>
-			<Icon icon="bell" />
+			<Icon
+				icon="bell"
+			/>
 		</Button>
 	</div>
 
@@ -34,13 +72,16 @@
 		<NotificationOverlay
 			element={$notification.element}
 			ondismiss={() => {
-				$notification = null;
+				$notification =
+					null;
 			}}
 		/>
 	{/if}
 {/snippet}
 
-<style lang="scss">
+<style
+	lang="scss"
+>
 	div.notification {
 		-webkit-app-region: no-drag;
 

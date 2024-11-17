@@ -1,23 +1,42 @@
-@mixin force-width($size) {
+@mixin force-width(
+	$size
+) {
 	min-width: $size;
 	max-width: $size;
 }
 
-@mixin force-height($size) {
+@mixin force-height(
+	$size
+) {
 	min-height: $size;
 	max-height: $size;
 }
 
-@mixin force-size($width, $height) {
-	@if $width != & {
-		@include force-width($width);
+@mixin force-size(
+	$width,
+	$height
+) {
+	@if $width !=
+		&
+	{
+		@include force-width(
+			$width
+		);
 	}
 
-	@if $height != & {
-		@include force-height($height);
+	@if $height !=
+		&
+	{
+		@include force-height(
+			$height
+		);
 	}
 }
 
 :root {
-	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+	font-family: 'Segoe UI',
+		Tahoma,
+		Geneva,
+		Verdana,
+		sans-serif;
 }

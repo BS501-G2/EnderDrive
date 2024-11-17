@@ -1,11 +1,17 @@
-<script lang="ts">
+<script
+	lang="ts"
+>
 	import type {
 		createFileBrowserContext,
 		FileBrowserOptions,
 		FileBrowserResolve,
-		FileBrowserResolveType	} from '$lib/client/contexts/file-browser';
+		FileBrowserResolveType
+	} from '$lib/client/contexts/file-browser';
 	import Button from '$lib/client/ui/button.svelte';
-	import type { Readable, Writable } from 'svelte/store';
+	import type {
+		Readable,
+		Writable
+	} from 'svelte/store';
 	import FileBrowser from './file-browser.svelte';
 	import { type Snippet } from 'svelte';
 
@@ -19,56 +25,137 @@
 		maxFileCount
 	}: {
 		maxFileCount: number;
-		resolve: Readable<Exclude<FileBrowserResolve, [FileBrowserResolveType.Trash]>>;
+		resolve: Readable<
+			Exclude<
+				FileBrowserResolve,
+				[
+					FileBrowserResolveType.Trash
+				]
+			>
+		>;
 		selectMode: FileBrowserOptions['selectMode'];
-		selectedFiles: Writable<string[]>;
-		fileBrowserContext: ReturnType<typeof createFileBrowserContext>;
+		selectedFiles: Writable<
+			string[]
+		>;
+		fileBrowserContext: ReturnType<
+			typeof createFileBrowserContext
+		>;
 		oncancel: () => void;
-		onfiles: (event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }, files: string[]) => Promise<void>;
-	} = $props();
+		onfiles: (
+			event: MouseEvent & {
+				currentTarget: EventTarget &
+					HTMLButtonElement;
+			},
+			files: string[]
+		) => Promise<void>;
+	} =
+		$props();
 
-	$effect(() =>
-		selectedFiles.subscribe((files) => {
-			if (files.length > maxFileCount) {
-				setTimeout(() => {
-					try {
-						selectedFiles.set(files.slice(0, length));
-					} catch (error) {}
-				}, 1);
-			}
-		})
+	$effect(
+		() =>
+			selectedFiles.subscribe(
+				(
+					files
+				) => {
+					if (
+						files.length >
+						maxFileCount
+					) {
+						setTimeout(
+							() => {
+								try {
+									selectedFiles.set(
+										files.slice(
+											0,
+											length
+										)
+									);
+								} catch (error) {}
+							},
+							1
+						);
+					}
+				}
+			)
 	);
 </script>
 
-<div class="file-selector">
-	<div class="area">
-		<div class="side"></div>
-		<div class="main">
-			<FileBrowser {resolve} {selectMode} onFileId={async (event, fileId) => {
-                console.log(fileId)
-                if (fileId == null) {
-                    return;
-                }
+<div
+	class="file-selector"
+>
+	<div
+		class="area"
+	>
+		<div
+			class="side"
+		></div>
+		<div
+			class="main"
+		>
+			<FileBrowser
+				{resolve}
+				{selectMode}
+				onFileId={async (
+					event,
+					fileId
+				) => {
+					console.log(
+						fileId
+					);
+					if (
+						fileId ==
+						null
+					) {
+						return;
+					}
 
-                onfiles(event, [fileId]);
-            }} customContext={fileBrowserContext}></FileBrowser>
+					onfiles(
+						event,
+						[
+							fileId
+						]
+					);
+				}}
+				customContext={fileBrowserContext}
+
+			></FileBrowser>
 		</div>
 	</div>
-	<div class="actions">
-		{#snippet foreground(view: Snippet)}
-			<div class="foreground">
+	<div
+		class="actions"
+	>
+		{#snippet foreground(
+			view: Snippet
+		)}
+			<div
+				class="foreground"
+			>
 				{@render view()}
 			</div>
 		{/snippet}
 
 		<Button
-			onclick={(event) => {
-				onfiles(event, $selectedFiles.slice(0, maxFileCount));
+			onclick={(
+				event
+			) => {
+				onfiles(
+					event,
+					$selectedFiles.slice(
+						0,
+						maxFileCount
+					)
+				);
 			}}
 			{foreground}
-			disabled={$selectedFiles.length === 0 || $selectedFiles.length > maxFileCount}
+			disabled={$selectedFiles.length ===
+				0 ||
+				$selectedFiles.length >
+					maxFileCount}
 		>
-			<p>Select</p>
+			<p
+			>
+				Select
+			</p>
 		</Button>
 
 		<Button
@@ -77,12 +164,17 @@
 			}}
 			{foreground}
 		>
-			<p>Cancel</p>
+			<p
+			>
+				Cancel
+			</p>
 		</Button>
 	</div>
 </div>
 
-<style lang="scss">
+<style
+	lang="scss"
+>
 	div.file-selector {
 		flex-grow: 1;
 		min-height: 0;

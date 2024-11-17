@@ -13,146 +13,247 @@ using Commons.Utilities;
 
 public sealed partial class VirusScanner
 {
-    public sealed class TcpForwarderContext
-    {
-        public required TcpListener InternalTcpListener;
-    }
+	public sealed class TcpForwarderContext
+	{
+		public required TcpListener InternalTcpListener;
+	}
 
-    public sealed class TcpForwarder(
-        VirusScanner scanner,
-        IPEndPoint ipEndPoint,
-        string unixSocketPath
-    ) : Service<TcpForwarderContext>("TCP Forwarder", scanner)
-    {
-        protected override Task<TcpForwarderContext> OnStart(
-            CancellationToken startupCancellationToken,
-            CancellationToken serviceCancellationToken
-        )
-        {
-            TcpListener internalTcpListener = new(ipEndPoint);
+	public sealed class TcpForwarder(
+		VirusScanner scanner,
+		IPEndPoint ipEndPoint,
+		string unixSocketPath
+	)
+		: Service<TcpForwarderContext>(
+			"TCP Forwarder",
+			scanner
+		)
+	{
+		protected override Task<TcpForwarderContext> OnStart(
+			CancellationToken startupCancellationToken,
+			CancellationToken serviceCancellationToken
+		)
+		{
+			TcpListener internalTcpListener =
+				new(
+					ipEndPoint
+				);
 
-            internalTcpListener.Start();
+			internalTcpListener.Start();
 
-            Debug($"{ipEndPoint}", "EndPoint");
+			Debug(
+				$"{ipEndPoint}",
+				"EndPoint"
+			);
 
-            return Task.FromResult<TcpForwarderContext>(
-                new() { InternalTcpListener = internalTcpListener }
-            );
-        }
+			return Task.FromResult<TcpForwarderContext>(
+				new()
+				{
+					InternalTcpListener =
+						internalTcpListener,
+				}
+			);
+		}
 
-        private async Task HandleTcpClient(TcpClient client, CancellationToken cancellationToken)
-        {
-            using Socket socket = new(AddressFamily.Unix, SocketType.Stream, ProtocolType.IP);
-            await socket.ConnectAsync(new UnixDomainSocketEndPoint(unixSocketPath));
+		private async Task HandleTcpClient(
+			TcpClient client,
+			CancellationToken cancellationToken
+		)
+		{
+			using Socket socket =
+				new(
+					AddressFamily.Unix,
+					SocketType.Stream,
+					ProtocolType.IP
+				);
+			await socket.ConnectAsync(
+				new UnixDomainSocketEndPoint(
+					unixSocketPath
+				)
+			);
 
-            using NetworkStream clientStream = client.GetStream();
-            using NetworkStream socketStream = new(socket, true);
+			using NetworkStream clientStream =
+				client.GetStream();
+			using NetworkStream socketStream =
+				new(
+					socket,
+					true
+				);
 
-            async Task pipe(NetworkStream from, NetworkStream to)
-            {
-                byte[] buffer = new byte[1024 * 256];
-                while (true)
-                {
-                    int bufferRead = await from.ReadAsync(buffer, cancellationToken);
-                    if (bufferRead == 0)
-                    {
-                        break;
-                    }
+			async Task pipe(
+				NetworkStream from,
+				NetworkStream to
+			)
+			{
+				byte[] buffer =
+					new byte[
+						1024
+							* 256
+					];
+				while (
+					true
+				)
+				{
+					int bufferRead =
+						await from.ReadAsync(
+							buffer,
+							cancellationToken
+						);
+					if (
+						bufferRead
+						== 0
+					)
+					{
+						break;
+					}
 
-                    await to.WriteAsync(buffer.AsMemory(0, bufferRead), cancellationToken);
-                }
-            }
+					await to.WriteAsync(
+						buffer.AsMemory(
+							0,
+							bufferRead
+						),
+						cancellationToken
+					);
+				}
+			}
 
-            await Task.WhenAny(
-                [pipe(socketStream, clientStream), pipe(clientStream, socketStream)]
-            );
-        }
+			await Task.WhenAny(
+				[
+					pipe(
+						socketStream,
+						clientStream
+					),
+					pipe(
+						clientStream,
+						socketStream
+					),
+				]
+			);
+		}
 
-        private async Task ListenTcp(TcpListener listener, CancellationToken cancellationToken)
-        {
-            List<Task> connections = [];
+		private async Task ListenTcp(
+			TcpListener listener,
+			CancellationToken cancellationToken
+		)
+		{
+			List<Task> connections =
 
-            try
-            {
-                while (true)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
+				[];
 
-                    TaskCompletionSource source = new();
+			try
+			{
+				while (
+					true
+				)
+				{
+					cancellationToken.ThrowIfCancellationRequested();
 
-                    _ = Task.Run(
-                        async () =>
-                        {
-                            TcpClient client;
+					TaskCompletionSource source =
+						new();
 
-                            try
-                            {
-                                Info($"Waiting for ClamAV client...");
-                                client = await listener.AcceptTcpClientAsync(cancellationToken);
+					_ =
+						Task.Run(
+							async () =>
+							{
+								TcpClient client;
 
-                                source.SetResult();
-                            }
-                            catch (Exception exception)
-                            {
-                                source.SetException(exception);
-                                return;
-                            }
+								try
+								{
+									Info(
+										$"Waiting for ClamAV client..."
+									);
+									client =
+										await listener.AcceptTcpClientAsync(
+											cancellationToken
+										);
 
-                            async Task handle()
-                            {
-                                using (client)
-                                {
-                                    await HandleTcpClient(client, cancellationToken);
-                                }
-                            }
+									source.SetResult();
+								}
+								catch (Exception exception)
+								{
+									source.SetException(
+										exception
+									);
+									return;
+								}
 
-                            Task task = handle();
-                            try
-                            {
-                                lock (connections)
-                                {
-                                    connections.Add(task);
-                                }
+								async Task handle()
+								{
+									using (
+										client
+									)
+									{
+										await HandleTcpClient(
+											client,
+											cancellationToken
+										);
+									}
+								}
 
-                                await task;
-                            }
-                            catch (Exception exception)
-                            {
-                                lock (connections)
-                                {
-                                    connections.Remove(task);
-                                }
+								Task task =
+									handle();
+								try
+								{
+									lock (connections)
+									{
+										connections.Add(
+											task
+										);
+									}
 
-                                Error($"Handler Exception: {exception.ToPrintable()}");
-                            }
-                        },
-                        CancellationToken.None
-                    );
+									await task;
+								}
+								catch (Exception exception)
+								{
+									lock (connections)
+									{
+										connections.Remove(
+											task
+										);
+									}
 
-                    await source.Task;
-                    Info($"ClamAV client connected.");
-                }
-            }
-            catch
-            {
-                await Task.WhenAll(connections);
+									Error(
+										$"Handler Exception: {exception.ToPrintable()}"
+									);
+								}
+							},
+							CancellationToken.None
+						);
 
-                throw;
-            }
-        }
+					await source.Task;
+					Info(
+						$"ClamAV client connected."
+					);
+				}
+			}
+			catch
+			{
+				await Task.WhenAll(
+					connections
+				);
 
-        protected override async Task OnRun(
-            TcpForwarderContext data,
-            CancellationToken cancellationToken
-        )
-        {
-            await ListenTcp(GetContext().InternalTcpListener, cancellationToken);
-        }
+				throw;
+			}
+		}
 
-        protected override Task OnStop(TcpForwarderContext data, ExceptionDispatchInfo? exception)
-        {
-            GetContext().InternalTcpListener.Stop();
-            return Task.CompletedTask;
-        }
-    }
+		protected override async Task OnRun(
+			TcpForwarderContext data,
+			CancellationToken cancellationToken
+		)
+		{
+			await ListenTcp(
+				GetContext().InternalTcpListener,
+				cancellationToken
+			);
+		}
+
+		protected override Task OnStop(
+			TcpForwarderContext data,
+			ExceptionDispatchInfo? exception
+		)
+		{
+			GetContext()
+				.InternalTcpListener.Stop();
+			return Task.CompletedTask;
+		}
+	}
 }

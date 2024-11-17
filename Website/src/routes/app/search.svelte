@@ -1,24 +1,45 @@
-<script lang="ts">
+<script
+	lang="ts"
+>
 	import { useDashboardContext } from '$lib/client/contexts/dashboard';
 	import Icon from '$lib/client/ui/icon.svelte';
 	import Overlay from '../overlay.svelte';
-	import { onMount, type Snippet } from 'svelte';
+	import {
+		onMount,
+		type Snippet
+	} from 'svelte';
 	import SearchOverlay from './search-overlay.svelte';
 	import Button from '$lib/client/ui/button.svelte';
 	import AppButton from './app-button.svelte';
 	import { loremIpsum } from 'lorem-ipsum';
 
-	const { pushDesktopTopMiddle } = useDashboardContext();
+	const {
+		pushDesktopTopMiddle
+	} =
+		useDashboardContext();
 
-	let searchOverlay: boolean = $state(false);
+	let searchOverlay: boolean =
+		$state(
+			false
+		);
 
-	onMount(() => pushDesktopTopMiddle(desktopContent));
+	onMount(
+		() =>
+			pushDesktopTopMiddle(
+				desktopContent
+			)
+	);
 </script>
 
 <AppButton
 	label="Search"
-	onclick={() => (searchOverlay = true)}
-	icon={{ icon: 'magnifying-glass', thickness: 'solid' }}
+	onclick={() =>
+		(searchOverlay = true)}
+	icon={{
+		icon: 'magnifying-glass',
+		thickness:
+			'solid'
+	}}
 	show
 />
 
@@ -30,10 +51,20 @@
 			searchOverlay = true;
 		}}
 	>
-		<div class="icon">
-			<Icon icon="magnifying-glass" thickness="solid" size="1em" />
+		<div
+			class="icon"
+		>
+			<Icon
+				icon="magnifying-glass"
+				thickness="solid"
+				size="1em"
+			/>
 		</div>
-		<div class="space">Search...</div>
+		<div
+			class="space"
+		>
+			Search...
+		</div>
 	</button>
 {/snippet}
 
@@ -43,7 +74,9 @@
 			searchOverlay = false;
 		}}
 	>
-		{#snippet children(windowButtons)}
+		{#snippet children(
+			windowButtons
+		)}
 			<SearchOverlay
 				{windowButtons}
 				ondismiss={() => {
@@ -54,8 +87,11 @@
 	</Overlay>
 {/if}
 
-<style lang="scss">
-	@use '../../global.scss' as *;
+<style
+	lang="scss"
+>
+	@use '../../global.scss'
+		as *;
 
 	button.search {
 		display: flex;
@@ -65,18 +101,31 @@
 		-webkit-app-region: no-drag;
 
 		gap: 8px;
-		padding: 4px 8px;
+		padding: 4px
+			8px;
 		box-sizing: border-box;
 
 		border: none;
-		outline: solid 1px var(--color-1);
+		outline: solid
+			1px
+			var(
+				--color-1
+			);
 
-		background-color: var(--color-9);
+		background-color: var(
+			--color-9
+		);
 
 		transition-duration: 150ms;
 		// transition-property: box-shadow;
 
-		@include force-size(max(25%, 320px), 32px);
+		@include force-size(
+			max(
+				25%,
+				320px
+			),
+			32px
+		);
 
 		cursor: text;
 
@@ -88,11 +137,15 @@
 		> div.space {
 			flex-grow: 1;
 
-			color: var(--color-1);
+			color: var(
+				--color-1
+			);
 		}
 	}
 
 	button.search:hover {
-		box-shadow: 1px 1px 4px;
+		box-shadow: 1px
+			1px
+			4px;
 	}
 </style>

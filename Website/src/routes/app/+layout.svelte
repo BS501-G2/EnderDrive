@@ -1,19 +1,30 @@
-<script lang="ts">
+<script
+	lang="ts"
+>
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 
-	import { useClientContext } from '$lib/client/client';
+	import {
+		useClientContext,
+		useServerContext
+	} from '$lib/client/client';
 	import { useAppContext } from '$lib/client/contexts/app';
 	import { createDashboardContext } from '$lib/client/contexts/dashboard';
 	import Button from '$lib/client/ui/button.svelte';
 	import Favicon from '$lib/client/ui/favicon.svelte';
 	import Icon from '$lib/client/ui/icon.svelte';
 	import Search from './search.svelte';
-	import { onMount, type Snippet } from 'svelte';
+	import {
+		onMount,
+		type Snippet
+	} from 'svelte';
 	import { createNavigationContext } from '$lib/client/contexts/navigation';
 	import NavigationHost from './navigation-host.svelte';
 	import AppButtonHost from './app-button-host.svelte';
 	import NotificationButtonDesktop from './notification-button-desktop.svelte';
+	import ProgressHost from './progress-host.svelte';
+	import User from './user.svelte';
+	import LogoutConfirmation from './logout-confirmation.svelte';
 
 	const {
 		mobileAppButtons,
@@ -23,73 +34,163 @@
 		desktopSide,
 		desktopTopLeft,
 		desktopTopMiddle,
-		desktopTopRight
-	} = createDashboardContext();
-	const { navigationEntries } = createNavigationContext();
-	const { isMobile, isDesktop, isCustomBar, isFullscreen, titleStack } = useAppContext();
-	const { authentication } = useClientContext();
+		desktopTopRight,
+		backgroundTasks
+	} =
+		createDashboardContext();
+	const {
+		navigationEntries
+	} =
+		createNavigationContext();
+	const {
+		isMobile,
+		isDesktop,
+		isCustomBar,
+		isFullscreen,
+		titleStack
+	} =
+		useAppContext();
+	const {
+		authentication
+	} =
+		useClientContext();
+	const {
+		me
+	} =
+		useServerContext();
 
-	const { children }: { children: Snippet } = $props();
+	const {
+		children
+	}: {
+		children: Snippet;
+	} =
+		$props();
 
-	onMount(() =>
-		authentication.subscribe(async (authentication) => {
-			if (authentication == null) {
-				await goto(`/landing?login&return=${encodeURIComponent($page.url.pathname)}`, {
-					replaceState: true
-				});
-			}
-		})
+	let logoutConfirmation: boolean =
+		$state(
+			false
+		);
+
+	onMount(
+		() =>
+			authentication.subscribe(
+				async (
+					authentication
+				) => {
+					if (
+						authentication ==
+						null
+					) {
+						await goto(
+							`/landing?login&return=${encodeURIComponent($page.url.pathname)}`,
+							{
+								replaceState: true
+							}
+						);
+					}
+				}
+			)
 	);
 
-	onMount(() => {
-		window.document.body.classList.add('app');
+	onMount(
+		() => {
+			window.document.body.classList.add(
+				'app'
+			);
 
-		return () => {
-			window.document.body.classList.remove('app');
-		};
-	});
+			return () => {
+				window.document.body.classList.remove(
+					'app'
+				);
+			};
+		}
+	);
 </script>
 
 {#if $authentication != null}
-	<div class="dashboard">
-		<div class="top">
-			<div class="nav">
-				{#snippet navButton(view: Snippet)}
-					<div class="button">
+	<div
+		class="dashboard"
+	>
+		<div
+			class="top"
+		>
+			<div
+				class="nav"
+			>
+				{#snippet navButton(
+					view: Snippet
+				)}
+					<div
+						class="button"
+					>
 						{@render view()}
 					</div>
 				{/snippet}
-				<Button foreground={navButton} onclick={() => window.history.back()}>
-					<Icon icon="chevron-left" thickness="solid" />
+				<Button
+					foreground={navButton}
+					onclick={() =>
+						window.history.back()}
+				>
+					<Icon
+						icon="chevron-left"
+						thickness="solid"
+					/>
 				</Button>
 
 				{#if !$isMobile}
-					<Button foreground={navButton} onclick={() => window.history.forward()}>
-						<Icon icon="chevron-right" thickness="solid" />
+					<Button
+						foreground={navButton}
+						onclick={() =>
+							window.history.forward()}
+					>
+						<Icon
+							icon="chevron-right"
+							thickness="solid"
+						/>
 					</Button>
 				{/if}
 			</div>
 
 			{#if $isFullscreen || $isCustomBar || $isMobile}
-				<div class="logo">
+				<div
+					class="logo"
+				>
 					{#if ($isFullscreen || $isCustomBar) && !$isMobile}
-						<Favicon size={16} />
+						<Favicon
+							size={16}
+						/>
 					{/if}
 
-					<p class="title">
+					<p
+						class="title"
+					>
 						{#if $isMobile}
 							{$titleStack
-								.map((e) => e.title)
-								.slice($titleStack.length > 1 ? 1 : 0)
+								.map(
+									(
+										e
+									) =>
+										e.title
+								)
+								.slice(
+									$titleStack.length >
+										1
+										? 1
+										: 0
+								)
 								.toReversed()
-								.join(' - ')}
+								.join(
+									' - '
+								)}
 						{:else}
 							EnderDrive
 						{/if}
 					</p>
 				</div>
 			{/if}
-			<div class="left">
+			<div
+				class="left"
+			>
 				{#if $isDesktop}
 					{#each $desktopTopLeft as { id, snippet } (id)}
 						{@render snippet()}
@@ -101,7 +202,9 @@
 				{/if}
 			</div>
 
-			<div class="center">
+			<div
+				class="center"
+			>
 				{#if $isDesktop}
 					{#each $desktopTopMiddle as { id, snippet } (id)}
 						{@render snippet()}
@@ -109,7 +212,9 @@
 				{/if}
 			</div>
 
-			<div class="right">
+			<div
+				class="right"
+			>
 				{#if $isDesktop}
 					{#each $desktopTopRight as { id, snippet } (id)}
 						{@render snippet()}
@@ -122,30 +227,48 @@
 			</div>
 		</div>
 
-		<div class="separator"></div>
+		<div
+			class="separator"
+		></div>
 
-		<div class="middle">
+		<div
+			class="middle"
+		>
 			{#if !$isMobile}
-				<div class="side">
-					<NavigationHost {navigationEntries} />
+				<div
+					class="side"
+				>
+					<NavigationHost
+						{navigationEntries}
+					/>
 
 					{#each $desktopSide as { id, snippet } (id)}
 						{@render snippet()}
 					{/each}
 				</div>
 
-				<div class="separator"></div>
+				<div
+					class="separator"
+				></div>
 			{/if}
 
-			<div class="main">
+			<div
+				class="main"
+			>
 				{@render children()}
 			</div>
 		</div>
 
 		{#if $isMobile}
-			<div class="separator"></div>
-			<div class="bottom">
-				<NavigationHost {navigationEntries} />
+			<div
+				class="separator"
+			></div>
+			<div
+				class="bottom"
+			>
+				<NavigationHost
+					{navigationEntries}
+				/>
 
 				{#each $mobileBottom as { id, snippet } (id)}
 					{@render snippet()}
@@ -155,17 +278,46 @@
 	</div>
 {/if}
 
-<Search />
-<AppButtonHost {mobileAppButtons} />
+<Search
+/>
+<AppButtonHost
+	{mobileAppButtons}
+/>
+<ProgressHost
+	tasks={backgroundTasks}
+/>
 
 {#if $isDesktop}
-<NotificationButtonDesktop />
+	<NotificationButtonDesktop
+	/>
+
+	{#await me() then user}
+		{#if user != null}
+			<User
+				bind:logoutConfirmation
+				{user}
+			/>
+		{/if}
+	{/await}
 {/if}
 
-<style lang="scss">
-	@use '../../global.scss' as *;
+{#if logoutConfirmation}
+	<LogoutConfirmation
+		ondismiss={() => {
+			logoutConfirmation = false;
+		}}
+	/>
+{/if}
 
-	:global(body.app) {
+<style
+	lang="scss"
+>
+	@use '../../global.scss'
+		as *;
+
+	:global(
+			body.app
+		) {
 		min-height: 0;
 		min-width: 0;
 	}
@@ -174,26 +326,41 @@
 		flex-grow: 1;
 
 		overflow: hidden;
-		@include force-size(100dvw, 100dvh);
+		@include force-size(
+			100dvw,
+			100dvh
+		);
 
 		> div.separator {
-			background-color: var(--color-5);
+			background-color: var(
+				--color-5
+			);
 
-			@include force-size(&, 1px);
+			@include force-size(
+				&,
+				1px
+			);
 		}
 
 		> div.top {
 			flex-direction: row;
 			-webkit-app-region: drag;
 
-			@include force-size(env(titlebar-area-width), &);
+			@include force-size(
+				env(
+					titlebar-area-width
+				),
+				&
+			);
 			min-height: 48px;
 			gap: 8px;
-			padding: 0 8px;
+			padding: 0
+				8px;
 			box-sizing: border-box;
 
 			> div.nav {
-				margin: 8px 0;
+				margin: 8px
+					0;
 				gap: 8px;
 				-webkit-app-region: no-drag;
 				line-height: 1em;
@@ -262,21 +429,28 @@
 			> div.side {
 				-webkit-app-region: drag;
 
-				overflow: hidden auto;
-
-				@include force-size(72px, &);
+				@include force-size(
+					72px,
+					&
+				);
 			}
 
 			> div.separator {
-				background-color: var(--color-5);
+				background-color: var(
+					--color-5
+				);
 
-				@include force-size(1px, &);
+				@include force-size(
+					1px,
+					&
+				);
 			}
 
 			> div.main {
 				flex-grow: 1;
 
-				overflow: hidden auto;
+				overflow: hidden
+					auto;
 
 				min-width: 0;
 				min-height: 0;

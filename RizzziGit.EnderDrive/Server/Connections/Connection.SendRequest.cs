@@ -7,36 +7,54 @@ namespace RizzziGit.EnderDrive.Server.Connections;
 using Commons.Memory;
 using MessagePack;
 
-public enum ClientSideRequestCode : byte
+public enum ClientSideRequestCode
+	: byte
 {
-    Ping,
-    Notify
+	Ping,
+	Notify,
 }
 
 public sealed partial class Connection
 {
-    public async Task<R> SendRequest<S, R>(
-        ClientSideRequestCode code,
-        S data,
-        CancellationToken cancellationToken
-    )
-    {
-        var context = GetContext();
+	public async Task<R> SendRequest<
+		S,
+		R
+	>(
+		ClientSideRequestCode code,
+		S data,
+		CancellationToken cancellationToken
+	)
+	{
+		var context =
+			GetContext();
 
-        ConnectionPacket<ClientSideRequestCode> request =
-            ConnectionPacket<ClientSideRequestCode>.Create(code, data);
+		ConnectionPacket<ClientSideRequestCode> request =
+			ConnectionPacket<ClientSideRequestCode>.Create(
+				code,
+				data
+			);
 
-        ConnectionPacket<ResponseCode> response = ConnectionPacket<ResponseCode>.Deserialize(
-            (
-                await context.Internal.SendRequest(request.Serialize(), cancellationToken)
-            ).ToByteArray()
-        );
+		ConnectionPacket<ResponseCode> response =
+			ConnectionPacket<ResponseCode>.Deserialize(
+				(
+					await context.Internal.SendRequest(
+						request.Serialize(),
+						cancellationToken
+					)
+				).ToByteArray()
+			);
 
-        if (response.Code != ResponseCode.OK)
-        {
-            throw new ConnectionResponseException(response.Code, response.Data);
-        }
+		if (
+			response.Code
+			!= ResponseCode.OK
+		)
+		{
+			throw new ConnectionResponseException(
+				response.Code,
+				response.DeserializeData<ConnectionResponseExceptionData>()
+			);
+		}
 
-        return response.DeserializeData<R>();
-    }
+		return response.DeserializeData<R>();
+	}
 }

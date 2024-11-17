@@ -1,24 +1,36 @@
-<script lang="ts" module>
-	export type IconThickness = 'solid' | 'regular' | 'thin' | 'light';
+<script
+	lang="ts"
+	module
+>
+	export type IconThickness =
+
+			| 'solid'
+			| 'regular'
+			| 'thin'
+			| 'light';
 	export type IconSize =
-		| `${number}${'px' | '%' | 'em' | 'rem'}`
-		| '2xs'
-		| 'xs'
-		| 'sm'
-		| 'lg'
-		| 'xl'
-		| '2xl';
+		`${number}${'px' | '%' | 'em' | 'rem'}`;
 
-	export type IconRotation = 0 | 90 | 180 | 270;
+	export type IconRotation =
 
-	export type IconFlip = 'horizontal' | 'vertical' | 'both';
+			| 0
+			| 90
+			| 180
+			| 270;
+
+	export type IconFlip =
+
+			| 'horizontal'
+			| 'vertical'
+			| 'both';
 
 	export type IconColor =
-		| `#${string}`
-		| `rgb(${string})`
-		| `rgba(${string})`
-		| `hsl(${string})`
-		| 'inherit';
+
+			| `#${string}`
+			| `rgb(${string})`
+			| `rgba(${string})`
+			| `hsl(${string})`
+			| 'inherit';
 
 	export interface IconOptions {
 		icon: string;
@@ -31,7 +43,9 @@
 	}
 </script>
 
-<script lang="ts">
+<script
+	lang="ts"
+>
 	const {
 		icon,
 		thickness = 'regular',
@@ -42,45 +56,69 @@
 		brand = false
 	}: IconOptions = $props();
 
-	const classes: string[] = [];
+	const classes: string[] =
+		[];
 
-	classes.push(`fa-${thickness}`, `fa-${icon}`, `fa-${size}`);
+	classes.push(
+		`fa-${thickness}`,
+		`fa-${icon}`,
+		`fa-${size}`
+	);
 
-	if (rotate !== 0) {
-		classes.push(`fa-rotate-${rotate}`);
+	if (
+		rotate !==
+		0
+	) {
+		classes.push(
+			`fa-rotate-${rotate}`
+		);
 	}
 
-	if (flip != null) {
-		classes.push(`fa-flip${flip}`);
+	if (
+		flip !=
+		null
+	) {
+		classes.push(
+			`fa-flip${flip}`
+		);
 	}
 
-	if (brand) {
-		classes.push(`fa-brands`)
+	if (
+		brand
+	) {
+		classes.push(
+			`fa-brands`
+		);
 	}
 </script>
 
-{#if ['2xs', 'xs', 'sm', 'lg', 'xl', '2xl'].includes(size)}
+<div
+	class="icon"
+	style:color
+	style:font-size={size}
+	style:min-width={size}
+	style:max-width={size}
+	style:min-height={size}
+	style:max-height={size}
+>
 	<i
-		class="icon {classes.join(' ')}"
-		style:color
-		style:min-width={size}
-		style:max-width={size}
-		style:min-height={size}
-		style:max-height={size}
-	></i>
-{:else}
-	<i
-		class="icon {classes.join(' ')}"
-		style:color
-		style:font-size={size}
-		style:min-width={size}
-		style:max-width={size}
-		style:min-height={size}
-		style:max-height={size}
-	></i>
-{/if}
+		class="icon {classes.join(
+			' '
+		)}"
 
-<style lang="scss">
+	></i>
+</div>
+
+<style
+	lang="scss"
+>
+	div.icon {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+	}
+
 	i.icon {
 		display: flex;
 		flex-direction: column;

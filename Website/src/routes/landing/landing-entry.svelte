@@ -1,6 +1,11 @@
-<script lang="ts">
+<script
+	lang="ts"
+>
 	import { useLandingContext } from '$lib/client/contexts/landing';
-	import { onMount, type Snippet } from 'svelte';
+	import {
+		onMount,
+		type Snippet
+	} from 'svelte';
 
 	const {
 		name,
@@ -15,18 +20,36 @@
 		hideButton?: boolean;
 		hideHeader?: boolean;
 	} = $props();
-	const { pushLandingEntry } = useLandingContext();
+	const {
+		pushLandingEntry
+	} =
+		useLandingContext();
 
-	onMount(() => pushLandingEntry(name, container, !hideButton));
+	onMount(
+		() =>
+			pushLandingEntry(
+				name,
+				container,
+				!hideButton
+			)
+	);
 </script>
 
 {#snippet content()}
-	<div class="content">
+	<div
+		class="content"
+	>
 		{#if !hideHeader}
-			<h2 class="content-header">{name}</h2>
+			<h2
+				class="content-header"
+			>
+				{name}
+			</h2>
 		{/if}
 
-		<div class="content-body">
+		<div
+			class="content-body"
+		>
 			{@render children()}
 		</div>
 	</div>
@@ -34,8 +57,12 @@
 
 {#snippet container()}
 	{#if contain}
-		<div class="container">
-			<div class="inner-container">
+		<div
+			class="container"
+		>
+			<div
+				class="inner-container"
+			>
 				{@render content()}
 			</div>
 		</div>
@@ -44,16 +71,26 @@
 	{/if}
 {/snippet}
 
-<style lang="scss">
-	@use '../../global.scss' as *;
+<style
+	lang="scss"
+>
+	@use '../../global.scss'
+		as *;
 
 	div.container {
 		align-items: center;
 
 		> div.inner-container {
-			@include force-size(min(1280px, 100%), &);
+			@include force-size(
+				min(
+					1280px,
+					100%
+				),
+				&
+			);
 
-			padding: 0px 16px;
+			padding: 0px
+				16px;
 			box-sizing: border-box;
 		}
 	}

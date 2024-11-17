@@ -1,22 +1,38 @@
-<script lang="ts">
-	import { onMount, type Snippet } from 'svelte';
+<script
+	lang="ts"
+>
+	import {
+		onMount,
+		type Snippet
+	} from 'svelte';
 	import { useAppContext } from '$lib/client/contexts/app';
 	import { scale } from 'svelte/transition';
 	import { createOverlayContext } from '../lib/client/contexts/overlay';
 	import Button from '../lib/client/ui/button.svelte';
 	import Icon from '../lib/client/ui/icon.svelte';
 
-	const { pushOverlayContent } = useAppContext();
+	const {
+		pushOverlayContent
+	} =
+		useAppContext();
 	const {
 		children,
 		ondismiss,
 		nodim = false,
+		notransition = false,
+		noshadow = false,
 		x,
 		y
 	}: {
-		children: Snippet<[windowButtons: Snippet]>;
+		children: Snippet<
+			[
+				windowButtons: Snippet
+			]
+		>;
 		ondismiss?: () => void;
 		nodim?: boolean;
+		noshadow?: boolean;
+		notransition?: boolean;
 		x?: number;
 		y?: number;
 	} = $props();
@@ -26,75 +42,160 @@
 		paddingLeft,
 		paddingRight
 	}: {
-		horizontalAlign: 'flex-start' | 'center' | 'flex-end';
+		horizontalAlign:
+			| 'flex-start'
+			| 'center'
+			| 'flex-end';
 		paddingLeft: number;
 		paddingRight: number;
-	} = $derived(
-		x == null
-			? { horizontalAlign: 'center', paddingLeft: 0, paddingRight: 0 }
-			: x < 0
-				? { horizontalAlign: 'flex-end', paddingLeft: 0, paddingRight: -(x + 1 )}
-				: {
-						horizontalAlign: 'flex-start',
-						paddingLeft: x,
+	} =
+		$derived(
+			x ==
+				null
+				? {
+						horizontalAlign:
+							'center',
+						paddingLeft: 0,
 						paddingRight: 0
 					}
-	);
+				: x <
+					  0
+					? {
+							horizontalAlign:
+								'flex-end',
+							paddingLeft: 0,
+							paddingRight:
+								-(
+									x +
+									1
+								)
+						}
+					: {
+							horizontalAlign:
+								'flex-start',
+							paddingLeft:
+								x,
+							paddingRight: 0
+						}
+		);
 
 	let {
 		verticalAlign,
 		paddingTop,
 		paddingBottom
 	}: {
-		verticalAlign: 'flex-start' | 'center' | 'flex-end';
+		verticalAlign:
+			| 'flex-start'
+			| 'center'
+			| 'flex-end';
 		paddingTop: number;
 		paddingBottom: number;
-	} = $derived(
-		y == null
-			? { verticalAlign: 'center', paddingTop: 0, paddingBottom: 0 }
-			: y < 0
-				? { verticalAlign: 'flex-end', paddingTop: 0, paddingBottom: -(y + 1) }
-				: {
-						verticalAlign: 'flex-start',
-						paddingTop: y,
+	} =
+		$derived(
+			y ==
+				null
+				? {
+						verticalAlign:
+							'center',
+						paddingTop: 0,
 						paddingBottom: 0
 					}
-	);
+				: y <
+					  0
+					? {
+							verticalAlign:
+								'flex-end',
+							paddingTop: 0,
+							paddingBottom:
+								-(
+									y +
+									1
+								)
+						}
+					: {
+							verticalAlign:
+								'flex-start',
+							paddingTop:
+								y,
+							paddingBottom: 0
+						}
+		);
 
-	onMount(() => pushOverlayContent(overlay, !nodim));
+	onMount(
+		() =>
+			pushOverlayContent(
+				overlay,
+				!nodim
+			)
+	);
 
 	const {
 		buttons,
-		context: { pushButton }
-	} = createOverlayContext();
+		context:
+			{
+				pushButton
+			}
+	} =
+		createOverlayContext();
 
-	onMount(() => pushButton('test', { icon: 'xmark', thickness: 'solid' }, () => ondismiss?.()));
+	onMount(
+		() =>
+			pushButton(
+				'test',
+				{
+					icon: 'xmark',
+					thickness:
+						'solid'
+				},
+				() =>
+					ondismiss?.()
+			)
+	);
 </script>
 
 {#snippet windowButtons()}
-	<div class="window-buttons">
+	<div
+		class="window-buttons"
+	>
 		{#each $buttons as { id, tooltip, icon, onclick }, index (id)}
-			{#snippet background(view: Snippet)}
-				<div class="background">
+			{#snippet background(
+				view: Snippet
+			)}
+				<div
+					class="background"
+				>
 					{@render view()}
 				</div>
 			{/snippet}
 
-			{#snippet foreground(view: Snippet)}
-				<div class="window-button">
+			{#snippet foreground(
+				view: Snippet
+			)}
+				<div
+					class="window-button"
+				>
 					{@render view()}
 				</div>
 			{/snippet}
 
-			<Button {onclick} {background} {foreground}>
-				<Icon {...icon} size="1em" />
+			<Button
+				{onclick}
+				{background}
+				{foreground}
+			>
+				<Icon
+					{...icon}
+					size="1em"
+				/>
 			</Button>
 		{/each}
 	</div>
 {/snippet}
 
 {#snippet overlay()}
-	<div class="overlay-bounds">
+	<div
+		class="overlay-bounds"
+	>
 		<button
 			class="overlay-container"
 			style:align-items={horizontalAlign}
@@ -104,23 +205,51 @@
 			style:padding-left="{paddingLeft}px"
 			style:padding-right="{paddingRight}px"
 			class:dim={!nodim}
-			onclick={({ currentTarget, target }) => {
-				if (currentTarget != target) {
+			class:shadow={!noshadow}
+			onclick={({
+				currentTarget,
+				target
+			}) => {
+				if (
+					currentTarget !=
+					target
+				) {
 					return;
 				}
 
 				ondismiss?.();
 			}}
 		>
-			<div class="overlay" transition:scale|global={{ duration: 250, start: 0.95 }}>
-				{@render children(windowButtons)}
-			</div>
+			{#if !notransition}
+				<div
+					class="overlay"
+					transition:scale|global={{
+						duration: 250,
+						start: 0.95
+					}}
+				>
+					{@render children(
+						windowButtons
+					)}
+				</div>
+			{:else}
+				<div
+					class="overlay"
+				>
+					{@render children(
+						windowButtons
+					)}
+				</div>
+			{/if}
 		</button>
 	</div>
 {/snippet}
 
-<style lang="scss">
-	@use '../global.scss' as *;
+<style
+	lang="scss"
+>
+	@use '../global.scss'
+		as *;
 
 	div.window-buttons {
 		flex-direction: row-reverse;
@@ -130,7 +259,8 @@
 		}
 
 		div.window-button {
-			padding: 8px 16px;
+			padding: 8px
+				16px;
 
 			align-items: center;
 			justify-content: center;
@@ -151,12 +281,23 @@
 		border: none;
 		outline: none;
 
-		@include force-size(100dvw, 100dvh);
+		@include force-size(
+			100dvw,
+			100dvh
+		);
 	}
 
 	button.overlay-container.dim {
-		background-color:#00000025;
+		background-color: #00000025;
+	}
 
+	button.overlay-container.shadow {
+		filter: drop-shadow(
+			2px
+				2px
+				4px
+				#0000007f
+		);
 	}
 
 	div.overlay {

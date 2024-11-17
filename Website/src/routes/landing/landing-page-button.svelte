@@ -1,6 +1,16 @@
-<script lang="ts">
-	import { onMount, type Snippet } from 'svelte';
-	import { derived, writable, type Readable, type Writable } from 'svelte/store';
+<script
+	lang="ts"
+>
+	import {
+		onMount,
+		type Snippet
+	} from 'svelte';
+	import {
+		derived,
+		writable,
+		type Readable,
+		type Writable
+	} from 'svelte/store';
 
 	const {
 		id,
@@ -13,29 +23,86 @@
 		name: string;
 		isActive: boolean;
 		onclick: () => void;
-		widths: Writable<[number, Readable<number>, Readable<number>][]>;
-	} = $props();
+		widths: Writable<
+			[
+				number,
+				Readable<number>,
+				Readable<number>
+			][]
+		>;
+	} =
+		$props();
 
-	const button: Writable<HTMLButtonElement> = writable(null as never);
+	const button: Writable<HTMLButtonElement> =
+		writable(
+			null as never
+		);
 
-	onMount(() => {
-		const obj: [number, Readable<number>, Readable<number>] = [
-			id,
-			derived(button, (button) => button.offsetLeft - button.parentElement!.offsetLeft),
-			derived(button, (button) => button.clientWidth)
-		];
+	onMount(
+		() => {
+			const obj: [
+				number,
+				Readable<number>,
+				Readable<number>
+			] =
+				[
+					id,
+					derived(
+						button,
+						(
+							button
+						) =>
+							button.offsetLeft -
+							button
+								.parentElement!
+								.offsetLeft
+					),
+					derived(
+						button,
+						(
+							button
+						) =>
+							button.clientWidth
+					)
+				];
 
-		widths.update((value) => [...value, obj]);
+			widths.update(
+				(
+					value
+				) => [
+					...value,
+					obj
+				]
+			);
 
-		return () => widths.update((value) => value.filter((value) => value != obj));
-	});
+			return () =>
+				widths.update(
+					(
+						value
+					) =>
+						value.filter(
+							(
+								value
+							) =>
+								value !=
+								obj
+						)
+				);
+		}
+	);
 </script>
 
-<button bind:this={$button} class:active={isActive} {onclick}>
+<button
+	bind:this={$button}
+	class:active={isActive}
+	{onclick}
+>
 	{name}
 </button>
 
-<style lang="scss">
+<style
+	lang="scss"
+>
 	button {
 		background: none;
 		border: none;

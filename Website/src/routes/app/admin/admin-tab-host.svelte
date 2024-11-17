@@ -1,4 +1,6 @@
-<script lang="ts">
+<script
+	lang="ts"
+>
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import type { Tab } from '$lib/client/contexts/admin';
@@ -9,35 +11,68 @@
 	import Separator from '$lib/client/ui/separator.svelte';
 	import { useAppContext } from '$lib/client/contexts/app';
 
-	const { tabs }: { tabs: Readable<Tab[]> } = $props();
-	const { isMobile } = useAppContext();
+	const {
+		tabs
+	}: {
+		tabs: Readable<
+			Tab[]
+		>;
+	} =
+		$props();
+	const {
+		isMobile
+	} =
+		useAppContext();
 </script>
 
-<div class="tabs">
-	<div class="background" class:mobile={$isMobile}>
+<div
+	class="tabs"
+>
+	<div
+		class="background"
+		class:mobile={$isMobile}
+	>
 		{#key $page}
 			{#each $tabs as { id, name, callback }, index (id)}
 				<!-- {#if index !== 0}
 					<div class="separator"></div>
 				{/if} -->
 
-				{@const { path, icon, selected } = callback($page)}
+				{@const {
+					path,
+					icon,
+					selected
+				} =
+					callback(
+						$page
+					)}
 
 				<button
 					class="tab"
 					class:mobile={$isMobile}
 					class:selected
 					onclick={() => {
-						goto(path);
+						goto(
+							path
+						);
 					}}
 				>
-					<div class="label">
-						<Icon {...icon} />
-						<p>{name}</p>
+					<div
+						class="label"
+					>
+						<Icon
+							{...icon}
+						/>
+						<p
+						>
+							{name}
+						</p>
 					</div>
 
 					{#if selected}
-						<div class="indicator"></div>
+						<div
+							class="indicator"
+						></div>
 					{/if}
 				</button>
 			{/each}
@@ -45,8 +80,11 @@
 	</div>
 </div>
 
-<style lang="scss">
-	@use '../../../global.scss' as *;
+<style
+	lang="scss"
+>
+	@use '../../../global.scss'
+		as *;
 
 	div.tabs {
 		flex-direction: row;
@@ -54,8 +92,12 @@
 
 	div.background {
 		flex-direction: row;
-		background-color: var(--color-5);
-		color: var(--color-1);
+		background-color: var(
+			--color-5
+		);
+		color: var(
+			--color-1
+		);
 	}
 
 	div.background.mobile {
@@ -66,10 +108,16 @@
 	}
 
 	div.separator {
-		@include force-size(1px, &);
+		@include force-size(
+			1px,
+			&
+		);
 
-		background-color: var(--color-1);
-		margin: 4px 0;
+		background-color: var(
+			--color-1
+		);
+		margin: 4px
+			0;
 	}
 
 	button.tab {
@@ -78,7 +126,10 @@
 		align-items: stretch;
 
 		border: none;
-		border-radius: 8px 8px 0 0;
+		border-radius: 8px
+			8px
+			0
+			0;
 
 		cursor: pointer;
 
@@ -87,7 +138,8 @@
 
 			align-items: center;
 
-			padding: 8px 16px;
+			padding: 8px
+				16px;
 			gap: 8px;
 		}
 	}
@@ -105,8 +157,12 @@
 	}
 
 	button.tab.selected {
-		background-color: var(--color-1);
-		color: var(--color-5);
+		background-color: var(
+			--color-1
+		);
+		color: var(
+			--color-5
+		);
 	}
 
 	button.tab.selected.mobile {
@@ -120,9 +176,14 @@
 		}
 
 		> div.indicator {
-			@include force-size(&, 1px);
+			@include force-size(
+				&,
+				1px
+			);
 
-			background-color: var(--color-1);
+			background-color: var(
+				--color-1
+			);
 
 			align-self: stretch;
 		}

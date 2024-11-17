@@ -7,9 +7,26 @@ namespace RizzziGit.EnderDrive.Utilities;
 
 public static class StringExtensions
 {
-    public static string[] ToJson<T>(this T[] items)
-        where T : ResourceData => items.Select((item) => item.ToJson()).ToArray();
+	public static string[] ToJson<T>(
+		this T[] items
+	)
+		where T : ResourceData =>
+		items
+			.Select(
+				(
+					item
+				) =>
+					item.ToJson()
+			)
+			.ToArray();
 
-    public static string ToJson<T>(this T item)
-        where T : ResourceData => JToken.FromObject(item).ToString();
+	public static string ToJson<T>(
+		this T item
+	)
+		where T : ResourceData =>
+		JToken
+			.FromObject(
+				item
+			)
+			.ToString();
 }

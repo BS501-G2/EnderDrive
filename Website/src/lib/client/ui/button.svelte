@@ -1,10 +1,13 @@
-<script lang="ts">
+<script
+	lang="ts"
+>
 	import type { Snippet } from 'svelte';
 	import LoadingSpinner from './loading-spinner.svelte';
 
-	const clickButton = () => {
-		button.click();
-	};
+	const clickButton =
+		() => {
+			button.click();
+		};
 
 	let {
 		hint,
@@ -20,42 +23,83 @@
 	}: {
 		hint?: string;
 		children: Snippet;
-		background?: Snippet<[content: Snippet, error: boolean]>;
-		foreground?: Snippet<[content: Snippet, error: boolean]>;
+		background?: Snippet<
+			[
+				content: Snippet,
+				error: boolean
+			]
+		>;
+		foreground?: Snippet<
+			[
+				content: Snippet,
+				error: boolean
+			]
+		>;
 		onclick: (
-			event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
+			event: MouseEvent & {
+				currentTarget: EventTarget &
+					HTMLButtonElement;
+			}
 		) => void | Promise<void>;
-		onerror?: (error?: Error) => {};
+		onerror?: (
+			error?: Error
+		) => {};
 		click?: () => void;
 		buttonElement?: HTMLButtonElement;
 		disabled?: boolean;
 		reset?: () => void;
 	} = $props();
 
-	let promise: Promise<void> | null = $state(null);
-	let error: Error | null = $state(null);
+	let promise: Promise<void> | null =
+		$state(
+			null
+		);
+	let error: Error | null =
+		$state(
+			null
+		);
 
-	$effect(() => {
-		reset = () => {
-			error = null;
-		};
-	});
-
-	$effect(() => {
-		click = clickButton;
-	});
-
-	$effect(() => {
-		buttonElement = button;
-	});
-
-	$effect(() => {
-		if (error != null) {
-			console.log(error);
+	$effect(
+		() => {
+			reset =
+				() => {
+					error =
+						null;
+				};
 		}
-	});
+	);
 
-	let button: HTMLButtonElement = $state(null as never);
+	$effect(
+		() => {
+			click =
+				clickButton;
+		}
+	);
+
+	$effect(
+		() => {
+			buttonElement =
+				button;
+		}
+	);
+
+	$effect(
+		() => {
+			if (
+				error !=
+				null
+			) {
+				console.log(
+					error
+				);
+			}
+		}
+	);
+
+	let button: HTMLButtonElement =
+		$state(
+			null as never
+		);
 </script>
 
 <button
@@ -63,48 +107,78 @@
 	class:disabled
 	title={hint}
 	{disabled}
-	onclick={(event) => {
+	onclick={(
+		event
+	) => {
 		try {
-			if (promise != null) {
+			if (
+				promise !=
+				null
+			) {
 				return;
 			}
 
-			error = null;
-			const resultPromise = onclick(event);
+			error =
+				null;
+			const resultPromise =
+				onclick(
+					event
+				);
 
-			if (resultPromise instanceof Promise) {
-				promise = resultPromise;
+			if (
+				resultPromise instanceof
+				Promise
+			) {
+				promise =
+					resultPromise;
 
 				void (async () => {
 					try {
 						await promise;
 					} catch (e: any) {
-						error = e;
+						error =
+							e;
 					} finally {
-						promise = null;
+						promise =
+							null;
 					}
 				})();
 			}
 		} catch (e: any) {
-			error = e;
-			onerror?.(error!);
+			error =
+				e;
+			onerror?.(
+				error!
+			);
 		}
 	}}
 >
 	{#snippet backgroundContent()}
-		<div class="background" class:error={error != null} class:busy={promise != null}>
+		<div
+			class="background"
+			class:error={error !=
+				null}
+			class:busy={promise !=
+				null}
+		>
 			{#snippet foregroundContent()}
 				{#if error != null}
 					{error.message}
 				{:else if promise != null}
-					<LoadingSpinner size="1em" />
+					<LoadingSpinner
+						size="1em"
+					/>
 				{:else}
 					{@render children()}
 				{/if}
 			{/snippet}
 
 			{#if foreground != null}
-				{@render foreground(foregroundContent, error != null)}
+				{@render foreground(
+					foregroundContent,
+					error !=
+						null
+				)}
 			{:else}
 				{@render foregroundContent()}
 			{/if}
@@ -112,14 +186,22 @@
 	{/snippet}
 
 	{#if background != null}
-		{@render background(backgroundContent, error != null)}
+		{@render background(
+			backgroundContent,
+			error !=
+				null
+		)}
 	{:else}
 		{@render backgroundContent()}
 	{/if}
 </button>
 
-<style lang="scss">
+<style
+	lang="scss"
+>
 	button {
+		-webkit-app-region: no-drag;
+
 		display: flex;
 		flex-direction: column;
 		align-items: stretch;
@@ -140,7 +222,8 @@
 		}
 
 		div.background {
-			transition-property: background-color, color;
+			transition-property: background-color,
+				color;
 			flex-direction: row;
 
 			justify-content: center;
@@ -150,7 +233,9 @@
 		}
 
 		div.background.error {
-			background-color: var(--color-6);
+			background-color: var(
+				--color-6
+			);
 		}
 
 		div.background.busy {
@@ -166,7 +251,12 @@
 
 	button:hover {
 		div.background {
-			background-color: rgba(0, 0, 0, 0.25);
+			background-color: rgba(
+				0,
+				0,
+				0,
+				0.25
+			);
 		}
 	}
 
@@ -180,8 +270,15 @@
 		scale: 0.95;
 
 		div.background {
-			background-color: rgba(0, 0, 0, 0.75);
-			color: var(--color-5);
+			background-color: rgba(
+				0,
+				0,
+				0,
+				0.75
+			);
+			color: var(
+				--color-5
+			);
 		}
 	}
 
@@ -189,7 +286,12 @@
 		cursor: not-allowed;
 
 		div.background {
-			background-color: rgba(0, 0, 0, 0.25);
+			background-color: rgba(
+				0,
+				0,
+				0,
+				0.25
+			);
 		}
 	}
 </style>

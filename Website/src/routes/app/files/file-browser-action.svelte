@@ -1,9 +1,16 @@
-<script lang="ts">
+<script
+	lang="ts"
+>
 	import { useAppContext } from '$lib/client/contexts/app';
 	import { useFileBrowserContext } from '$lib/client/contexts/file-browser';
 	import Button from '$lib/client/ui/button.svelte';
-	import Icon, { type IconOptions } from '$lib/client/ui/icon.svelte';
-	import { onMount, type Snippet } from 'svelte';
+	import Icon, {
+		type IconOptions
+	} from '$lib/client/ui/icon.svelte';
+	import {
+		onMount,
+		type Snippet
+	} from 'svelte';
 
 	let {
 		label,
@@ -16,37 +23,78 @@
 		label: string;
 		icon: IconOptions;
 		onclick: (
-			event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
+			event: MouseEvent & {
+				currentTarget: EventTarget &
+					HTMLButtonElement;
+			}
 		) => void | Promise<void>;
 		buttonElement?: HTMLButtonElement;
-		type: 'left-main' | 'left' | 'right-main' | 'right';
+		type:
+			| 'left-main'
+			| 'left'
+			| 'right-main'
+			| 'right';
 	} = $props();
 
-	const { isMobile } = useAppContext();
-	const { pushAction } = useFileBrowserContext();
+	const {
+		isMobile
+	} =
+		useAppContext();
+	const {
+		pushAction
+	} =
+		useFileBrowserContext();
 
-	onMount(() => pushAction(content, type, icon, label, onclick));
+	onMount(
+		() =>
+			pushAction(
+				content,
+				type,
+				icon,
+				label,
+				onclick
+			)
+	);
 </script>
 
 {#snippet content()}
-	{#snippet foreground(view: Snippet)}
-		<div class="action {type}" class:mobile={$isMobile} >
+	{#snippet foreground(
+		view: Snippet
+	)}
+		<div
+			class="action {type}"
+			class:mobile={$isMobile}
+		>
 			{@render view()}
 		</div>
 	{/snippet}
 
-	<Button {onclick} {foreground} bind:buttonElement>
+	<Button
+		{onclick}
+		{foreground}
+		bind:buttonElement
+	>
 		{#if $isMobile}
-			<Icon {...icon} size="1.2em" />
+			<Icon
+				{...icon}
+				size="1.2em"
+			/>
 		{:else}
-			<Icon {...icon} />
+			<Icon
+				{...icon}
+			/>
 		{/if}
 
-		<p>{label}</p>
+		<p
+		>
+			{label}
+		</p>
 	</Button>
 {/snippet}
 
-<style lang="scss">
+<style
+	lang="scss"
+>
 	div.action {
 		padding: 8px;
 		gap: 8px;

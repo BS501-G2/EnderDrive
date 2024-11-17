@@ -21,92 +21,177 @@ using Services;
 
 public sealed partial class ApiServerParams
 {
-    public required WebApplication WebApplication;
-    public required SocketIoBridge SocketIoBridge;
+	public required WebApplication WebApplication;
+	public required SocketIoBridge SocketIoBridge;
 }
 
-public sealed partial class ApiServer(Server server, int httpPort, int httpsPort)
-    : Service<ApiServerParams>("API", server)
+public sealed partial class ApiServer(
+	Server server,
+	int httpPort,
+	int httpsPort
+)
+	: Service<ApiServerParams>(
+		"API",
+		server
+	)
 {
-    public Server Server => server;
+	public Server Server =>
+		server;
 
-    protected override async Task<ApiServerParams> OnStart(
-        CancellationToken startupCancellationToken,
-        CancellationToken serviceCancellationToken
-    )
-    {
-        SocketIoBridge socketIoBridge = new(this);
+	protected override async Task<ApiServerParams> OnStart(
+		CancellationToken startupCancellationToken,
+		CancellationToken serviceCancellationToken
+	)
+	{
+		SocketIoBridge socketIoBridge =
+			new(
+				this
+			);
 
-        WebApplicationBuilder builder = WebApplication.CreateBuilder();
+		WebApplicationBuilder builder =
+			WebApplication.CreateBuilder();
 
-        builder.Logging.ClearProviders();
-        builder.WebHost.ConfigureKestrel(
-            (context, options) =>
-            {
-                options.Listen(
-                    IPAddress.Any,
-                    httpPort,
-                    (options) =>
-                    {
-                        options.Protocols = HttpProtocols.Http1AndHttp2;
-                    }
-                );
+		builder.Logging.ClearProviders();
+		builder.WebHost.ConfigureKestrel(
+			(
+				context,
+				options
+			) =>
+			{
+				options.Listen(
+					IPAddress.Any,
+					httpPort,
+					(
+						options
+					) =>
+					{
+						options.Protocols =
+							HttpProtocols.Http1AndHttp2;
+					}
+				);
 
-                options.Listen(
-                    IPAddress.Any,
-                    httpsPort,
-                    (options) =>
-                    {
-                        options.Protocols = HttpProtocols.Http1AndHttp2AndHttp3;
-                        options.UseHttps();
-                    }
-                );
-            }
-        );
+				options.Listen(
+					IPAddress.Any,
+					httpsPort,
+					(
+						options
+					) =>
+					{
+						options.Protocols =
+							HttpProtocols.Http1AndHttp2AndHttp3;
+						options.UseHttps();
+					}
+				);
+			}
+		);
 
-        builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+		builder
+			.Services.AddRazorComponents()
+			.AddInteractiveServerComponents();
 
-        WebApplication app = builder.Build();
+		WebApplication app =
+			builder.Build();
 
-        app.UseWebSockets(new() { KeepAliveInterval = TimeSpan.FromMinutes(2) });
+		app.UseWebSockets(
+			new()
+			{
+				KeepAliveInterval =
+					TimeSpan.FromMinutes(
+						2
+					),
+			}
+		);
 
-        await StartServices([socketIoBridge], startupCancellationToken);
-        app.Use((HttpContext context, Func<Task> _) => Handle(context, serviceCancellationToken));
+		await StartServices(
+			[
+				socketIoBridge,
+			],
+			startupCancellationToken
+		);
+		app.Use(
+			(
+				HttpContext context,
+				Func<Task> _
+			) =>
+				Handle(
+					context,
+					serviceCancellationToken
+				)
+		);
 
-        await app.StartAsync(startupCancellationToken);
+		await app.StartAsync(
+			startupCancellationToken
+		);
 
-        return new() { WebApplication = app, SocketIoBridge = socketIoBridge };
-    }
+		return new()
+		{
+			WebApplication =
+				app,
+			SocketIoBridge =
+				socketIoBridge,
+		};
+	}
 
-    protected override async Task OnRun(ApiServerParams data, CancellationToken cancellationToken)
-    {
-        var context = GetContext();
+	protected override async Task OnRun(
+		ApiServerParams data,
+		CancellationToken cancellationToken
+	)
+	{
+		var context =
+			GetContext();
 
-        Task[] tasks = [WatchService(context.SocketIoBridge, cancellationToken)];
+		Task[] tasks =
 
-        await await Task.WhenAny(tasks);
-    }
+			[
+				WatchService(
+					context.SocketIoBridge,
+					cancellationToken
+				),
+			];
 
-    protected override async Task OnStop(ApiServerParams data, ExceptionDispatchInfo? exception)
-    {
-        var context = GetContext();
-        await context.WebApplication.StopAsync(CancellationToken.None);
+		await await Task.WhenAny(
+			tasks
+		);
+	}
 
-        await StopServices(context.SocketIoBridge);
-    }
+	protected override async Task OnStop(
+		ApiServerParams data,
+		ExceptionDispatchInfo? exception
+	)
+	{
+		var context =
+			GetContext();
+		await context.WebApplication.StopAsync(
+			CancellationToken.None
+		);
 
-    private async Task Handle(HttpContext context, CancellationToken cancellationToken)
-    {
-        if (!context.WebSockets.IsWebSocketRequest)
-        {
-            context.Response.StatusCode = 400;
-            await context.Response.CompleteAsync();
-            return;
-        }
+		await StopServices(
+			context.SocketIoBridge
+		);
+	}
 
-        await server.ConnectionManager.Push(
-            await context.WebSockets.AcceptWebSocketAsync(),
-            cancellationToken
-        );
-    }
+	private async Task Handle(
+		HttpContext context,
+		CancellationToken cancellationToken
+	)
+	{
+		if (
+			!context
+				.WebSockets
+				.IsWebSocketRequest
+		)
+		{
+			context
+				.Response
+				.StatusCode =
+				400;
+			await context.Response.CompleteAsync();
+			return;
+		}
+
+		await server.ConnectionManager.Push(
+			await context.WebSockets.AcceptWebSocketAsync(),
+			cancellationToken
+		);
+	}
 }

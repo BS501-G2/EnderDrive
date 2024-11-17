@@ -1,4 +1,6 @@
-<script lang="ts">
+<script
+	lang="ts"
+>
 	import {
 		createFileBrowserContext,
 		useFileBrowserContext,
@@ -15,51 +17,115 @@
 	import { onMount } from 'svelte';
 	import FileBrowserPropertiesMobile from './file-browser-properties-mobile.svelte';
 
-	const { resolve, onFileId,  selectMode, customContext }: FileBrowserOptions = $props();
-	const { actions, top, current, middle, bottom } = customContext ?? createFileBrowserContext(onFileId, selectMode);
-	const { showDetails, fileListContext } = useFileBrowserContext();
-	const { isMobile, isDesktop } = useAppContext();
+	const {
+		resolve,
+		onFileId,
+		selectMode,
+		customContext
+	}: FileBrowserOptions =
+		$props();
+	const {
+		actions,
+		top,
+		current,
+		middle,
+		bottom
+	} =
+		customContext ??
+		createFileBrowserContext(
+			onFileId,
+			selectMode
+		);
+	const {
+		showDetails,
+		fileListContext
+	} =
+		useFileBrowserContext();
+	const {
+		isMobile,
+		isDesktop
+	} =
+		useAppContext();
 
-	let flattenedSelectedIds: string[] = $state([]);
+	let flattenedSelectedIds: string[] =
+		$state(
+			[]
+		);
 
-	onMount(() =>
-		fileListContext.subscribe((fileListContext) => {
-			if (fileListContext != null) {
-				fileListContext.selectedFileIds.subscribe((selectedFileIds) => {
-					flattenedSelectedIds = selectedFileIds;
-				});
-			}
-		})
+	onMount(
+		() =>
+			fileListContext.subscribe(
+				(
+					fileListContext
+				) => {
+					if (
+						fileListContext !=
+						null
+					) {
+						fileListContext.selectedFileIds.subscribe(
+							(
+								selectedFileIds
+							) => {
+								flattenedSelectedIds =
+									selectedFileIds;
+							}
+						);
+					}
+				}
+			)
 	);
 
-	onMount(() =>
-		isMobile.subscribe((isMobile) => {
-			if (isMobile) {
-				$showDetails = false;
-			}
-		})
+	onMount(
+		() =>
+			isMobile.subscribe(
+				(
+					isMobile
+				) => {
+					if (
+						isMobile
+					) {
+						$showDetails = false;
+					}
+				}
+			)
 	);
 </script>
 
-<div class="file-browser">
-	<div class="left">
+<div
+	class="file-browser"
+>
+	<div
+		class="left"
+	>
 		{#if $top.length}
-			<div class="top">
+			<div
+				class="top"
+			>
 				{#each $top as { id, snippet }, index (id)}
 					{#if index > 0}
-						<Separator horizontal />
+						<Separator
+							horizontal
+						/>
 					{/if}
 
 					{@render snippet()}
 				{/each}
 			</div>
 
-			<Separator horizontal />
+			<Separator
+				horizontal
+			/>
 		{/if}
 
-		<div class="middle">
+		<div
+			class="middle"
+		>
 			{#if resolve}
-				<FileBrowserResolver {resolve} {current} {actions} />
+				<FileBrowserResolver
+					{resolve}
+					{current}
+					{actions}
+				/>
 			{/if}
 
 			{#each $middle as { id, snippet } (id)}
@@ -68,12 +134,18 @@
 		</div>
 
 		{#if $bottom.length}
-			<Separator horizontal />
+			<Separator
+				horizontal
+			/>
 
-			<div class="bottom">
+			<div
+				class="bottom"
+			>
 				{#each $bottom as { id, snippet }, index (id)}
 					{#if index > 0}
-						<Separator horizontal />
+						<Separator
+							horizontal
+						/>
 					{/if}
 
 					{@render snippet()}
@@ -82,42 +154,74 @@
 		{/if}
 	</div>
 
-	{#if $isDesktop && $showDetails }
-		<Separator vertical />
+	{#if $isDesktop && $showDetails}
+		<Separator
+			vertical
+		/>
 
-		<div class="right" transition:fly={{ x: 16 }}>
+		<div
+			class="right"
+			transition:fly={{
+				x: 16
+			}}
+		>
 			<FileBrowserProperties
-				selectedFileIds={$current.type === 'folder'
+				selectedFileIds={$current.type ===
+				'folder'
 					? flattenedSelectedIds
-					: $current.type === 'file'
-						? [$current.file.id]
+					: $current.type ===
+						  'file'
+						? [
+								$current
+									.file
+									.id
+							]
 						: []}
 			/>
 		</div>
 	{/if}
 </div>
 
-{#if $current.type === 'file' || $current.type === 'folder' || $current.type === 'loading' }
-	<FileBrowserPath current={$current} />
+{#if $current.type === 'file' || $current.type === 'folder' || $current.type === 'loading'}
+	<FileBrowserPath
+		current={$current}
+	/>
 {/if}
 
-<FileManagerActionHost {actions} />
+<FileManagerActionHost
+	{actions}
+/>
 
 {#if $current.type !== 'loading' && ($isDesktop || ($isMobile && flattenedSelectedIds.length))}
 	<FileBrowserAction
 		label="Details"
-		icon={{ icon: 'info', thickness: 'solid' }}
-		onclick={() => showDetails.update((value) => !value)}
+		icon={{
+			icon: 'info',
+			thickness:
+				'solid'
+		}}
+		onclick={() =>
+			showDetails.update(
+				(
+					value
+				) =>
+					!value
+			)}
 		type="right-main"
 	/>
 {/if}
 
 {#if $isMobile && $showDetails && $fileListContext != null && flattenedSelectedIds.length > 0}
-	<FileBrowserPropertiesMobile selectedFileIds={flattenedSelectedIds} />
+	<FileBrowserPropertiesMobile
+		selectedFileIds={flattenedSelectedIds}
+	/>
 {/if}
 
-<style lang="scss">
-	@use '../../../global.scss' as *;
+<style
+	lang="scss"
+>
+	@use '../../../global.scss'
+		as *;
 
 	div.file-browser {
 		flex-grow: 1;
@@ -139,7 +243,8 @@
 				flex-grow: 1;
 				flex-direction: row;
 
-				overflow: hidden auto;
+				overflow: hidden
+					auto;
 
 				min-height: 0;
 
@@ -154,7 +259,10 @@
 		}
 
 		> div.right {
-			@include force-size(320px, &);
+			@include force-size(
+				320px,
+				&
+			);
 		}
 	}
 </style>

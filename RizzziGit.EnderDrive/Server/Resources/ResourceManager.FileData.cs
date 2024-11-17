@@ -10,236 +10,404 @@ using Commons.Memory;
 using Newtonsoft.Json;
 using Services;
 
-public record class FileData : ResourceData
+public record class FileData
+	: ResourceData
 {
-    [JsonIgnore]
-    public required ObjectId FileId;
+	[JsonIgnore]
+	public required ObjectId FileId;
 
-    [JsonIgnore]
-    public required ObjectId FileContentId;
+	[JsonIgnore]
+	public required ObjectId FileContentId;
 
-    [JsonIgnore]
-    public required ObjectId FileSnapshotId;
+	[JsonIgnore]
+	public required ObjectId FileSnapshotId;
 
-    [JsonIgnore]
-    public required ObjectId AuthorUserId;
+	[JsonIgnore]
+	public required ObjectId AuthorUserId;
 
-    [JsonIgnore]
-    public required ObjectId BufferId;
+	[JsonIgnore]
+	public required ObjectId BufferId;
 
-    [JsonIgnore]
-    public required long Index;
+	[JsonIgnore]
+	public required long Index;
 }
 
-public record class FileBuffer : ResourceData
+public record class FileBuffer
+	: ResourceData
 {
-    [JsonIgnore]
-    public required ObjectId FileId;
+	[JsonIgnore]
+	public required ObjectId FileId;
 
-    [JsonIgnore]
-    public required ObjectId FileContentId;
+	[JsonIgnore]
+	public required ObjectId FileContentId;
 
-    [JsonIgnore]
-    public required byte[] EncryptedBuffer;
+	[JsonIgnore]
+	public required byte[] EncryptedBuffer;
 }
 
 public sealed partial class ResourceManager
 {
-    public async Task<CompositeBuffer> ReadFileBlock(
-        ResourceTransaction transaction,
-        UnlockedFile file,
-        FileSnapshot fileSnapshot,
-        long index
-    )
-    {
-        FileData? data = await Query<FileData>(
-                transaction,
-                (query) =>
-                    query.Where(
-                        (item) =>
-                            item.FileId == file.Id
-                            && item.FileSnapshotId == fileSnapshot.Id
-                            && item.Index == index
-                    )
-            )
-            .ToAsyncEnumerable()
-            .FirstOrDefaultAsync(transaction.CancellationToken);
+	public async Task<CompositeBuffer> ReadFileBlock(
+		ResourceTransaction transaction,
+		UnlockedFile file,
+		FileSnapshot fileSnapshot,
+		long index
+	)
+	{
+		FileData? data =
+			await Query<FileData>(
+					transaction,
+					(
+						query
+					) =>
+						query.Where(
+							(
+								item
+							) =>
+								item.FileId
+									== file.Id
+								&& item.FileSnapshotId
+									== fileSnapshot.Id
+								&& item.Index
+									== index
+						)
+				)
+				.ToAsyncEnumerable()
+				.FirstOrDefaultAsync(
+					transaction.CancellationToken
+				);
 
-        FileBuffer? fileBuffer =
-            data != null
-                ? await Query<FileBuffer>(
-                        transaction,
-                        (query) => query.Where((item) => item.Id == data.BufferId)
-                    )
-                    .ToAsyncEnumerable()
-                    .FirstAsync(transaction.CancellationToken)
-                : null;
+		FileBuffer? fileBuffer =
+			data
+			!= null
+				? await Query<FileBuffer>(
+						transaction,
+						(
+							query
+						) =>
+							query.Where(
+								(
+									item
+								) =>
+									item.Id
+									== data.BufferId
+							)
+					)
+					.ToAsyncEnumerable()
+					.FirstAsync(
+						transaction.CancellationToken
+					)
+				: null;
 
-        CompositeBuffer buffer =
-            fileBuffer != null
-                ? KeyManager.Decrypt(file, fileBuffer.EncryptedBuffer)
-                : CompositeBuffer.Allocate(FILE_BUFFER_SIZE);
+		CompositeBuffer buffer =
+			fileBuffer
+			!= null
+				? KeyManager.Decrypt(
+					file,
+					fileBuffer.EncryptedBuffer
+				)
+				: CompositeBuffer.Allocate(
+					FILE_BUFFER_SIZE
+				);
 
-        return buffer;
-    }
+		return buffer;
+	}
 
-    public async Task WriteFileBlock(
-        ResourceTransaction transaction,
-        UnlockedFile file,
-        FileContent fileContent,
-        FileSnapshot fileSnapshot,
-        long index,
-        UnlockedUserAuthentication userAuthentication,
-        CompositeBuffer bytes
-    )
-    {
-        FileData? data = await Query<FileData>(
-                transaction,
-                (query) =>
-                    query.Where(
-                        (item) =>
-                            item.FileId == file.Id
-                            && item.FileSnapshotId == fileSnapshot.Id
-                            && item.Index == index
-                    )
-            )
-            .ToAsyncEnumerable()
-            .FirstOrDefaultAsync(transaction.CancellationToken);
+	public async Task WriteFileBlock(
+		ResourceTransaction transaction,
+		UnlockedFile file,
+		FileContent fileContent,
+		FileSnapshot fileSnapshot,
+		long index,
+		UnlockedUserAuthentication userAuthentication,
+		CompositeBuffer bytes
+	)
+	{
+		FileData? data =
+			await Query<FileData>(
+					transaction,
+					(
+						query
+					) =>
+						query.Where(
+							(
+								item
+							) =>
+								item.FileId
+									== file.Id
+								&& item.FileSnapshotId
+									== fileSnapshot.Id
+								&& item.Index
+									== index
+						)
+				)
+				.ToAsyncEnumerable()
+				.FirstOrDefaultAsync(
+					transaction.CancellationToken
+				);
 
-        bytes =
-            bytes.Length < FILE_BUFFER_SIZE
-                ? bytes.PadEnd(FILE_BUFFER_SIZE)
-                : bytes.Slice(0, FILE_BUFFER_SIZE);
+		bytes =
+			bytes.Length
+			< FILE_BUFFER_SIZE
+				? bytes.PadEnd(
+					FILE_BUFFER_SIZE
+				)
+				: bytes.Slice(
+					0,
+					FILE_BUFFER_SIZE
+				);
 
-        FileBuffer buffer =
-            new()
-            {
-                Id = ObjectId.GenerateNewId(),
-                FileId = file.Id,
-                FileContentId = fileContent.Id,
-                EncryptedBuffer = KeyManager.Encrypt(file, bytes.ToByteArray()),
-            };
+		FileBuffer buffer =
+			new()
+			{
+				Id =
+					ObjectId.GenerateNewId(),
+				FileId =
+					file.Id,
+				FileContentId =
+					fileContent.Id,
+				EncryptedBuffer =
+					KeyManager.Encrypt(
+						file,
+						bytes.ToByteArray()
+					),
+			};
 
-        await Insert(transaction, [buffer]);
+		await Insert(
+			transaction,
+			[
+				buffer,
+			]
+		);
 
-        if (data == null)
-        {
-            data = new()
-            {
-                Id = ObjectId.GenerateNewId(),
+		if (
+			data
+			== null
+		)
+		{
+			data =
+				new()
+				{
+					Id =
+						ObjectId.GenerateNewId(),
 
-                FileId = file.Id,
-                FileContentId = fileContent.Id,
-                FileSnapshotId = fileSnapshot.Id,
-                AuthorUserId = userAuthentication.UserId,
-                BufferId = buffer.Id,
+					FileId =
+						file.Id,
+					FileContentId =
+						fileContent.Id,
+					FileSnapshotId =
+						fileSnapshot.Id,
+					AuthorUserId =
+						userAuthentication.UserId,
+					BufferId =
+						buffer.Id,
 
-                Index = index,
-            };
+					Index =
+						index,
+				};
 
-            await Insert(transaction, [data]);
-        }
-    }
+			await Insert(
+				transaction,
+				[
+					data,
+				]
+			);
+		}
+	}
 
-    public async Task<CompositeBuffer> ReadFile(
-        ResourceTransaction transaction,
-        UnlockedFile file,
-        FileContent fileContent,
-        FileSnapshot fileSnapshot,
-        long position,
-        long size
-    )
-    {
-        long totalSize = await GetFileSize(transaction, fileSnapshot);
+	public async Task<CompositeBuffer> ReadFile(
+		ResourceTransaction transaction,
+		UnlockedFile file,
+		FileContent fileContent,
+		FileSnapshot fileSnapshot,
+		long position,
+		long size
+	)
+	{
+		long totalSize =
+			await GetFileSize(
+				transaction,
+				fileSnapshot
+			);
 
-        long readStart = position;
-        long readEnd = long.Min(readStart + size, totalSize);
+		long readStart =
+			position;
+		long readEnd =
+			long.Min(
+				readStart
+					+ size,
+				totalSize
+			);
 
-        long bytesRead = 0;
-        long indexStart = Math.DivRem(position, FILE_BUFFER_SIZE, out long indexStartOffset);
-        CompositeBuffer bytes = [];
+		long bytesRead =
+			0;
+		long indexStart =
+			Math.DivRem(
+				position,
+				FILE_BUFFER_SIZE,
+				out long indexStartOffset
+			);
+		CompositeBuffer bytes =
 
-        for (long index = indexStart; bytesRead < (readEnd - readStart); index++)
-        {
-            long bufferStart = indexStart == index ? indexStartOffset : 0;
-            long bufferEnd = long.Clamp(
-                bufferStart + long.Min(size - bytesRead, FILE_BUFFER_SIZE),
-                0,
-                totalSize - readStart
-            );
+			[];
 
-            if (bufferEnd - bufferStart > 0)
-            {
-                CompositeBuffer buffer = await ReadFileBlock(
-                    transaction,
-                    file,
-                    fileSnapshot,
-                    index
-                );
+		for (
+			long index =
+				indexStart;
+			bytesRead
+				< (
+					readEnd
+					- readStart
+				);
+			index++
+		)
+		{
+			long bufferStart =
+				indexStart
+				== index
+					? indexStartOffset
+					: 0;
+			long bufferEnd =
+				long.Clamp(
+					bufferStart
+						+ long.Min(
+							size
+								- bytesRead,
+							FILE_BUFFER_SIZE
+						),
+					0,
+					totalSize
+						- readStart
+				);
 
-                CompositeBuffer toRead = buffer.Slice(bufferStart, bufferEnd);
+			if (
+				bufferEnd
+					- bufferStart
+				> 0
+			)
+			{
+				CompositeBuffer buffer =
+					await ReadFileBlock(
+						transaction,
+						file,
+						fileSnapshot,
+						index
+					);
 
-                bytes.Append(toRead);
-                bytesRead += toRead.Length;
-            }
-        }
+				CompositeBuffer toRead =
+					buffer.Slice(
+						bufferStart,
+						bufferEnd
+					);
 
-        return bytes;
-    }
+				bytes.Append(
+					toRead
+				);
+				bytesRead +=
+					toRead.Length;
+			}
+		}
 
-    public async Task WriteFile(
-        ResourceTransaction transaction,
-        UnlockedFile file,
-        FileContent fileContent,
-        FileSnapshot fileSnapshot,
-        UnlockedUserAuthentication userAuthentication,
-        long position,
-        CompositeBuffer bytes
-    )
-    {
-        long writeStart = position;
-        long writeEnd = position + bytes.Length;
+		return bytes;
+	}
 
-        long bytesWritten = 0;
-        long indexStart = Math.DivRem(position, FILE_BUFFER_SIZE, out long indexStartOffset);
+	public async Task WriteFile(
+		ResourceTransaction transaction,
+		UnlockedFile file,
+		FileContent fileContent,
+		FileSnapshot fileSnapshot,
+		UnlockedUserAuthentication userAuthentication,
+		long position,
+		CompositeBuffer bytes
+	)
+	{
+		long writeStart =
+			position;
+		long writeEnd =
+			position
+			+ bytes.Length;
 
-        for (long index = indexStart; bytes.Length > bytesWritten; )
-        {
-            long currentStart = indexStart == index ? indexStartOffset : 0;
-            long currentEnd =
-                currentStart + long.Min(bytes.Length - bytesWritten, FILE_BUFFER_SIZE);
+		long bytesWritten =
+			0;
+		long indexStart =
+			Math.DivRem(
+				position,
+				FILE_BUFFER_SIZE,
+				out long indexStartOffset
+			);
 
-            if (currentEnd - currentStart > 0)
-            {
-                CompositeBuffer current = await ReadFileBlock(
-                    transaction,
-                    file,
-                    fileSnapshot,
-                    indexStart
-                );
+		for (
+			long index =
+				indexStart;
+			bytes.Length
+				> bytesWritten;
 
-                CompositeBuffer toWrite = bytes.Slice(currentStart, currentEnd);
+		)
+		{
+			long currentStart =
+				indexStart
+				== index
+					? indexStartOffset
+					: 0;
+			long currentEnd =
+				currentStart
+				+ long.Min(
+					bytes.Length
+						- bytesWritten,
+					FILE_BUFFER_SIZE
+				);
 
-                current.Write(currentStart, toWrite);
+			if (
+				currentEnd
+					- currentStart
+				> 0
+			)
+			{
+				CompositeBuffer current =
+					await ReadFileBlock(
+						transaction,
+						file,
+						fileSnapshot,
+						indexStart
+					);
 
-                await WriteFileBlock(
-                    transaction,
-                    file,
-                    fileContent,
-                    fileSnapshot,
-                    index,
-                    userAuthentication,
-                    current
-                );
+				CompositeBuffer toWrite =
+					bytes.Slice(
+						currentStart,
+						currentEnd
+					);
 
-                bytesWritten += toWrite.Length;
-            }
-        }
+				current.Write(
+					currentStart,
+					toWrite
+				);
 
-        await SetSize(
-            transaction,
-            fileSnapshot,
-            long.Max(position + bytes.Length, await GetFileSize(transaction, fileSnapshot))
-        );
-    }
+				await WriteFileBlock(
+					transaction,
+					file,
+					fileContent,
+					fileSnapshot,
+					index,
+					userAuthentication,
+					current
+				);
+
+				bytesWritten +=
+					toWrite.Length;
+			}
+		}
+
+		await SetSize(
+			transaction,
+			fileSnapshot,
+			long.Max(
+				position
+					+ bytes.Length,
+				await GetFileSize(
+					transaction,
+					fileSnapshot
+				)
+			)
+		);
+	}
 }

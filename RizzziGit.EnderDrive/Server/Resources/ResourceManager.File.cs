@@ -13,375 +13,717 @@ using Services;
 
 public enum FileType
 {
-    File,
-    Folder,
+	File,
+	Folder,
 }
 
 public enum TrashOptions
 {
-    NotIncluded,
-    Included,
-    Exclusive
+	NotIncluded,
+	Included,
+	Exclusive,
 }
 
-public record class File : ResourceData
+public record class File
+	: ResourceData
 {
-    [JsonProperty("parentId")]
-    public required ObjectId? ParentId;
+	[JsonProperty(
+		"parentId"
+	)]
+	public required ObjectId? ParentId;
 
-    [JsonProperty("ownerUserId")]
-    public required ObjectId OwnerUserId;
+	[JsonProperty(
+		"ownerUserId"
+	)]
+	public required ObjectId OwnerUserId;
 
-    [JsonProperty("name")]
-    public required string Name;
+	[JsonProperty(
+		"name"
+	)]
+	public required string Name;
 
-    [JsonProperty("type")]
-    public required FileType Type;
+	[JsonProperty(
+		"type"
+	)]
+	public required FileType Type;
 
-    [JsonProperty("createTime")]
-    [BsonRepresentation(BsonType.DateTime)]
-    public required DateTimeOffset CreateTime;
+	[JsonProperty(
+		"createTime"
+	)]
+	[BsonRepresentation(
+		BsonType.DateTime
+	)]
+	public required DateTimeOffset CreateTime;
 
-    [JsonProperty("updateTime")]
-    [BsonRepresentation(BsonType.DateTime)]
-    public required DateTimeOffset UpdateTime;
+	[JsonProperty(
+		"updateTime"
+	)]
+	[BsonRepresentation(
+		BsonType.DateTime
+	)]
+	public required DateTimeOffset UpdateTime;
 
-    [JsonProperty("trashTime")]
-    [BsonRepresentation(BsonType.DateTime)]
-    public required DateTimeOffset? TrashTime;
+	[JsonProperty(
+		"trashTime"
+	)]
+	[BsonRepresentation(
+		BsonType.DateTime
+	)]
+	public required DateTimeOffset? TrashTime;
 
-    [JsonIgnore]
-    public required byte[] EncryptedAesKey;
+	[JsonIgnore]
+	public required byte[] EncryptedAesKey;
 
-    public UnlockedFile WithAesKey(byte[] aesKey)
-    {
-        return new()
-        {
-            Original = this,
+	[JsonIgnore]
+	public required byte[] AdminEncryptedAesKey;
 
-            Id = Id,
-            ParentId = ParentId,
-            OwnerUserId = OwnerUserId,
+	public UnlockedFile WithAesKey(
+		byte[] aesKey
+	)
+	{
+		return new()
+		{
+			Original =
+				this,
 
-            Name = Name,
-            Type = Type,
+			Id =
+				Id,
+			ParentId =
+				ParentId,
+			OwnerUserId =
+				OwnerUserId,
 
-            EncryptedAesKey = EncryptedAesKey,
+			Name =
+				Name,
+			Type =
+				Type,
 
-            AesKey = aesKey,
+			EncryptedAesKey =
+				EncryptedAesKey,
+			AdminEncryptedAesKey =
+				AdminEncryptedAesKey,
 
-            CreateTime = DateTimeOffset.Now,
-            UpdateTime = DateTimeOffset.Now,
-            TrashTime = null
-        };
-    }
+			AesKey =
+				aesKey,
 
-    public UnlockedFile Unlock(UnlockedFile parentFolder)
-    {
-        if (ParentId == null)
-        {
-            throw new InvalidOperationException("Requires user authentication to decrypt.");
-        }
+			CreateTime =
+				DateTimeOffset.Now,
+			UpdateTime =
+				DateTimeOffset.Now,
+			TrashTime =
+				null,
+		};
+	}
 
-        try
-        {
-            return WithAesKey(KeyManager.Decrypt(parentFolder, EncryptedAesKey));
-        }
-        catch (Exception exception)
-        {
-            throw new InvalidOperationException("Failed to decrypt", exception);
-        }
-    }
+	public UnlockedFile Unlock(
+		UnlockedFile parentFolder
+	)
+	{
+		if (
+			ParentId
+			== null
+		)
+		{
+			throw new InvalidOperationException(
+				"Requires user authentication to decrypt."
+			);
+		}
 
-    public UnlockedFile Unlock(UnlockedUserAuthentication userAuthentication)
-    {
-        if (ParentId != null)
-        {
-            throw new InvalidOperationException("Requires parent file to decrypt.");
-        }
+		try
+		{
+			return WithAesKey(
+				KeyManager.Decrypt(
+					parentFolder,
+					EncryptedAesKey
+				)
+			);
+		}
+		catch (Exception exception)
+		{
+			throw new InvalidOperationException(
+				"Failed to decrypt",
+				exception
+			);
+		}
+	}
 
-        try
-        {
-            byte[] aesKey = KeyManager.Decrypt(userAuthentication, EncryptedAesKey);
-            return WithAesKey(aesKey);
-        }
-        catch (Exception exception)
-        {
-            throw new InvalidOperationException("Failed to decrypt", exception);
-        }
-    }
+	public UnlockedFile Unlock(
+		UnlockedUserAuthentication userAuthentication
+	)
+	{
+		if (
+			ParentId
+			!= null
+		)
+		{
+			throw new InvalidOperationException(
+				"Requires parent file to decrypt."
+			);
+		}
+
+		try
+		{
+			byte[] aesKey =
+				KeyManager.Decrypt(
+					userAuthentication,
+					EncryptedAesKey
+				);
+			return WithAesKey(
+				aesKey
+			);
+		}
+		catch (Exception exception)
+		{
+			throw new InvalidOperationException(
+				"Failed to decrypt",
+				exception
+			);
+		}
+	}
 }
 
-public record class UnlockedFile : File
+public record class UnlockedFile
+	: File
 {
-    public static implicit operator byte[](UnlockedFile file) => file.AesKey;
+	public static implicit operator byte[](
+		UnlockedFile file
+	) =>
+		file.AesKey;
 
-    public required File Original;
+	public required File Original;
 
-    public required byte[] AesKey;
+	public required byte[] AesKey;
 }
 
 public sealed partial class ResourceManager
 {
-    public const int FILE_BUFFER_SIZE = 1024 * 256;
+	public const int FILE_BUFFER_SIZE =
+		1024
+		* 256;
 
-    public async Task<File> GetRootFolder(ResourceTransaction transaction, User user)
-    {
-        File? existingFile = await Query<File>(
-                transaction,
-                (query) => query.Where((item) => item.OwnerUserId == user.Id)
-            )
-            .ToAsyncEnumerable()
-            .FirstOrDefaultAsync(transaction.CancellationToken);
+	public async Task<File> GetRootFolder(
+		ResourceTransaction transaction,
+		User user
+	)
+	{
+		File? existingFile =
+			await Query<File>(
+					transaction,
+					(
+						query
+					) =>
+						query.Where(
+							(
+								item
+							) =>
+								item.OwnerUserId
+								== user.Id
+						)
+				)
+				.ToAsyncEnumerable()
+				.FirstOrDefaultAsync(
+					transaction.CancellationToken
+				);
 
-        if (existingFile != null)
-        {
-            return existingFile;
-        }
+		if (
+			existingFile
+			!= null
+		)
+		{
+			return existingFile;
+		}
 
-        byte[] aesKey = RandomNumberGenerator.GetBytes(32);
-        byte[] encryptedAesKey = KeyManager.Encrypt(user, aesKey);
+		byte[] aesKey =
+			RandomNumberGenerator.GetBytes(
+				32
+			);
+		byte[] encryptedAesKey =
+			KeyManager.Encrypt(
+				user,
+				aesKey
+			);
+		byte[] adminEcnryptedAesKey =
+			KeyManager.Encrypt(
+				AdminManager.AdminKey,
+				aesKey
+			);
 
-        File file =
-            new()
-            {
-                Id = ObjectId.GenerateNewId(),
-                ParentId = null,
-                OwnerUserId = user.Id,
+		File file =
+			new()
+			{
+				Id =
+					ObjectId.GenerateNewId(),
+				ParentId =
+					null,
+				OwnerUserId =
+					user.Id,
 
-                Name = ".ROOT",
-                Type = FileType.Folder,
+				Name =
+					".ROOT",
+				Type =
+					FileType.Folder,
 
-                EncryptedAesKey = encryptedAesKey,
+				EncryptedAesKey =
+					encryptedAesKey,
+				AdminEncryptedAesKey =
+					adminEcnryptedAesKey,
 
-                CreateTime = DateTimeOffset.UtcNow,
-                UpdateTime = DateTimeOffset.UtcNow,
-                TrashTime = null
-            };
+				CreateTime =
+					DateTimeOffset.UtcNow,
+				UpdateTime =
+					DateTimeOffset.UtcNow,
+				TrashTime =
+					null,
+			};
 
-        await Insert(transaction, [file]);
-        await Update(
-            transaction,
-            user,
-            Builders<User>.Update.Set(nameof(User.RootFileId), file.Id)
-        );
+		await Insert(
+			transaction,
+			[
+				file,
+			]
+		);
+		await Update(
+			transaction,
+			user,
+			Builders<User>.Update.Set(
+				nameof(
+					User.RootFileId
+				),
+				file.Id
+			)
+		);
 
-        UnlockedFile unlockedFile =
-            new()
-            {
-                Original = file,
+		UnlockedFile unlockedFile =
+			new()
+			{
+				Original =
+					file,
 
-                Id = file.Id,
-                ParentId = file.ParentId,
-                OwnerUserId = file.OwnerUserId,
+				Id =
+					file.Id,
+				ParentId =
+					file.ParentId,
+				OwnerUserId =
+					file.OwnerUserId,
 
-                Name = file.Name,
-                Type = file.Type,
+				Name =
+					file.Name,
+				Type =
+					file.Type,
 
-                EncryptedAesKey = file.EncryptedAesKey,
-                AesKey = aesKey,
+				EncryptedAesKey =
+					file.EncryptedAesKey,
+				AdminEncryptedAesKey =
+					file.AdminEncryptedAesKey,
+				AesKey =
+					aesKey,
 
-                CreateTime = file.CreateTime,
-                UpdateTime = file.UpdateTime,
-                TrashTime = file.TrashTime
-            };
+				CreateTime =
+					file.CreateTime,
+				UpdateTime =
+					file.UpdateTime,
+				TrashTime =
+					file.TrashTime,
+			};
 
-        return unlockedFile;
-    }
+		return unlockedFile;
+	}
 
-    public async Task<UnlockedFile> GetTrashFolder(ResourceTransaction transaction, User user)
-    {
-        byte[] aesKey = RandomNumberGenerator.GetBytes(32);
-        byte[] encryptedAesKey = KeyManager.Encrypt(user, aesKey);
+	public async Task<UnlockedFile> GetTrashFolder(
+		ResourceTransaction transaction,
+		User user
+	)
+	{
+		byte[] aesKey =
+			RandomNumberGenerator.GetBytes(
+				32
+			);
+		byte[] encryptedAesKey =
+			KeyManager.Encrypt(
+				user,
+				aesKey
+			);
+		byte[] adminEcnryptedAesKey =
+			KeyManager.Encrypt(
+				AdminManager.AdminKey,
+				aesKey
+			);
 
-        File file =
-            new()
-            {
-                Id = ObjectId.GenerateNewId(),
-                ParentId = null,
-                OwnerUserId = user.Id,
+		File file =
+			new()
+			{
+				Id =
+					ObjectId.GenerateNewId(),
+				ParentId =
+					null,
+				OwnerUserId =
+					user.Id,
 
-                Name = ".TRASH",
-                Type = FileType.Folder,
+				Name =
+					".TRASH",
+				Type =
+					FileType.Folder,
 
-                EncryptedAesKey = encryptedAesKey,
+				EncryptedAesKey =
+					encryptedAesKey,
+				AdminEncryptedAesKey =
+					adminEcnryptedAesKey,
 
-                CreateTime = DateTimeOffset.UtcNow,
-                UpdateTime = DateTimeOffset.UtcNow,
-                TrashTime = null
-            };
+				CreateTime =
+					DateTimeOffset.UtcNow,
+				UpdateTime =
+					DateTimeOffset.UtcNow,
+				TrashTime =
+					null,
+			};
 
-        await Insert(transaction, [file]);
-        await Update(
-            transaction,
-            user,
-            Builders<User>.Update.Set(nameof(User.TrashFileId), file.Id)
-        );
+		await Insert(
+			transaction,
+			[
+				file,
+			]
+		);
+		await Update(
+			transaction,
+			user,
+			Builders<User>.Update.Set(
+				nameof(
+					User.TrashFileId
+				),
+				file.Id
+			)
+		);
 
-        UnlockedFile unlockedFile =
-            new()
-            {
-                Original = file,
+		UnlockedFile unlockedFile =
+			new()
+			{
+				Original =
+					file,
 
-                Id = file.Id,
-                ParentId = file.ParentId,
-                OwnerUserId = file.OwnerUserId,
+				Id =
+					file.Id,
+				ParentId =
+					file.ParentId,
+				OwnerUserId =
+					file.OwnerUserId,
 
-                Name = file.Name,
-                Type = file.Type,
+				Name =
+					file.Name,
+				Type =
+					file.Type,
 
-                EncryptedAesKey = file.EncryptedAesKey,
-                AesKey = aesKey,
+				EncryptedAesKey =
+					file.EncryptedAesKey,
+				AdminEncryptedAesKey =
+					file.AdminEncryptedAesKey,
+				AesKey =
+					aesKey,
 
-                CreateTime = file.CreateTime,
-                UpdateTime = file.UpdateTime,
-                TrashTime = file.TrashTime
-            };
+				CreateTime =
+					file.CreateTime,
+				UpdateTime =
+					file.UpdateTime,
+				TrashTime =
+					file.TrashTime,
+			};
 
-        return unlockedFile;
-    }
+		return unlockedFile;
+	}
 
-    public async Task<UnlockedFile> CreateFile(
-        ResourceTransaction transaction,
-        User user,
-        UnlockedFile parent,
-        FileType type,
-        string name
-    )
-    {
-        byte[] aesKey = RandomNumberGenerator.GetBytes(32);
-        byte[] encryptedAesKey = KeyManager.Encrypt(parent, aesKey);
+	public async Task<UnlockedFile> CreateFile(
+		ResourceTransaction transaction,
+		User user,
+		UnlockedFile parent,
+		FileType type,
+		string name
+	)
+	{
+		byte[] aesKey =
+			RandomNumberGenerator.GetBytes(
+				32
+			);
+		byte[] encryptedAesKey =
+			KeyManager.Encrypt(
+				parent,
+				aesKey
+			);
+		byte[] adminEcnryptedAesKey =
+			KeyManager.Encrypt(
+				AdminManager.AdminKey,
+				aesKey
+			);
 
-        File file =
-            new()
-            {
-                Id = ObjectId.GenerateNewId(),
-                ParentId = parent?.Id,
-                OwnerUserId = user.Id,
+		File file =
+			new()
+			{
+				Id =
+					ObjectId.GenerateNewId(),
+				ParentId =
+					parent?.Id,
+				OwnerUserId =
+					user.Id,
 
-                Name = name,
-                Type = type,
+				Name =
+					name,
+				Type =
+					type,
 
-                EncryptedAesKey = encryptedAesKey,
+				EncryptedAesKey =
+					encryptedAesKey,
+				AdminEncryptedAesKey =
+					adminEcnryptedAesKey,
 
-                CreateTime = DateTimeOffset.UtcNow,
-                UpdateTime = DateTimeOffset.UtcNow,
-                TrashTime = null
-            };
+				CreateTime =
+					DateTimeOffset.UtcNow,
+				UpdateTime =
+					DateTimeOffset.UtcNow,
+				TrashTime =
+					null,
+			};
 
-        await Insert(transaction, [file]);
+		await Insert(
+			transaction,
+			[
+				file,
+			]
+		);
 
-        UnlockedFile unlockedFile =
-            new()
-            {
-                Original = file,
+		UnlockedFile unlockedFile =
+			new()
+			{
+				Original =
+					file,
 
-                Id = file.Id,
-                ParentId = file.ParentId,
-                OwnerUserId = user.Id,
+				Id =
+					file.Id,
+				ParentId =
+					file.ParentId,
+				OwnerUserId =
+					user.Id,
 
-                Name = file.Name,
-                Type = file.Type,
+				Name =
+					file.Name,
+				Type =
+					file.Type,
 
-                EncryptedAesKey = encryptedAesKey,
+				EncryptedAesKey =
+					encryptedAesKey,
+				AdminEncryptedAesKey =
+					adminEcnryptedAesKey,
 
-                AesKey = aesKey,
+				AesKey =
+					aesKey,
 
-                CreateTime = DateTimeOffset.UtcNow,
-                UpdateTime = DateTimeOffset.UtcNow,
-                TrashTime = null
-            };
+				CreateTime =
+					DateTimeOffset.UtcNow,
+				UpdateTime =
+					DateTimeOffset.UtcNow,
+				TrashTime =
+					null,
+			};
 
-        return unlockedFile;
-    }
+		return unlockedFile;
+	}
 
-    public async Task DeleteFile(ResourceTransaction transaction, UnlockedFile file)
-    {
-        await foreach (
-            FileContent content in Query<FileContent>(
-                    transaction,
-                    (query) => query.Where((item) => item.FileId == file.Id)
-                )
-                .ToAsyncEnumerable()
-        )
-        {
-            await Delete(transaction, content);
-        }
+	public async Task DeleteFile(
+		ResourceTransaction transaction,
+		UnlockedFile file
+	)
+	{
+		await foreach (
+			FileContent content in Query<FileContent>(
+					transaction,
+					(
+						query
+					) =>
+						query.Where(
+							(
+								item
+							) =>
+								item.FileId
+								== file.Id
+						)
+				)
+				.ToAsyncEnumerable()
+		)
+		{
+			await Delete(
+				transaction,
+				content
+			);
+		}
 
-        await foreach (
-            FileSnapshot snapshot in Query<FileSnapshot>(
-                    transaction,
-                    (query) => query.Where((item) => item.FileId == file.Id)
-                )
-                .ToAsyncEnumerable()
-        )
-        {
-            await DeleteSnapshot(transaction, snapshot);
-        }
+		await foreach (
+			FileSnapshot snapshot in Query<FileSnapshot>(
+					transaction,
+					(
+						query
+					) =>
+						query.Where(
+							(
+								item
+							) =>
+								item.FileId
+								== file.Id
+						)
+				)
+				.ToAsyncEnumerable()
+		)
+		{
+			await DeleteSnapshot(
+				transaction,
+				snapshot
+			);
+		}
 
-        await foreach (
-            FileData fileData in Query<FileData>(
-                    transaction,
-                    (query) => query.Where((item) => item.FileId == file.Id)
-                )
-                .ToAsyncEnumerable()
-        )
-        {
-            await Delete(transaction, fileData);
-        }
+		await foreach (
+			FileData fileData in Query<FileData>(
+					transaction,
+					(
+						query
+					) =>
+						query.Where(
+							(
+								item
+							) =>
+								item.FileId
+								== file.Id
+						)
+				)
+				.ToAsyncEnumerable()
+		)
+		{
+			await Delete(
+				transaction,
+				fileData
+			);
+		}
 
-        await foreach (
-            FileBuffer fileData in Query<FileBuffer>(
-                    transaction,
-                    (query) => query.Where((item) => item.FileId == file.Id)
-                )
-                .ToAsyncEnumerable()
-        )
-        {
-            await Delete(transaction, fileData);
-        }
+		await foreach (
+			FileBuffer fileData in Query<FileBuffer>(
+					transaction,
+					(
+						query
+					) =>
+						query.Where(
+							(
+								item
+							) =>
+								item.FileId
+								== file.Id
+						)
+				)
+				.ToAsyncEnumerable()
+		)
+		{
+			await Delete(
+				transaction,
+				fileData
+			);
+		}
 
-        await foreach (
-            FileAccess fileAccess in Query<FileAccess>(
-                    transaction,
-                    (query) => query.Where((item) => item.FileId == file.Id)
-                )
-                .ToAsyncEnumerable()
-        )
-        {
-            await Delete(transaction, fileAccess);
-        }
+		await foreach (
+			FileAccess fileAccess in Query<FileAccess>(
+					transaction,
+					(
+						query
+					) =>
+						query.Where(
+							(
+								item
+							) =>
+								item.FileId
+								== file.Id
+						)
+				)
+				.ToAsyncEnumerable()
+		)
+		{
+			await Delete(
+				transaction,
+				fileAccess
+			);
+		}
 
-        await Delete(transaction, file.Original);
-    }
+		await Delete(
+			transaction,
+			file.Original
+		);
+	}
 
-    public IQueryable<File> GetFiles(
-        ResourceTransaction transaction,
-        File? parentFolder = null,
-        FileType? type = null,
-        string? name = null,
-        User? ownerUser = null,
-        ObjectId? id = null,
-        TrashOptions trashOptions = TrashOptions.NotIncluded
-    ) =>
-        Query<File>(
-            transaction,
-            (query) =>
-                query.Where(
-                    (item) =>
-                        (parentFolder == null || parentFolder.Id == item.ParentId)
-                        && (type == null || item.Type == type)
-                        && (
-                            name == null
-                            || item.Name.Contains(name, StringComparison.CurrentCultureIgnoreCase)
-                        )
-                        && (ownerUser == null || ownerUser.Id == item.OwnerUserId)
-                        && (id == null || item.Id == id)
-                        && (
-                            trashOptions == TrashOptions.NotIncluded
-                                ? item.TrashTime == null
-                                : trashOptions != TrashOptions.Exclusive || item.TrashTime != null
-                        )
-                ).OrderBy((item) => item.Type)
-        );
+	public IQueryable<File> GetFiles(
+		ResourceTransaction transaction,
+		File? parentFolder =
+			null,
+		FileType? type =
+			null,
+		string? name =
+			null,
+		User? ownerUser =
+			null,
+		ObjectId? id =
+			null,
+		TrashOptions trashOptions =
+			TrashOptions.NotIncluded
+	) =>
+		Query<File>(
+			transaction,
+			(
+				query
+			) =>
+				query
+					.Where(
+						(
+							item
+						) =>
+							(
+								parentFolder
+									== null
+								|| parentFolder.Id
+									== item.ParentId
+							)
+							&& (
+								type
+									== null
+								|| item.Type
+									== type
+							)
+							&& (
+								name
+									== null
+								|| item.Name.Contains(
+									name,
+									StringComparison.CurrentCultureIgnoreCase
+								)
+							)
+							&& (
+								ownerUser
+									== null
+								|| ownerUser.Id
+									== item.OwnerUserId
+							)
+							&& (
+								id
+									== null
+								|| item.Id
+									== id
+							)
+							&& (
+								trashOptions
+								== TrashOptions.NotIncluded
+									? item.TrashTime
+										== null
+									: trashOptions
+										!= TrashOptions.Exclusive
+										|| item.TrashTime
+											!= null
+							)
+					)
+					.OrderBy(
+						(
+							item
+						) =>
+							item.Type
+					)
+		);
 }
