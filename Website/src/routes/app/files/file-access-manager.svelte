@@ -1,4 +1,4 @@
 <script
-	lang="ts"
+  lang="ts"
 >
 </script>

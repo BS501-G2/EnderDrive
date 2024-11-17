@@ -1,6 +1,6 @@
 <script
-	lang="ts"
+  lang="ts"
 >
-	const {} =
-		$props();
+  const {} =
+    $props();
 </script>

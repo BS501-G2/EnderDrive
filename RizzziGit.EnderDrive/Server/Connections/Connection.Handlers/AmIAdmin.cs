@@ -7,48 +7,48 @@ using Resources;
 
 public sealed partial class Connection
 {
-	private sealed record class AmIAdminRequest { }
+  private sealed record class AmIAdminRequest { }
 
-	private sealed record class AmIAdminResponse
-	{
-		[BsonElement(
-			"isAdmin"
-		)]
-		public required bool isAdmin;
-	}
+  private sealed record class AmIAdminResponse
+  {
+    [BsonElement(
+      "isAdmin"
+    )]
+    public required bool isAdmin;
+  }
 
-	private TransactedRequestHandler<
-		AmIAdminRequest,
-		AmIAdminResponse
-	> AmIAdmin =>
-		async (
-			transaction,
-			request
-		) =>
-		{
-			ConnectionContext context =
-				GetContext();
+  private TransactedRequestHandler<
+    AmIAdminRequest,
+    AmIAdminResponse
+  > AmIAdmin =>
+    async (
+      transaction,
+      request
+    ) =>
+    {
+      ConnectionContext context =
+        GetContext();
 
-			UnlockedUserAuthentication userAuthentication =
-				Internal_EnsureAuthentication();
-			User me =
-				await Internal_Me(
-					transaction,
-					userAuthentication
-				);
+      UnlockedUserAuthentication userAuthentication =
+        Internal_EnsureAuthentication();
+      User me =
+        await Internal_Me(
+          transaction,
+          userAuthentication
+        );
 
-			return new()
-			{
-				isAdmin =
-					await Resources
-						.GetAdminAccesses(
-							transaction,
-							me.Id
-						)
-						.ToAsyncEnumerable()
-						.AnyAsync(
-							transaction.CancellationToken
-						),
-			};
-		};
+      return new()
+      {
+        isAdmin =
+          await Resources
+            .GetAdminAccesses(
+              transaction,
+              me.Id
+            )
+            .ToAsyncEnumerable()
+            .AnyAsync(
+              transaction.CancellationToken
+            ),
+      };
+    };
 }

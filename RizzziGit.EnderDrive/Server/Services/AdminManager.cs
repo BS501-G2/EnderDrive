@@ -10,100 +10,100 @@ using RizzziGit.EnderDrive.Server.Resources;
 
 public sealed record class AdminManagerContext
 {
-	public required UnlockedAdminKey UnlockedAdminKey;
+  public required UnlockedAdminKey UnlockedAdminKey;
 }
 
 public sealed partial class AdminManager(
-	ResourceManager resources
+  ResourceManager resources
 )
-	: Service<AdminManagerContext>(
-		"Admin Manager",
-		resources
-	)
+  : Service<AdminManagerContext>(
+    "Admin Manager",
+    resources
+  )
 {
-	protected override async Task<AdminManagerContext> OnStart(
-		CancellationToken startupCancellationToken,
-		CancellationToken serviceCancellationToken
-	)
-	{
-		AdminKey? adminKey =
-			await resources.Transact(
-				resources.GetExistingAdminKey
-			);
+  protected override async Task<AdminManagerContext> OnStart(
+    CancellationToken startupCancellationToken,
+    CancellationToken serviceCancellationToken
+  )
+  {
+    AdminKey? adminKey =
+      await resources.Transact(
+        resources.GetExistingAdminKey
+      );
 
-		UnlockedAdminKey unlockedAdminKey;
-		{
-			if (
-				adminKey
-				== null
-			)
-			{
-				Console.Write(
-					"Please enter a new system password: "
-				);
-				string? newPassword =
-					Console.ReadLine();
+    UnlockedAdminKey unlockedAdminKey;
+    {
+      if (
+        adminKey
+        == null
+      )
+      {
+        Console.Write(
+          "Please enter a new system password: "
+        );
+        string? newPassword =
+          Console.ReadLine();
 
-				Console.Write(
-					"Please confirm the new system password: "
-				);
-				string? confirmPassword =
-					Console.ReadLine();
+        Console.Write(
+          "Please confirm the new system password: "
+        );
+        string? confirmPassword =
+          Console.ReadLine();
 
-				if (
-					newPassword
-					!= confirmPassword
-				)
-				{
-					throw new InvalidOperationException(
-						"Password mismatch"
-					);
-				}
-				else if (
-					newPassword
-					== null
-				)
-				{
-					throw new InvalidOperationException(
-						"Password must be set."
-					);
-				}
+        if (
+          newPassword
+          != confirmPassword
+        )
+        {
+          throw new InvalidOperationException(
+            "Password mismatch"
+          );
+        }
+        else if (
+          newPassword
+          == null
+        )
+        {
+          throw new InvalidOperationException(
+            "Password must be set."
+          );
+        }
 
-				unlockedAdminKey =
-					await resources.Transact(
-						(
-							transaction
-						) =>
-							resources.CreateAdminKey(
-								transaction,
-								newPassword
-							)
-					);
-			}
-			else
-			{
-				Console.Write(
-					"Please enter the existing system password: "
-				);
-				string? password =
-					Console.ReadLine()
-					?? throw new InvalidOperationException(
-						"Password must be set."
-					);
-				unlockedAdminKey =
-					adminKey.Unlock(
-						password
-					);
-			}
-		}
+        unlockedAdminKey =
+          await resources.Transact(
+            (
+              transaction
+            ) =>
+              resources.CreateAdminKey(
+                transaction,
+                newPassword
+              )
+          );
+      }
+      else
+      {
+        Console.Write(
+          "Please enter the existing system password: "
+        );
+        string? password =
+          Console.ReadLine()
+          ?? throw new InvalidOperationException(
+            "Password must be set."
+          );
+        unlockedAdminKey =
+          adminKey.Unlock(
+            password
+          );
+      }
+    }
 
-		return new()
-		{
-			UnlockedAdminKey =
-				unlockedAdminKey,
-		};
-	}
+    return new()
+    {
+      UnlockedAdminKey =
+        unlockedAdminKey,
+    };
+  }
 
-	public UnlockedAdminKey AdminKey =>
-		GetContext().UnlockedAdminKey;
+  public UnlockedAdminKey AdminKey =>
+    GetContext().UnlockedAdminKey;
 }

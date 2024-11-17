@@ -12,568 +12,568 @@ using Services;
 
 public enum FileAccessLevel
 {
-	None,
-	Read,
-	ReadWrite,
-	Manage,
-	Full,
+  None,
+  Read,
+  ReadWrite,
+  Manage,
+  Full,
 }
 
 public enum FileAccessTargetEntityType
 {
-	User,
-	Group,
+  User,
+  Group,
 }
 
 public record class FileTargetEntity
 {
-	[JsonProperty(
-		"enityType"
-	)]
-	public required FileAccessTargetEntityType EntityType;
+  [JsonProperty(
+    "enityType"
+  )]
+  public required FileAccessTargetEntityType EntityType;
 
-	[JsonProperty(
-		"entityId"
-	)]
-	public required ObjectId EntityId;
+  [JsonProperty(
+    "entityId"
+  )]
+  public required ObjectId EntityId;
 }
 
 public record class FileAccess
-	: ResourceData
+  : ResourceData
 {
-	[JsonProperty(
-		"fileId"
-	)]
-	public required ObjectId FileId;
+  [JsonProperty(
+    "fileId"
+  )]
+  public required ObjectId FileId;
 
-	[JsonProperty(
-		"authorUserId"
-	)]
-	public required ObjectId AuthorUserId;
+  [JsonProperty(
+    "authorUserId"
+  )]
+  public required ObjectId AuthorUserId;
 
-	[JsonProperty(
-		"targetEntity"
-	)]
-	public required FileTargetEntity? TargetEntity;
+  [JsonProperty(
+    "targetEntity"
+  )]
+  public required FileTargetEntity? TargetEntity;
 
-	[JsonIgnore]
-	public required byte[] EncryptedAesKey;
+  [JsonIgnore]
+  public required byte[] EncryptedAesKey;
 
-	[JsonProperty(
-		"level"
-	)]
-	public required FileAccessLevel Level;
+  [JsonProperty(
+    "level"
+  )]
+  public required FileAccessLevel Level;
 
-	public UnlockedFileAccess Unlock(
-		UnlockedUserAuthentication userAuthentication
-	)
-	{
-		return new()
-		{
-			Original =
-				this,
+  public UnlockedFileAccess Unlock(
+    UnlockedUserAuthentication userAuthentication
+  )
+  {
+    return new()
+    {
+      Original =
+        this,
 
-			Id =
-				Id,
+      Id =
+        Id,
 
-			FileId =
-				FileId,
-			AuthorUserId =
-				AuthorUserId,
-			TargetEntity =
-				TargetEntity,
+      FileId =
+        FileId,
+      AuthorUserId =
+        AuthorUserId,
+      TargetEntity =
+        TargetEntity,
 
-			EncryptedAesKey =
-				EncryptedAesKey,
+      EncryptedAesKey =
+        EncryptedAesKey,
 
-			AesKey =
-				TargetEntity
-				!= null
-					? KeyManager.Decrypt(
-						userAuthentication,
-						EncryptedAesKey
-					)
-					: EncryptedAesKey,
+      AesKey =
+        TargetEntity
+        != null
+          ? KeyManager.Decrypt(
+            userAuthentication,
+            EncryptedAesKey
+          )
+          : EncryptedAesKey,
 
-			Level =
-				Level,
-		};
-	}
+      Level =
+        Level,
+    };
+  }
 }
 
 public record class UnlockedFileAccess
-	: FileAccess
+  : FileAccess
 {
-	public static implicit operator byte[](
-		UnlockedFileAccess file
-	) =>
-		file.AesKey;
+  public static implicit operator byte[](
+    UnlockedFileAccess file
+  ) =>
+    file.AesKey;
 
-	public required FileAccess Original;
+  public required FileAccess Original;
 
-	public required byte[] AesKey;
+  public required byte[] AesKey;
 
-	public UnlockedFile UnlockFile(
-		File file
-	)
-	{
-		return file.WithAesKey(
-			AesKey
-		);
-	}
+  public UnlockedFile UnlockFile(
+    File file
+  )
+  {
+    return file.WithAesKey(
+      AesKey
+    );
+  }
 }
 
 public sealed partial class ResourceManager
 {
-	public async Task<UnlockedFileAccess> CreateFileAccess(
-		ResourceTransaction transaction,
-		UnlockedFile file,
-		FileAccessLevel level,
-		User authorUser
-	)
-	{
-		if (
-			level
-			>= FileAccessLevel.Manage
-		)
-		{
-			throw new ArgumentException(
-				$"Level must be lower than {FileAccessLevel.Manage}.",
-				nameof(
-					level
-				)
-			);
-		}
+  public async Task<UnlockedFileAccess> CreateFileAccess(
+    ResourceTransaction transaction,
+    UnlockedFile file,
+    FileAccessLevel level,
+    User authorUser
+  )
+  {
+    if (
+      level
+      >= FileAccessLevel.Manage
+    )
+    {
+      throw new ArgumentException(
+        $"Level must be lower than {FileAccessLevel.Manage}.",
+        nameof(
+          level
+        )
+      );
+    }
 
-		FileAccess access =
-			new()
-			{
-				Id =
-					ObjectId.GenerateNewId(),
-				FileId =
-					file.Id,
-				AuthorUserId =
-					authorUser.Id,
-				TargetEntity =
-					null,
-				EncryptedAesKey =
-					file.AesKey,
-				Level =
-					level,
-			};
+    FileAccess access =
+      new()
+      {
+        Id =
+          ObjectId.GenerateNewId(),
+        FileId =
+          file.Id,
+        AuthorUserId =
+          authorUser.Id,
+        TargetEntity =
+          null,
+        EncryptedAesKey =
+          file.AesKey,
+        Level =
+          level,
+      };
 
-		await Insert(
-			transaction,
-			access
-		);
+    await Insert(
+      transaction,
+      access
+    );
 
-		return new()
-		{
-			Original =
-				access,
+    return new()
+    {
+      Original =
+        access,
 
-			Id =
-				access.Id,
-			FileId =
-				access.FileId,
+      Id =
+        access.Id,
+      FileId =
+        access.FileId,
 
-			AuthorUserId =
-				access.AuthorUserId,
-			TargetEntity =
-				access.TargetEntity,
+      AuthorUserId =
+        access.AuthorUserId,
+      TargetEntity =
+        access.TargetEntity,
 
-			EncryptedAesKey =
-				access.EncryptedAesKey,
+      EncryptedAesKey =
+        access.EncryptedAesKey,
 
-			Level =
-				access.Level,
-			AesKey =
-				access.EncryptedAesKey,
-		};
-	}
+      Level =
+        access.Level,
+      AesKey =
+        access.EncryptedAesKey,
+    };
+  }
 
-	public async Task<UnlockedFileAccess> CreateFileAccess(
-		ResourceTransaction transaction,
-		UnlockedFile file,
-		User targetUser,
-		User authorUser,
-		FileAccessLevel level
-	)
-	{
-		byte[] encryptedAesKey =
-			KeyManager.Encrypt(
-				targetUser,
-				file.AesKey
-			);
+  public async Task<UnlockedFileAccess> CreateFileAccess(
+    ResourceTransaction transaction,
+    UnlockedFile file,
+    User targetUser,
+    User authorUser,
+    FileAccessLevel level
+  )
+  {
+    byte[] encryptedAesKey =
+      KeyManager.Encrypt(
+        targetUser,
+        file.AesKey
+      );
 
-		FileAccess access =
-			new()
-			{
-				Id =
-					ObjectId.GenerateNewId(),
+    FileAccess access =
+      new()
+      {
+        Id =
+          ObjectId.GenerateNewId(),
 
-				FileId =
-					file.Id,
+        FileId =
+          file.Id,
 
-				AuthorUserId =
-					authorUser.Id,
+        AuthorUserId =
+          authorUser.Id,
 
-				TargetEntity =
-					new()
-					{
-						EntityType =
-							FileAccessTargetEntityType.User,
-						EntityId =
-							targetUser.Id,
-					},
+        TargetEntity =
+          new()
+          {
+            EntityType =
+              FileAccessTargetEntityType.User,
+            EntityId =
+              targetUser.Id,
+          },
 
-				EncryptedAesKey =
-					encryptedAesKey,
+        EncryptedAesKey =
+          encryptedAesKey,
 
-				Level =
-					level,
-			};
+        Level =
+          level,
+      };
 
-		await Insert(
-			transaction,
-			[
-				access,
-			]
-		);
+    await Insert(
+      transaction,
+      [
+        access,
+      ]
+    );
 
-		return new()
-		{
-			Original =
-				access,
-			Id =
-				access.Id,
-			FileId =
-				access.FileId,
-			AuthorUserId =
-				access.AuthorUserId,
-			TargetEntity =
-				access.TargetEntity,
-			EncryptedAesKey =
-				access.EncryptedAesKey,
-			Level =
-				access.Level,
-			AesKey =
-				file.AesKey,
-		};
-	}
+    return new()
+    {
+      Original =
+        access,
+      Id =
+        access.Id,
+      FileId =
+        access.FileId,
+      AuthorUserId =
+        access.AuthorUserId,
+      TargetEntity =
+        access.TargetEntity,
+      EncryptedAesKey =
+        access.EncryptedAesKey,
+      Level =
+        access.Level,
+      AesKey =
+        file.AesKey,
+    };
+  }
 
-	public async Task<UnlockedFileAccess> CreateFileAccess(
-		ResourceTransaction transaction,
-		UnlockedFile file,
-		Group group,
-		User authorUser,
-		FileAccessLevel level
-	)
-	{
-		byte[] encryptedAesKey =
-			KeyManager.Encrypt(
-				group,
-				file.AesKey
-			);
-		FileAccess access =
-			new()
-			{
-				Id =
-					ObjectId.GenerateNewId(),
+  public async Task<UnlockedFileAccess> CreateFileAccess(
+    ResourceTransaction transaction,
+    UnlockedFile file,
+    Group group,
+    User authorUser,
+    FileAccessLevel level
+  )
+  {
+    byte[] encryptedAesKey =
+      KeyManager.Encrypt(
+        group,
+        file.AesKey
+      );
+    FileAccess access =
+      new()
+      {
+        Id =
+          ObjectId.GenerateNewId(),
 
-				FileId =
-					file.Id,
-				AuthorUserId =
-					authorUser.Id,
-				TargetEntity =
-					new()
-					{
-						EntityType =
-							FileAccessTargetEntityType.Group,
-						EntityId =
-							group.Id,
-					},
+        FileId =
+          file.Id,
+        AuthorUserId =
+          authorUser.Id,
+        TargetEntity =
+          new()
+          {
+            EntityType =
+              FileAccessTargetEntityType.Group,
+            EntityId =
+              group.Id,
+          },
 
-				EncryptedAesKey =
-					encryptedAesKey,
+        EncryptedAesKey =
+          encryptedAesKey,
 
-				Level =
-					level,
-			};
+        Level =
+          level,
+      };
 
-		await Insert(
-			transaction,
-			[
-				access,
-			]
-		);
+    await Insert(
+      transaction,
+      [
+        access,
+      ]
+    );
 
-		return new()
-		{
-			Original =
-				access,
+    return new()
+    {
+      Original =
+        access,
 
-			Id =
-				access.Id,
+      Id =
+        access.Id,
 
-			FileId =
-				access.FileId,
-			AuthorUserId =
-				access.AuthorUserId,
-			TargetEntity =
-				new()
-				{
-					EntityType =
-						FileAccessTargetEntityType.Group,
-					EntityId =
-						group.Id,
-				},
+      FileId =
+        access.FileId,
+      AuthorUserId =
+        access.AuthorUserId,
+      TargetEntity =
+        new()
+        {
+          EntityType =
+            FileAccessTargetEntityType.Group,
+          EntityId =
+            group.Id,
+        },
 
-			EncryptedAesKey =
-				access.EncryptedAesKey,
+      EncryptedAesKey =
+        access.EncryptedAesKey,
 
-			Level =
-				access.Level,
+      Level =
+        access.Level,
 
-			AesKey =
-				file.AesKey,
-		};
-	}
+      AesKey =
+        file.AesKey,
+    };
+  }
 
-	public IQueryable<FileAccess> GetFileAccesses(
-		ResourceTransaction transaction,
-		User? targetUser =
-			null,
-		Group? targetGroup =
-			null,
-		File? targetFile =
-			null,
-		User? authorUser =
-			null,
-		FileAccessLevel? level =
-			null
-	) =>
-		Query<FileAccess>(
-			transaction,
-			(
-				query
-			) =>
-				query.Where(
-					(
-						item
-					) =>
-						(
-							targetUser
-								== null
-							|| (
-								item.TargetEntity
-									!= null
-								&& item.TargetEntity.EntityType
-									== FileAccessTargetEntityType.User
-								&& targetUser.Id
-									== item.TargetEntity.EntityId
-							)
-						)
-						&& (
-							targetGroup
-								== null
-							|| (
-								item.TargetEntity
-									!= null
-								&& item.TargetEntity.EntityType
-									== FileAccessTargetEntityType.Group
-								&& targetGroup.Id
-									== item.TargetEntity.EntityId
-							)
-						)
-						&& (
-							authorUser
-								== null
-							|| (
-								item.AuthorUserId
-								== authorUser.Id
-							)
-						)
-						&& (
-							targetFile
-								== null
-							|| targetFile.Id
-								== item.FileId
-						)
-						&& (
-							level
-								== null
-							|| level
-								<= item.Level
-						)
-				)
-		);
+  public IQueryable<FileAccess> GetFileAccesses(
+    ResourceTransaction transaction,
+    User? targetUser =
+      null,
+    Group? targetGroup =
+      null,
+    File? targetFile =
+      null,
+    User? authorUser =
+      null,
+    FileAccessLevel? level =
+      null
+  ) =>
+    Query<FileAccess>(
+      transaction,
+      (
+        query
+      ) =>
+        query.Where(
+          (
+            item
+          ) =>
+            (
+              targetUser
+                == null
+              || (
+                item.TargetEntity
+                  != null
+                && item.TargetEntity.EntityType
+                  == FileAccessTargetEntityType.User
+                && targetUser.Id
+                  == item.TargetEntity.EntityId
+              )
+            )
+            && (
+              targetGroup
+                == null
+              || (
+                item.TargetEntity
+                  != null
+                && item.TargetEntity.EntityType
+                  == FileAccessTargetEntityType.Group
+                && targetGroup.Id
+                  == item.TargetEntity.EntityId
+              )
+            )
+            && (
+              authorUser
+                == null
+              || (
+                item.AuthorUserId
+                == authorUser.Id
+              )
+            )
+            && (
+              targetFile
+                == null
+              || targetFile.Id
+                == item.FileId
+            )
+            && (
+              level
+                == null
+              || level
+                <= item.Level
+            )
+        )
+    );
 
-	public async Task<FileAccessResult?> FindFileAccess(
-		ResourceTransaction transaction,
-		File file,
-		User user,
-		UnlockedUserAuthentication userAuthentication,
-		FileAccessLevel minLevel =
-			FileAccessLevel.Read
-	)
-	{
-		if (
-			file.OwnerUserId
-				== userAuthentication.UserId
-			&& file.ParentId
-				== null
-		)
-		{
-			return new(
-				user,
-				file.Unlock(
-					userAuthentication
-				),
-				null
-			);
-		}
+  public async Task<FileAccessResult?> FindFileAccess(
+    ResourceTransaction transaction,
+    File file,
+    User user,
+    UnlockedUserAuthentication userAuthentication,
+    FileAccessLevel minLevel =
+      FileAccessLevel.Read
+  )
+  {
+    if (
+      file.OwnerUserId
+        == userAuthentication.UserId
+      && file.ParentId
+        == null
+    )
+    {
+      return new(
+        user,
+        file.Unlock(
+          userAuthentication
+        ),
+        null
+      );
+    }
 
-		AdminAccess? adminAccess =
-			await GetAdminAccesses(
-					transaction,
-					userId: user.Id
-				)
-				.ToAsyncEnumerable()
-				.FirstOrDefaultAsync(
-					transaction.CancellationToken
-				);
+    AdminAccess? adminAccess =
+      await GetAdminAccesses(
+          transaction,
+          userId: user.Id
+        )
+        .ToAsyncEnumerable()
+        .FirstOrDefaultAsync(
+          transaction.CancellationToken
+        );
 
-		if (
-			adminAccess
-			!= null
-		)
-		{
-			UnlockedAdminAccess unlockedAdminAccess =
-				adminAccess.Unlock(
-					userAuthentication
-				);
+    if (
+      adminAccess
+      != null
+    )
+    {
+      UnlockedAdminAccess unlockedAdminAccess =
+        adminAccess.Unlock(
+          userAuthentication
+        );
 
-			return new(
-				user,
-				file.WithAesKey(
-					KeyManager.Decrypt(
-						unlockedAdminAccess.AdminAesKey,
-						file.AdminEncryptedAesKey
-					)
-				),
-				null
-			);
-		}
+      return new(
+        user,
+        file.WithAesKey(
+          KeyManager.Decrypt(
+            unlockedAdminAccess.AdminAesKey,
+            file.AdminEncryptedAesKey
+          )
+        ),
+        null
+      );
+    }
 
-		FileAccess? access =
-			await GetFileAccesses(
-					transaction,
-					targetUser: user,
-					targetFile: file
-				)
-				.OrderByDescending(
-					x =>
-						x.Level
-				)
-				.ToAsyncEnumerable()
-				.FirstOrDefaultAsync(
-					transaction.CancellationToken
-				);
+    FileAccess? access =
+      await GetFileAccesses(
+          transaction,
+          targetUser: user,
+          targetFile: file
+        )
+        .OrderByDescending(
+          x =>
+            x.Level
+        )
+        .ToAsyncEnumerable()
+        .FirstOrDefaultAsync(
+          transaction.CancellationToken
+        );
 
-		if (
-			access
-			!= null
-		)
-		{
-			if (
-				access.TargetEntity
-				== null
-			)
-			{
-				return new(
-					user,
-					file.WithAesKey(
-						access.EncryptedAesKey
-					),
-					access
-				);
-			}
+    if (
+      access
+      != null
+    )
+    {
+      if (
+        access.TargetEntity
+        == null
+      )
+      {
+        return new(
+          user,
+          file.WithAesKey(
+            access.EncryptedAesKey
+          ),
+          access
+        );
+      }
 
-			return new(
-				user,
-				file.WithAesKey(
-					access.Unlock(
-						userAuthentication
-					)
-				),
-				access
-			);
-		}
+      return new(
+        user,
+        file.WithAesKey(
+          access.Unlock(
+            userAuthentication
+          )
+        ),
+        access
+      );
+    }
 
-		File? parentFolder =
-			file.ParentId
-			!= null
-				? await GetFiles(
-						transaction,
-						id: file.ParentId
-					)
-					.ToAsyncEnumerable()
-					.FirstOrDefaultAsync(
-						transaction.CancellationToken
-					)
-				: null;
+    File? parentFolder =
+      file.ParentId
+      != null
+        ? await GetFiles(
+            transaction,
+            id: file.ParentId
+          )
+          .ToAsyncEnumerable()
+          .FirstOrDefaultAsync(
+            transaction.CancellationToken
+          )
+        : null;
 
-		if (
-			parentFolder
-			== null
-		)
-		{
-			return null;
-		}
+    if (
+      parentFolder
+      == null
+    )
+    {
+      return null;
+    }
 
-		FileAccessResult? result =
-			await FindFileAccess(
-				transaction,
-				parentFolder,
-				user,
-				userAuthentication,
-				minLevel
-			);
+    FileAccessResult? result =
+      await FindFileAccess(
+        transaction,
+        parentFolder,
+        user,
+        userAuthentication,
+        minLevel
+      );
 
-		if (
-			result
-			== null
-		)
-		{
-			return null;
-		}
+    if (
+      result
+      == null
+    )
+    {
+      return null;
+    }
 
-		return new(
-			user,
-			file.WithAesKey(
-				KeyManager.Decrypt(
-					result
-						.File
-						.AesKey,
-					file.EncryptedAesKey
-				)
-			),
-			result.FileAccess
-		);
-	}
+    return new(
+      user,
+      file.WithAesKey(
+        KeyManager.Decrypt(
+          result
+            .File
+            .AesKey,
+          file.EncryptedAesKey
+        )
+      ),
+      result.FileAccess
+    );
+  }
 }
 
 public sealed record FileAccessResult(
-	User User,
-	UnlockedFile File,
-	FileAccess? FileAccess
+  User User,
+  UnlockedFile File,
+  FileAccess? FileAccess
 )
 {
-	public FileAccessLevel AccessLevel =>
-		File.OwnerUserId
-		== User.Id
-			? FileAccessLevel.Full
-			: FileAccess?.Level
-				?? FileAccessLevel.None;
+  public FileAccessLevel AccessLevel =>
+    File.OwnerUserId
+    == User.Id
+      ? FileAccessLevel.Full
+      : FileAccess?.Level
+        ?? FileAccessLevel.None;
 }

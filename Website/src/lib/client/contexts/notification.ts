@@ -1,36 +1,36 @@
 import {
-	getContext,
-	setContext
+  getContext,
+  setContext
 } from 'svelte';
 
 export const contextName =
-	Symbol(
-		'Notification Context'
-	);
+  Symbol(
+    'Notification Context'
+  );
 
 export function useNotificationContext() {
-	return getContext<NotificationContext>(
-		contextName
-	);
+  return getContext<NotificationContext>(
+    contextName
+  );
 }
 
 export type NotificationContext =
-	ReturnType<
-		typeof createNotificationContext
-	>['context'];
+  ReturnType<
+    typeof createNotificationContext
+  >['context'];
 
 export function createNotificationContext(
-	reload: () => void
+  reload: () => void
 ) {
-	const context =
-		setContext(
-			contextName,
-			{
-				reload
-			}
-		);
+  const context =
+    setContext(
+      contextName,
+      {
+        reload
+      }
+    );
 
-	return {
-		context
-	};
+  return {
+    context
+  };
 }

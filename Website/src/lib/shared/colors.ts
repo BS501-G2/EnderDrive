@@ -1,57 +1,57 @@
 export type Color =
-	[
-		r: number,
-		g: number,
-		b: number,
-		a?: number
-	];
+  [
+    r: number,
+    g: number,
+    b: number,
+    a?: number
+  ];
 
 export interface Palette {
-	name: string;
-	night: boolean;
+  name: string;
+  night: boolean;
 
-	colors: Color[] & {
-		length: 11;
-	};
+  colors: Color[] & {
+    length: 11;
+  };
 }
 
 export function fromRGBHex(
-	color: number
+  color: number
 ): Color {
-	return [
-		(color >>
-			16) &
-			0xff,
-		(color >>
-			8) &
-			0xff,
-		(color >>
-			0) &
-			0xff
-	];
+  return [
+    (color >>
+      16) &
+      0xff,
+    (color >>
+      8) &
+      0xff,
+    (color >>
+      0) &
+      0xff
+  ];
 }
 
 export function fromRGBAHex(
-	color: number
+  color: number
 ): Color {
-	return [
-		(color >>
-			24) &
-			0xff,
-		(color >>
-			16) &
-			0xff,
-		(color >>
-			8) &
-			0xff,
-		(color >>
-			0) &
-			0xff
-	];
+  return [
+    (color >>
+      24) &
+      0xff,
+    (color >>
+      16) &
+      0xff,
+    (color >>
+      8) &
+      0xff,
+    (color >>
+      0) &
+      0xff
+  ];
 }
 
 export function rgbToCss(
-	color: Color
+  color: Color
 ) {
-	return `rgb${color[3] != null ? 'a' : ''}(${color.join(',')})`;
+  return `rgb${color[3] != null ? 'a' : ''}(${color.join(',')})`;
 }

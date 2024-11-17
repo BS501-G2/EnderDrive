@@ -1,28 +1,28 @@
 <script
-	lang="ts"
+  lang="ts"
 >
-	import Window from '$lib/client/ui/window.svelte';
+  import Window from '$lib/client/ui/window.svelte';
 
-	const {
-		ondismiss
-	}: {
-		ondismiss: () => void;
-	} =
-		$props();
+  const {
+    ondismiss
+  }: {
+    ondismiss: () => void;
+  } =
+    $props();
 </script>
 
 <Window
-	{ondismiss}
-	title="Logout Confirmation"
+  {ondismiss}
+  title="Logout Confirmation"
 >
-	<p
-	>
-		Are
-		you
-		sure
-		you
-		want
-		to
-		logout?
-	</p>
+  <p
+  >
+    Are
+    you
+    sure
+    you
+    want
+    to
+    logout?
+  </p>
 </Window>

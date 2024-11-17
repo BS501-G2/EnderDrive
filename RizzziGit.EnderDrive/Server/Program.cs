@@ -13,48 +13,48 @@ using Resources;
 
 public static partial class Program
 {
-	public static Task Main(
-		string[] args
-	) =>
-		Task.Run(
-			async () =>
-			{
-				Server server =
-					new(
-						Environment.CurrentDirectory
-					);
+  public static Task Main(
+    string[] args
+  ) =>
+    Task.Run(
+      async () =>
+      {
+        Server server =
+          new(
+            Environment.CurrentDirectory
+          );
 
-				ConsoleCancelEventHandler? handler =
-					null;
-				Console.CancelKeyPress +=
-					handler =
-						(
-							origin,
-							args
-						) =>
-						{
-							Console.WriteLine();
-							server
-								.Stop()
-								.Wait();
+        ConsoleCancelEventHandler? handler =
+          null;
+        Console.CancelKeyPress +=
+          handler =
+            (
+              origin,
+              args
+            ) =>
+            {
+              Console.WriteLine();
+              server
+                .Stop()
+                .Wait();
 
-							Console.CancelKeyPress -=
-								handler;
-						};
+              Console.CancelKeyPress -=
+                handler;
+            };
 
-				server.Logged +=
-					(
-						level,
-						scope,
-						message,
-						time
-					) =>
-						Console.WriteLine(
-							$"[{time}] [{level}] [{string.Join('/', scope)}] {message}"
-						);
+        server.Logged +=
+          (
+            level,
+            scope,
+            message,
+            time
+          ) =>
+            Console.WriteLine(
+              $"[{time}] [{level}] [{string.Join('/', scope)}] {message}"
+            );
 
-				await server.Start();
-				await server.Watch();
-			}
-		);
+        await server.Start();
+        await server.Watch();
+      }
+    );
 }

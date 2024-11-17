@@ -4,36 +4,36 @@ namespace RizzziGit.EnderDrive;
 
 public static class Program
 {
-	private delegate Task MainMethod(
-		string[] args
-	);
+  private delegate Task MainMethod(
+    string[] args
+  );
 
-	public static Task Main(
-		string[] args
-	)
-	{
-		MainMethod main =
-			args[
-				0
-			] switch
-			{
-				"server" =>
-					Server
-						.Program
-						.Main,
-				"client" =>
-					Client
-						.Program
-						.Main,
+  public static Task Main(
+    string[] args
+  )
+  {
+    MainMethod main =
+      args[
+        0
+      ] switch
+      {
+        "server" =>
+          Server
+            .Program
+            .Main,
+        "client" =>
+          Client
+            .Program
+            .Main,
 
-				_ =>
-					throw new System.NotImplementedException(),
-			};
+        _ =>
+          throw new System.NotImplementedException(),
+      };
 
-		return main(
-			args[
-				1..
-			]
-		);
-	}
+    return main(
+      args[
+        1..
+      ]
+    );
+  }
 }

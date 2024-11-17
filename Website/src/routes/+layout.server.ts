@@ -1,4 +1,4 @@
 export const ssr =
-	false;
+  false;
 export const prerender =
-	true;
+  true;

@@ -1,25 +1,25 @@
 <script
-	lang="ts"
+  lang="ts"
 >
-	import { useAdminContext } from '$lib/client/contexts/admin';
-	import { onMount } from 'svelte';
-	import Title from '../../title.svelte';
+  import { useAdminContext } from '$lib/client/contexts/admin';
+  import { onMount } from 'svelte';
+  import Title from '../../title.svelte';
 
-	const {
-		pushSidePanel,
-		pushTitle
-	} =
-		useAdminContext();
+  const {
+    pushSidePanel,
+    pushTitle
+  } =
+    useAdminContext();
 
-	onMount(
-		() =>
-			pushTitle(
-				'Users'
-			)
-	);
+  onMount(
+    () =>
+      pushTitle(
+        'Users'
+      )
+  );
 </script>
 
 <div
 >
-	aas
+  aas
 </div>

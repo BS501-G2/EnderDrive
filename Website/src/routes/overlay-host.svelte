@@ -1,101 +1,100 @@
 <script
-	lang="ts"
+  lang="ts"
 >
-	import {
-		onMount,
-		type Snippet
-	} from 'svelte';
-	import {
-		derived,
-		type Readable
-	} from 'svelte/store';
-	import { fade } from 'svelte/transition';
+  import { type Snippet } from 'svelte';
+  import {
+    derived,
+    type Readable
+  } from 'svelte/store';
+  import { fade } from 'svelte/transition';
 
-	const {
-		overlay
-	}: {
-		overlay: Readable<
-			[
-				id: number,
-				snippet: Snippet<
-					[]
-				>,
-				dim: boolean
-			][]
-		>;
-	} =
-		$props();
+  const {
+    overlay
+  }: {
+    overlay: Readable<
+      [
+        id: number,
+        snippet: Snippet<
+          []
+        >,
+        dim: boolean
+      ][]
+    >;
+  } =
+    $props();
 
-	const dim =
-		derived(
-			overlay,
-			(
-				value
-			) =>
-				value.some(
-					([
-						,
-						,
-						dim
-					]) =>
-						dim
-				)
-		);
+  const dim =
+    derived(
+      overlay,
+      (
+        value
+      ) =>
+        value.some(
+          ([
+            ,
+            ,
+            dim
+          ]) =>
+            dim
+        )
+    );
 </script>
 
 {#if $overlay.length != 0}
-	<div
-		class="overlay"
-		class:dim={$dim}
-		transition:fade={{
-			duration: 250
-		}}
-	>
-		<div
-			class:overlay-a={$dim}
-		>
-			{#each $overlay as [id, snippet] (id)}
-				{@render snippet()}
-			{/each}
-		</div>
-	</div>
+  <div
+    class="overlay"
+    class:dim={$dim}
+    transition:fade={{
+      duration: 250
+    }}
+  >
+    <div
+      class:overlay-a={$dim}
+    >
+      {#each $overlay as [id, snippet] (id)}
+        {@render snippet()}
+      {/each}
+    </div>
+  </div>
 {/if}
 
 <style
-	lang="scss"
+  lang="scss"
 >
-	@use '../global.scss'
-		as *;
+  @use '../global.scss'
+    as *;
 
-	div.overlay {
-		flex-direction: column;
+  div.overlay {
+    flex-direction: column;
 
-		position: fixed;
-		top: 0;
-		left: 0;
+    pointer-events: none;
 
-		z-index: 1;
+    position: fixed;
+    top: 0;
+    left: 0;
 
-		@include force-size(
-			100dvw,
-			100dvh
-		);
+    z-index: 1;
 
-		> div.overlay-a {
-			flex-direction: column;
+    @include force-size(
+      100dvw,
+      100dvh
+    );
 
-			filter: drop-shadow(
-				2px
-					2px
-					2px
-					black
-			);
-		}
-	}
+    > div.overlay-a {
+      flex-direction: column;
 
-	div.overlay.dim {
-		backdrop-filter: blur(
-			8px
-		);
-	}
+      filter: drop-shadow(
+        2px
+          2px
+          2px
+          black
+      );
+    }
+  }
+
+  div.overlay.dim {
+    backdrop-filter: blur(
+      8px
+    );
+  }
 </style>

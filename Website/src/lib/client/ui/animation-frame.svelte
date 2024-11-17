@@ -1,70 +1,70 @@
 <script
-	lang="ts"
+  lang="ts"
 >
-	import type { Snippet } from 'svelte';
+  import type { Snippet } from 'svelte';
 
-	const {
-		onframe,
-		children
-	}: {
-		onframe: (
-			lastTime:
-				| number
-				| null,
-			currentTime: number
-		) => void;
-		children?: Snippet;
-	} =
-		$props();
+  const {
+    onframe,
+    children
+  }: {
+    onframe: (
+      lastTime:
+        | number
+        | null,
+      currentTime: number
+    ) => void;
+    children?: Snippet;
+  } =
+    $props();
 
-	$effect(
-		() => {
-			let lastTime:
-				| number
-				| null =
-				null;
-			let frameRequestId:
-				| number
-				| null =
-				null;
+  $effect(
+    () => {
+      let lastTime:
+        | number
+        | null =
+        null;
+      let frameRequestId:
+        | number
+        | null =
+        null;
 
-			function run() {
-				frameRequestId =
-					null;
+      function run() {
+        frameRequestId =
+          null;
 
-				const currentTime =
-					Date.now();
+        const currentTime =
+          Date.now();
 
-				onframe(
-					lastTime,
-					currentTime
-				);
-				lastTime =
-					currentTime;
+        onframe(
+          lastTime,
+          currentTime
+        );
+        lastTime =
+          currentTime;
 
-				frameRequestId =
-					requestAnimationFrame(
-						run
-					);
-			}
+        frameRequestId =
+          requestAnimationFrame(
+            run
+          );
+      }
 
-			frameRequestId =
-				requestAnimationFrame(
-					run
-				);
+      frameRequestId =
+        requestAnimationFrame(
+          run
+        );
 
-			return () => {
-				if (
-					frameRequestId !=
-					null
-				) {
-					cancelAnimationFrame(
-						frameRequestId
-					);
-				}
-			};
-		}
-	);
+      return () => {
+        if (
+          frameRequestId !=
+          null
+        ) {
+          cancelAnimationFrame(
+            frameRequestId
+          );
+        }
+      };
+    }
+  );
 </script>
 
 {@render children?.()}

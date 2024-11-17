@@ -1,80 +1,80 @@
 <script
-	lang="ts"
+  lang="ts"
 >
-	import { useAppContext } from '$lib/client/contexts/app';
-	import {
-		useLandingContext,
-		type LandingPageButton
-	} from '$lib/client/contexts/landing';
-	import Button from '$lib/client/ui/button.svelte';
-	import Icon from '$lib/client/ui/icon.svelte';
-	import { type Snippet } from 'svelte';
-	import {
-		derived,
-		type Readable
-	} from 'svelte/store';
+  import { useAppContext } from '$lib/client/contexts/app';
+  import {
+    useLandingContext,
+    type LandingPageButton
+  } from '$lib/client/contexts/landing';
+  import Button from '$lib/client/ui/button.svelte';
+  import Icon from '$lib/client/ui/icon.svelte';
+  import { type Snippet } from 'svelte';
+  import {
+    derived,
+    type Readable
+  } from 'svelte/store';
 
-	const {
-		buttons,
-		opacity
-	}: {
-		buttons: Readable<
-			LandingPageButton[]
-		>;
-		opacity: Readable<number>;
-	} =
-		$props();
+  const {
+    buttons,
+    opacity
+  }: {
+    buttons: Readable<
+      LandingPageButton[]
+    >;
+    opacity: Readable<number>;
+  } =
+    $props();
 
-	const {
-		isDesktop
-	} =
-		useAppContext();
-	const {
-		openLogin,
-		closeLogin
-	} =
-		useLandingContext();
+  const {
+    isDesktop
+  } =
+    useAppContext();
+  const {
+    openLogin,
+    closeLogin
+  } =
+    useLandingContext();
 </script>
 
 {#snippet action(
-	{
-		id,
-		icon,
-		content,
-		isSecondary,
-		onclick
-	}: LandingPageButton,
-	index: number
+  {
+    id,
+    icon,
+    content,
+    isSecondary,
+    onclick
+  }: LandingPageButton,
+  index: number
 )}
-	{#snippet container(
-		view: Snippet
-	)}
-		<div
-			class="action"
-			class:secondary={isSecondary}
-		>
-			{@render view()}
-		</div>
-	{/snippet}
+  {#snippet container(
+    view: Snippet
+  )}
+    <div
+      class="action"
+      class:secondary={isSecondary}
+    >
+      {@render view()}
+    </div>
+  {/snippet}
 
-	<Button
-		{onclick}
-		background={container}
-	>
-		<div
-			class="action-inner"
-		>
-			<Icon
-				{...icon}
-			/>
+  <Button
+    {onclick}
+    background={container}
+  >
+    <div
+      class="action-inner"
+    >
+      <Icon
+        {...icon}
+      />
 
-			{#if $isDesktop}
-				{@render content()}
-			{/if}
-		</div>
-	</Button>
+      {#if $isDesktop}
+        {@render content()}
+      {/if}
+    </div>
+  </Button>
 
-	<!-- <button class="action" class:secondary={isSecondary} {onclick}>
+  <!-- <button class="action" class:secondary={isSecondary} {onclick}>
 		<Icon {...icon} />
 
 		{#if $isDesktop}
@@ -84,94 +84,94 @@
 {/snippet}
 
 <div
-	class="actions"
+  class="actions"
 >
-	{#each $buttons as entry, index}
-		{@render action(
-			entry,
-			index
-		)}
-	{/each}
+  {#each $buttons as entry, index}
+    {@render action(
+      entry,
+      index
+    )}
+  {/each}
 
-	{@render action(
-		{
-			id: Date.now(),
-			icon: {
-				icon: 'key',
-				thickness:
-					'solid'
-			},
-			content:
-				login,
-			isSecondary: false,
-			onclick:
-				() => {
-					openLogin();
-				}
-		},
-		0
-	)}
+  {@render action(
+    {
+      id: Date.now(),
+      icon: {
+        icon: 'key',
+        thickness:
+          'solid'
+      },
+      content:
+        login,
+      isSecondary: false,
+      onclick:
+        () => {
+          openLogin();
+        }
+    },
+    0
+  )}
 
-	{@render action(
-		{
-			id: Date.now(),
-			icon: {
-				icon: 'download',
-				thickness:
-					'solid'
-			},
-			content:
-				download,
-			isSecondary: true,
-			onclick:
-				() => {}
-		},
-		0
-	)}
+  {@render action(
+    {
+      id: Date.now(),
+      icon: {
+        icon: 'download',
+        thickness:
+          'solid'
+      },
+      content:
+        download,
+      isSecondary: true,
+      onclick:
+        () => {}
+    },
+    0
+  )}
 </div>
 
 {#snippet download()}
-	Download
+  Download
 {/snippet}
 
 {#snippet login()}
-	Login
+  Login
 {/snippet}
 
 <style
-	lang="scss"
+  lang="scss"
 >
-	@use '../../global.scss'
-		as *;
+  @use '../../global.scss'
+    as *;
 
-	div.actions {
-		flex-direction: row;
-		align-items: center;
+  div.actions {
+    flex-direction: row;
+    align-items: center;
 
-		gap: 16px;
-	}
+    gap: 16px;
+  }
 
-	div.action {
-		border: none;
-		cursor: pointer;
+  div.action {
+    border: none;
+    cursor: pointer;
 
-		background-color: var(
-			--color-1
-		);
+    background-color: var(
+      --color-1
+    );
 
-		-webkit-app-region: no-drag;
-	}
+    -webkit-app-region: no-drag;
+  }
 
-	div.action-inner {
-		flex-direction: row;
-		align-items: center;
+  div.action-inner {
+    flex-direction: row;
+    align-items: center;
 
-		gap: 8px;
-		line-height: 1em;
-		padding: 8px;
-	}
+    gap: 8px;
+    line-height: 1em;
+    padding: 8px;
+  }
 
-	div.action.secondary {
-		background-color: transparent;
-	}
+  div.action.secondary {
+    background-color: transparent;
+  }
 </style>

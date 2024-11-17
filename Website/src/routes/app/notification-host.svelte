@@ -1,24 +1,24 @@
 <script
-	lang="ts"
+  lang="ts"
 >
-	const {} =
-		$props();
+  const {} =
+    $props();
 </script>
 
 <div
-	class="notification"
+  class="notification"
 >
-	<p
-	>
-		You
-		have
-		no
-		new
-		notifications.
-	</p>
+  <p
+  >
+    You
+    have
+    no
+    new
+    notifications.
+  </p>
 </div>
 
 <style
-	lang="scss"
+  lang="scss"
 >
 </style>

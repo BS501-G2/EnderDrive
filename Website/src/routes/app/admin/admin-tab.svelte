@@ -1,31 +1,31 @@
 <script
-	lang="ts"
+  lang="ts"
 >
-	import {
-		useAdminContext,
-		type Tab
-	} from '$lib/client/contexts/admin';
-	import { onMount } from 'svelte';
+  import {
+    useAdminContext,
+    type Tab
+  } from '$lib/client/contexts/admin';
+  import { onMount } from 'svelte';
 
-	const {
-		name,
-		callback
-	}: {
-		name: string;
-		callback: Tab['callback'];
-	} =
-		$props();
+  const {
+    name,
+    callback
+  }: {
+    name: string;
+    callback: Tab['callback'];
+  } =
+    $props();
 
-	const {
-		pushTab
-	} =
-		useAdminContext();
+  const {
+    pushTab
+  } =
+    useAdminContext();
 
-	onMount(
-		() =>
-			pushTab(
-				name,
-				callback
-			)
-	);
+  onMount(
+    () =>
+      pushTab(
+        name,
+        callback
+      )
+  );
 </script>
