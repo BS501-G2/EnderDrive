@@ -10,27 +10,19 @@ public sealed partial class Connection
 {
   private sealed record class OpenStreamRequest
   {
-    [BsonElement(
-      "fileId"
-    )]
+    [BsonElement("fileId")]
     public required ObjectId FileId;
 
-    [BsonElement(
-      "fileContentId"
-    )]
+    [BsonElement("fileContentId")]
     public required ObjectId FileContentId;
 
-    [BsonElement(
-      "fileSnapshotId"
-    )]
+    [BsonElement("fileSnapshotId")]
     public required ObjectId FileSnapshotId;
   }
 
   private sealed record class OpenStreamResponse
   {
-    [BsonElement(
-      "streamId"
-    )]
+    [BsonElement("streamId")]
     public required ObjectId StreamId;
   }
 
@@ -38,45 +30,28 @@ public sealed partial class Connection
     OpenStreamRequest,
     OpenStreamResponse
   > OpenStream =>
-    async (
-      transaction,
-      request,
-      userAuthentication,
-      me,
-      _
-    ) =>
+    async (transaction, request, userAuthentication, me, _) =>
     {
-      ConnectionContext context =
-        GetContext();
+      ConnectionContext context = GetContext();
 
-      File file =
-        await Internal_EnsureFirst(
-          transaction,
-          Resources.GetFiles(
-            transaction,
-            id: request.FileId
-          )
-        );
+      File file = await Internal_EnsureFirst(
+        transaction,
+        Resources.GetFiles(transaction, id: request.FileId)
+      );
 
-      FileAccessResult fileAccessResult =
-        await Internal_UnlockFile(
-          transaction,
-          file,
-          me,
-          userAuthentication
-        );
+      FileAccessResult fileAccessResult = await Internal_UnlockFile(
+        transaction,
+        file,
+        me,
+        userAuthentication
+      );
 
-      FileContent fileContent =
-        await Resources.GetMainFileContent(
-          transaction,
-          file
-        );
+      FileContent fileContent = await Resources.GetMainFileContent(
+        transaction,
+        file
+      );
       FileSnapshot fileSnapshot =
-        await Resources.GetLatestFileSnapshot(
-          transaction,
-          file,
-          fileContent
-        )
+        await Resources.GetLatestFileSnapshot(transaction, file, fileContent)
         ?? await Resources.CreateFileSnapshot(
           transaction,
           fileAccessResult.File,
@@ -85,8 +60,7 @@ public sealed partial class Connection
           null
         );
 
-      TaskCompletionSource<ObjectId> source =
-        new();
+      TaskCompletionSource<ObjectId> source = new();
 
       RunStream(
         fileAccessResult.File,
@@ -96,10 +70,6 @@ public sealed partial class Connection
         source
       );
 
-      return new()
-      {
-        StreamId =
-          await source.Task,
-      };
+      return new() { StreamId = await source.Task };
     };
 }

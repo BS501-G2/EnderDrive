@@ -9,36 +9,23 @@ public sealed partial class Connection
 {
   private sealed record class ReadStreamRequest
   {
-    [BsonElement(
-      "streamId"
-    )]
+    [BsonElement("streamId")]
     public required ObjectId StreamId;
 
-    [BsonElement(
-      "length"
-    )]
+    [BsonElement("length")]
     public required long Length;
   }
 
   private sealed record class ReadStreamResponse
   {
-    [BsonElement(
-      "data"
-    )]
+    [BsonElement("data")]
     public required byte[] Data;
   }
 
-  private RequestHandler<
-    ReadStreamRequest,
-    ReadStreamResponse
-  > ReadStream =>
-    async (
-      request,
-      cancellationToken
-    ) =>
+  private RequestHandler<ReadStreamRequest, ReadStreamResponse> ReadStream =>
+    async (request, cancellationToken) =>
     {
-      ConnectionContext context =
-        GetContext();
+      ConnectionContext context = GetContext();
 
       if (
         !context.FileStreams.TryGetValue(
@@ -47,21 +34,14 @@ public sealed partial class Connection
         )
       )
       {
-        throw new InvalidOperationException(
-          "File stream not found."
-        );
+        throw new InvalidOperationException("File stream not found.");
       }
 
-      CompositeBuffer data =
-        await stream.Read(
-          request.Length,
-          cancellationToken
-        );
+      CompositeBuffer data = await stream.Read(
+        request.Length,
+        cancellationToken
+      );
 
-      return new()
-      {
-        Data =
-          data.ToByteArray(),
-      };
+      return new() { Data = data.ToByteArray() };
     };
 }

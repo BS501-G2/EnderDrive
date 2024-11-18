@@ -7,14 +7,18 @@ using Resources;
 
 public sealed partial class Connection
 {
-  private sealed record class GetFileMimeRequest
-    : BaseFileRequest { }
+  private sealed record class GetFileMimeRequest : BaseFileRequest
+  {
+    [BsonElement("fileContentId")]
+    public required ObjectId? FileContentId;
+
+    [BsonElement("fileSnapshotId")]
+    public required ObjectId? FileSnapshotId;
+  }
 
   private sealed record class GetFileMimeResponse
   {
-    [BsonElement(
-      "fileMimeType"
-    )]
+    [BsonElement("fileMimeType")]
     public required string FileMimeType;
   }
 
@@ -32,27 +36,43 @@ public sealed partial class Connection
       fileAccessResult
     ) =>
     {
-      ConnectionContext context =
-        GetContext();
+      ConnectionContext context = GetContext();
 
       FileContent fileContent =
-        await Resources.GetMainFileContent(
-          transaction,
-          file
-        );
+        request.FileContentId != null
+          ? await Internal_EnsureFirst(
+            transaction,
+            Resources.GetFileContents(
+              transaction,
+              file,
+              id: request.FileContentId
+            )
+          )
+          : await Resources.GetMainFileContent(transaction, file);
+
       FileSnapshot fileSnapshot =
-        await Resources.GetLatestFileSnapshot(
-          transaction,
-          file,
-          fileContent
-        )
-        ?? await Resources.CreateFileSnapshot(
-          transaction,
-          fileAccessResult.File,
-          fileContent,
-          userAuthentication,
-          null
-        );
+        request.FileSnapshotId != null
+          ? await Internal_EnsureFirst(
+            transaction,
+            Resources.GetFileSnapshots(
+              transaction,
+              file,
+              fileContent,
+              request.FileSnapshotId
+            )
+          )
+          : await Resources.GetLatestFileSnapshot(
+            transaction,
+            file,
+            fileContent
+          )
+            ?? await Resources.CreateFileSnapshot(
+              transaction,
+              fileAccessResult.File,
+              fileContent,
+              userAuthentication,
+              null
+            );
 
       MimeDetective.Storage.Definition? definition =
         await Server.MimeDetector.Inspect(
@@ -64,11 +84,7 @@ public sealed partial class Connection
 
       return new()
       {
-        FileMimeType =
-          definition
-            ?.File
-            .MimeType
-          ?? "application/octet-stream",
+        FileMimeType = definition?.File.MimeType ?? "application/octet-stream",
       };
     };
 }

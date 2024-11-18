@@ -17,29 +17,20 @@ public sealed record class GoogleContext
   public required WaitQueue<GoogleService.Feed> Feed;
 }
 
-public sealed partial class GoogleService(
-  Server server
-)
-  : Service<GoogleContext>(
-    "Google API",
-    server
-  )
+public sealed partial class GoogleService(Server server)
+  : Service<GoogleContext>("Google API", server)
 {
-  public Server Server =>
-    server;
-  public ResourceManager Resources =>
-    Server.ResourceManager;
+  public Server Server => server;
+  public ResourceManager Resources => Server.ResourceManager;
 
   public abstract record Feed
   {
-    private Feed()
-    { }
+    private Feed() { }
 
     public sealed record GetPayload(
       TaskCompletionSource<byte[]> TaskCompletionSource,
       string Token
-    )
-      : Feed();
+    ) : Feed();
   }
 
   protected override Task<GoogleContext> OnStart(
@@ -48,21 +39,9 @@ public sealed partial class GoogleService(
   )
   {
     BaseClientService.Initializer baseClientService =
-      new()
-      {
-        ApiKey =
-          "",
-        ApplicationName =
-          "EnderDrive",
-      };
+      new() { ApiKey = "", ApplicationName = "EnderDrive" };
 
-    return Task.FromResult<GoogleContext>(
-      new()
-      {
-        Feed =
-          new(),
-      }
-    );
+    return Task.FromResult<GoogleContext>(new() { Feed = new() });
   }
 
   protected override async Task OnRun(
@@ -71,14 +50,10 @@ public sealed partial class GoogleService(
   )
   {
     await foreach (
-      Feed feed in context.Feed.WithCancellation(
-        serviceCancellationToken
-      )
+      Feed feed in context.Feed.WithCancellation(serviceCancellationToken)
     )
     {
-      switch (
-        feed
-      )
+      switch (feed)
       {
         case Feed.GetPayload(
           TaskCompletionSource<byte[]> taskCompletionSource,
@@ -88,23 +63,13 @@ public sealed partial class GoogleService(
           try
           {
             GoogleJsonWebSignature.Payload payload =
-              await GoogleJsonWebSignature.ValidateAsync(
-                token,
-                new()
-                { }
-              );
+              await GoogleJsonWebSignature.ValidateAsync(token, new() { });
 
-            taskCompletionSource.SetResult(
-              Encoding.UTF8.GetBytes(
-                payload.Prn
-              )
-            );
+            taskCompletionSource.SetResult(Encoding.UTF8.GetBytes(payload.Prn));
           }
           catch (Exception exception)
           {
-            taskCompletionSource.SetException(
-              exception
-            );
+            taskCompletionSource.SetException(exception);
           }
 
           break;
@@ -118,15 +83,11 @@ public sealed partial class GoogleService(
     CancellationToken cancellationToken
   )
   {
-    TaskCompletionSource<byte[]> taskCompletionSource =
-      new();
+    TaskCompletionSource<byte[]> taskCompletionSource = new();
 
     await GetContext()
       .Feed.Enqueue(
-        new Feed.GetPayload(
-          taskCompletionSource,
-          token
-        ),
+        new Feed.GetPayload(taskCompletionSource, token),
         cancellationToken
       );
 

@@ -1,47 +1,31 @@
-<script
-  lang="ts"
->
-  import type { Snippet } from 'svelte';
-  import Overlay from '../../../routes/overlay.svelte';
-  import Separator from './separator.svelte';
+<script lang="ts">
+  import type { Snippet } from 'svelte'
+  import Overlay from '../../../routes/overlay.svelte'
+  import Separator from './separator.svelte'
 
   const {
     title,
     header,
-    children:
-      body,
+    children: body,
     ondismiss
   }: {
-    title?: string;
-    header?: Snippet;
-    children: Snippet;
-    ondismiss: () => void;
-  } = $props();
+    title?: string
+    header?: Snippet
+    children: Snippet
+    ondismiss: () => void
+  } = $props()
 </script>
 
-<Overlay
-  {ondismiss}
->
-  {#snippet children(
-    windowButtons: Snippet
-  )}
-    <div
-      class="window"
-    >
-      <div
-        class="header"
-      >
-        <h2
-          class="title"
-        >
-          {title ??
-            ''}
+<Overlay {ondismiss}>
+  {#snippet children(windowButtons: Snippet)}
+    <div class="window">
+      <div class="header">
+        <h2 class="title">
+          {title ?? ''}
         </h2>
 
         {#if header}
-          <div
-            class="head-bar"
-          >
+          <div class="head-bar">
             {@render header()}
           </div>
         {/if}
@@ -49,29 +33,19 @@
         {@render windowButtons()}
       </div>
 
-      <Separator
-        horizontal
-      />
+      <Separator horizontal />
 
-      <div
-        class="body"
-      >
+      <div class="body">
         {@render body()}
       </div>
     </div>
   {/snippet}
 </Overlay>
 
-<style
-  lang="scss"
->
+<style lang="scss">
   div.window {
-    background-color: var(
-      --color-9
-    );
-    color: var(
-      --color-1
-    );
+    background-color: var(--color-9);
+    color: var(--color-1);
 
     > div.header {
       gap: 8px;

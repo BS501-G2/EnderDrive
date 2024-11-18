@@ -1,118 +1,70 @@
-<script
-  lang="ts"
->
-  import type { Snippet } from 'svelte';
-  import SearchUsers from './search-users.svelte';
-  import {
-    useClientContext,
-    useServerContext
-  } from '$lib/client/client';
-  import Button from '$lib/client/ui/button.svelte';
-  import Input from '$lib/client/ui/input.svelte';
-  import { useAppContext } from '$lib/client/contexts/app';
-  import SearchFiles from './search-files.svelte';
+<script lang="ts">
+  import type { Snippet } from 'svelte'
+  import SearchUsers from './search-users.svelte'
+  import { useClientContext, useServerContext } from '$lib/client/client'
+  import Button from '$lib/client/ui/button.svelte'
+  import Input from '$lib/client/ui/input.svelte'
+  import { useAppContext } from '$lib/client/contexts/app'
+  import SearchFiles from './search-files.svelte'
 
-  const {
-    isMobile
-  } =
-    useAppContext();
+  const { isMobile } = useAppContext()
   const {
     windowButtons,
     ondismiss
   }: {
-    windowButtons: Snippet;
-    ondismiss: () => void;
-  } =
-    $props();
+    windowButtons: Snippet
+    ondismiss: () => void
+  } = $props()
 
-  let searchString: string =
-    $state(
-      ''
-    );
+  let searchString: string = $state('')
 </script>
 
-{#snippet resultBox(
-  name: string,
-  seeMore: () => void,
-  snippet: Snippet
-)}
-  <div
-    class="result-box"
-  >
-    <div
-      class="header"
-    >
-      <h2
-      >
+{#snippet resultBox(name: string, seeMore: () => void, snippet: Snippet)}
+  <div class="result-box">
+    <div class="header">
+      <h2>
         {name}
       </h2>
 
-      {#snippet buttonBackground(
-        view: Snippet
-      )}
-        <div
-          class="button-background"
-        >
+      {#snippet buttonBackground(view: Snippet)}
+        <div class="button-background">
           {@render view()}
         </div>
       {/snippet}
 
-      {#snippet buttonForeground(
-        view: Snippet
-      )}
-        <div
-          class="button-foreground"
-        >
+      {#snippet buttonForeground(view: Snippet)}
+        <div class="button-foreground">
           {@render view()}
         </div>
       {/snippet}
 
       <Button
-        onclick={() =>
-          seeMore()}
+        onclick={() => seeMore()}
         background={buttonBackground}
         foreground={buttonForeground}
       >
         <!-- <Icon icon="ellipsis" thickness="solid" /> -->
 
-        See
-        More
+        See More
       </Button>
     </div>
 
-    <div
-      class="separator"
-    ></div>
+    <div class="separator"></div>
 
-    <div
-      class="body"
-    >
+    <div class="body">
       {@render snippet()}
     </div>
   </div>
 {/snippet}
 
-<div
-  class="search"
-  class:mobile={$isMobile}
->
-  <div
-    class="header"
-  >
-    <p
-      class="title"
-    >
-      Search
-    </p>
+<div class="search" class:mobile={$isMobile}>
+  <div class="header">
+    <p class="title">Search</p>
     {@render windowButtons()}
   </div>
 
-  <div
-    class="body"
-  >
-    <div
-      class="search-field"
-    >
+  <div class="body">
+    <div class="search-field">
       <Input
         id="search"
         type="text"
@@ -122,57 +74,24 @@
     </div>
 
     {#if searchString.length}
-      <div
-        class="result"
-      >
-        <SearchUsers
-          {searchString}
-          card={resultBox}
-          {ondismiss}
-        />
-        <SearchFiles
-          {searchString}
-          card={resultBox}
-          {ondismiss}
-        />
+      <div class="result">
+        <SearchUsers {searchString} card={resultBox} {ondismiss} />
+        <SearchFiles {searchString} card={resultBox} {ondismiss} />
       </div>
     {:else}
-      <div
-        class="placeholder"
-      >
-        <h2
-        >
-          Search
-        </h2>
-        <p
-        >
-          You
-          can
-          use
-          the
-          search
-          feature
-          to
-          find
-          users
-          and
-          files.
-        </p>
+      <div class="placeholder">
+        <h2>Search</h2>
+        <p>You can use the search feature to find users and files.</p>
       </div>
     {/if}
   </div>
 </div>
 
-<style
-  lang="scss"
->
-  @use '../../global.scss'
-    as *;
+<style lang="scss">
+  @use '../../global.scss' as *;
 
   div.search {
-    background-color: var(
-      --color-9
-    );
+    background-color: var(--color-9);
 
     // box-shadow: 2px 2px 4px;
     gap: 8px;
@@ -181,16 +100,7 @@
 
     min-height: 0;
 
-    @include force-size(
-      min(
-        50dvw,
-        480px
-      ),
-      min(
-        50dvh,
-        720px
-      )
-    );
+    @include force-size(min(50dvw, 480px), min(50dvh, 720px));
 
     > div.header {
       flex-direction: row;
@@ -202,8 +112,7 @@
         font-size: 1.2em;
         font-weight: bold;
 
-        margin: 0
-          8px;
+        margin: 0 8px;
       }
     }
 
@@ -215,9 +124,7 @@
       padding: 8px;
 
       > div.search-field {
-        background-color: var(
-          --color-9
-        );
+        background-color: var(--color-9);
       }
 
       // > div.user-tab {
@@ -237,8 +144,7 @@
       > div.result {
         flex-grow: 1;
 
-        overflow: hidden
-          auto;
+        overflow: hidden auto;
         min-height: 0;
       }
     }
@@ -257,17 +163,12 @@
         flex-grow: 1;
         font-size: 1.5em;
 
-        padding: 0
-          8px;
+        padding: 0 8px;
       }
 
       div.button-background {
-        background-color: var(
-          --color-1
-        );
-        color: var(
-          --color-5
-        );
+        background-color: var(--color-1);
+        color: var(--color-5);
       }
 
       div.button-foreground {
@@ -276,16 +177,10 @@
     }
 
     > div.separator {
-      background-color: var(
-        --color-5
-      );
-      margin: 0
-        8px;
+      background-color: var(--color-5);
+      margin: 0 8px;
 
-      @include force-size(
-        &,
-        1px
-      );
+      @include force-size(&, 1px);
     }
 
     > div.body {
@@ -296,16 +191,12 @@
 
       padding: 8px;
 
-      overflow: auto
-        hidden;
+      overflow: auto hidden;
     }
   }
 
   div.search.mobile {
-    @include force-size(
-      100dvw,
-      100dvh
-    );
+    @include force-size(100dvw, 100dvh);
 
     box-sizing: border-box;
   }

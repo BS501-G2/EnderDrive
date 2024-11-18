@@ -20,56 +20,33 @@ public sealed partial class Connection
     TaskCompletionSource<ObjectId> source
   ) =>
     await Resources.Transact(
-      async (
-        transaction
-      ) =>
+      async (transaction) =>
       {
-        ConnectionContext context =
-          GetContext();
+        ConnectionContext context = GetContext();
 
-        ObjectId objectId =
-          ObjectId.GenerateNewId();
-        WaitQueue<ConnectionByteStream.Feed> queue =
-          new(
-            0
-          );
-        ConnectionByteStream stream =
-          new(
-            objectId,
-            queue
-          );
+        ObjectId objectId = ObjectId.GenerateNewId();
+        WaitQueue<ConnectionByteStream.Feed> queue = new(0);
+        ConnectionByteStream stream = new(objectId, queue);
 
-        if (
-          !context.FileStreams.TryAdd(
-            objectId,
-            stream
-          )
-        )
+        if (!context.FileStreams.TryAdd(objectId, stream))
         {
           source.SetException(
-            new InvalidOperationException(
-              "Failed to create a file stream."
-            )
+            new InvalidOperationException("Failed to create a file stream.")
           );
 
           return;
         }
 
-        source.SetResult(
-          objectId
-        );
+        source.SetResult(objectId);
 
-        long offset =
-          0;
+        long offset = 0;
 
         async Task<bool> handleFeed(
           ConnectionByteStream.Feed feed,
           CancellationToken cancellationToken
         )
         {
-          switch (
-            feed
-          )
+          switch (feed)
           {
             case ConnectionByteStream.Feed.Write(
               TaskCompletionSource source,
@@ -88,16 +65,13 @@ public sealed partial class Connection
                   offset,
                   bytes
                 );
-                offset +=
-                  bytes.Length;
+                offset += bytes.Length;
 
                 source.SetResult();
               }
               catch (Exception exception)
               {
-                source.SetException(
-                  exception
-                );
+                source.SetException(exception);
               }
 
               break;
@@ -111,28 +85,22 @@ public sealed partial class Connection
             {
               try
               {
-                CompositeBuffer bytes =
-                  await Resources.ReadFile(
-                    transaction,
-                    file,
-                    fileContent,
-                    fileSnapshot,
-                    offset,
-                    count
-                  );
-
-                offset +=
-                  bytes.Length;
-
-                source.SetResult(
-                  bytes
+                CompositeBuffer bytes = await Resources.ReadFile(
+                  transaction,
+                  file,
+                  fileContent,
+                  fileSnapshot,
+                  offset,
+                  count
                 );
+
+                offset += bytes.Length;
+
+                source.SetResult(bytes);
               }
               catch (Exception exception)
               {
-                source.SetException(
-                  exception
-                );
+                source.SetException(exception);
               }
 
               break;
@@ -146,33 +114,24 @@ public sealed partial class Connection
             {
               try
               {
-                long length =
-                  await Resources.GetFileSize(
-                    transaction,
-                    fileSnapshot
-                  );
+                long length = await Resources.GetFileSize(
+                  transaction,
+                  fileSnapshot
+                );
 
-                if (
-                  newOffset
-                  > length
-                )
+                if (newOffset > length)
                 {
-                  source.SetException(
-                    new ArgumentOutOfRangeException()
-                  );
+                  source.SetException(new ArgumentOutOfRangeException());
                 }
                 else
                 {
-                  offset =
-                    newOffset;
+                  offset = newOffset;
                   source.SetResult();
                 }
               }
               catch (Exception exception)
               {
-                source.SetException(
-                  exception
-                );
+                source.SetException(exception);
               }
 
               break;
@@ -185,21 +144,16 @@ public sealed partial class Connection
             {
               try
               {
-                long length =
-                  await Resources.GetFileSize(
-                    transaction,
-                    fileSnapshot
-                  );
-
-                source.SetResult(
-                  length
+                long length = await Resources.GetFileSize(
+                  transaction,
+                  fileSnapshot
                 );
+
+                source.SetResult(length);
               }
               catch (Exception exception)
               {
-                source.SetException(
-                  exception
-                );
+                source.SetException(exception);
               }
 
               break;
@@ -212,21 +166,16 @@ public sealed partial class Connection
             {
               try
               {
-                long length =
-                  await Resources.GetFileSize(
-                    transaction,
-                    fileSnapshot
-                  );
-
-                source.SetResult(
-                  length
+                long length = await Resources.GetFileSize(
+                  transaction,
+                  fileSnapshot
                 );
+
+                source.SetResult(length);
               }
               catch (Exception exception)
               {
-                source.SetException(
-                  exception
-                );
+                source.SetException(exception);
               }
 
               break;
@@ -254,16 +203,9 @@ public sealed partial class Connection
           )
           {
             using CancellationTokenSource linkedCancellationTokenSource =
-              feed.CancellationToken.Link(
-                transaction.CancellationToken
-              );
+              feed.CancellationToken.Link(transaction.CancellationToken);
 
-            if (
-              !await handleFeed(
-                feed,
-                linkedCancellationTokenSource.Token
-              )
-            )
+            if (!await handleFeed(feed, linkedCancellationTokenSource.Token))
             {
               break;
             }
@@ -271,24 +213,14 @@ public sealed partial class Connection
         }
         catch (Exception exception)
         {
-          await Resources.DeleteFile(
-            transaction,
-            file
-          );
+          await Resources.Delete(transaction, file);
 
-          Error(
-            exception
-          );
-          queue.Dispose(
-            exception
-          );
+          Error(exception);
+          queue.Dispose(exception);
         }
         finally
         {
-          context.FileStreams.TryRemove(
-            objectId,
-            out _
-          );
+          context.FileStreams.TryRemove(objectId, out _);
         }
       },
       CancellationToken.None

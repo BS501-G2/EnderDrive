@@ -16,89 +16,56 @@ using Utilities;
 
 public sealed partial class ResourceManager
 {
-  private ulong TransactionId =
-    0;
+  private ulong TransactionId = 0;
 
   public Task Transact(
     ResourceTransaction? existing,
     ResourceTransactionCallback callback,
-    CancellationToken cancellationToken =
-      default
+    CancellationToken cancellationToken = default
   ) =>
-    existing
-    != null
-      ? callback(
-        existing with
-        {
-          CancellationToken =
-            cancellationToken,
-        }
-      )
-      : Transact(
-        callback,
-        cancellationToken
-      );
+    existing != null
+      ? callback(existing with { CancellationToken = cancellationToken })
+      : Transact(callback, cancellationToken);
 
   public Task<T> Transact<T>(
     ResourceTransaction? exception,
     ResourceTransactionCallback<T> callback,
-    CancellationToken cancellationToken =
-      default
+    CancellationToken cancellationToken = default
   ) =>
-    exception
-    != null
-      ? callback(
-        exception with
-        {
-          CancellationToken =
-            cancellationToken,
-        }
-      )
-      : Transact<T>(
-        callback,
-        cancellationToken
-      );
+    exception != null
+      ? callback(exception with { CancellationToken = cancellationToken })
+      : Transact<T>(callback, cancellationToken);
 
   public async Task Transact(
     ResourceTransactionCallback callback,
-    CancellationToken cancellationToken =
-      default
+    CancellationToken cancellationToken = default
   )
   {
-    CancellationToken serviceCancellationToken =
-      GetCancellationToken();
+    CancellationToken serviceCancellationToken = GetCancellationToken();
 
-    async Task transactInner(
-      ulong transactionId,
-      Logger logger
-    )
+    async Task transactInner(ulong transactionId, Logger logger)
     {
       using CancellationTokenSource linkedCancellationTokenSource =
-        cancellationToken.Link(
-          serviceCancellationToken
-        );
+        cancellationToken.Link(serviceCancellationToken);
 
-      using IClientSessionHandle session =
-        await Client.StartSessionAsync(
-          null,
-          linkedCancellationTokenSource.Token
-        );
+      using IClientSessionHandle session = await Client.StartSessionAsync(
+        null,
+        linkedCancellationTokenSource.Token
+      );
 
       session.StartTransaction();
+
+      List<Func<Task>> onFailureCallbacks = [];
 
       try
       {
         await callback(
-          new()
+          new((action) => onFailureCallbacks.Insert(0, action))
           {
-            TransactionId =
-              transactionId,
-            Session =
-              session,
-            CancellationToken =
-              linkedCancellationTokenSource.Token,
-            Logger =
-              logger,
+            TransactionId = transactionId,
+            Session = session,
+            CancellationToken = linkedCancellationTokenSource.Token,
+            Logger = logger,
           }
         );
 
@@ -108,6 +75,20 @@ public sealed partial class ResourceManager
       }
       catch (Exception exception)
       {
+        List<Exception> exceptions = [];
+
+        foreach (Func<Task> onFailure in onFailureCallbacks)
+        {
+          try
+          {
+            await onFailure();
+          }
+          catch (Exception innerException)
+          {
+            exceptions.Add(innerException);
+          }
+        }
+
         try
         {
           await session.AbortTransactionAsync(
@@ -116,177 +97,105 @@ public sealed partial class ResourceManager
         }
         catch (Exception abortException)
         {
-          throw new AggregateException(
-            exception,
-            abortException
-          );
+          exceptions.Add(abortException);
+        }
+
+        if (exceptions.Count > 0)
+        {
+          throw new AggregateException([exception, .. exceptions]);
+        }
+        else
+        {
+          throw;
         }
       }
     }
 
-    ulong transactionId =
-      ++TransactionId;
-    Logger transactionLogger =
-      new(
-        $"Transaction #{transactionId}"
-      );
+    ulong transactionId = ++TransactionId;
+    Logger transactionLogger = new($"Transaction #{transactionId}");
     try
     {
-      (
-        (IService)
-          this
-      ).Logger.Subscribe(
-        transactionLogger
-      );
+      ((IService)this).Logger.Subscribe(transactionLogger);
 
       try
       {
-        transactionLogger.Info(
-          "Started"
-        );
+        transactionLogger.Info("Started");
 
-        await transactInner(
-          transactionId,
-          transactionLogger
-        );
+        await transactInner(transactionId, transactionLogger);
 
-        transactionLogger.Info(
-          "Completed"
-        );
+        transactionLogger.Info("Completed");
       }
       catch (Exception exception)
       {
-        transactionLogger.Info(
-          "Errored"
-        );
-        transactionLogger.Error(
-          $"{exception}"
-        );
+        transactionLogger.Info("Errored");
+        transactionLogger.Error($"{exception}");
 
         throw;
       }
     }
     finally
     {
-      (
-        (IService)
-          this
-      ).Logger.Unsubscribe(
-        transactionLogger
-      );
+      ((IService)this).Logger.Unsubscribe(transactionLogger);
     }
   }
 
   public Task<T> Transact<T>(
     ResourceTransactionCallback<T> callback,
-    CancellationToken cancellationToken =
-      default
+    CancellationToken cancellationToken = default
   )
   {
-    TaskCompletionSource<T> source =
-      new();
+    TaskCompletionSource<T> source = new();
 
-    _ =
-      Transact(
-        async (
-          parameters
-        ) =>
+    _ = Transact(
+      async (parameters) =>
+      {
+        try
         {
-          try
-          {
-            source.SetResult(
-              await callback(
-                parameters
-              )
-            );
-          }
-          catch (Exception exception)
-          {
-            source.SetException(
-              exception
-            );
-          }
-        },
-        cancellationToken
-      );
+          source.SetResult(await callback(parameters));
+        }
+        catch (Exception exception)
+        {
+          source.SetException(exception);
+        }
+      },
+      cancellationToken
+    );
 
     return source.Task;
   }
 
   public async IAsyncEnumerable<T> Transact<T>(
     ResourceTransactionCallbackEnumerable<T> callback,
-    [EnumeratorCancellation]
-      CancellationToken cancellationToken =
-      default
+    [EnumeratorCancellation] CancellationToken cancellationToken = default
   )
   {
-    WaitQueue<
-      TaskCompletionSource<StrongBox<T>?>
-    > queue =
-      new();
+    WaitQueue<TaskCompletionSource<StrongBox<T>?>> queue = new();
 
-    _ =
-      Transact(
-        async (
-          parameters
-        ) =>
+    _ = Transact(
+      async (parameters) =>
+      {
+        try
         {
-          try
-          {
-            await foreach (
-              T item in callback(
-                parameters
-              )
-            )
-              (
-                await queue.Dequeue(
-                  cancellationToken
-                )
-              ).SetResult(
-                new(
-                  item
-                )
-              );
+          await foreach (T item in callback(parameters))
+            (await queue.Dequeue(cancellationToken)).SetResult(new(item));
 
-            (
-              await queue.Dequeue(
-                cancellationToken
-              )
-            ).SetResult(
-              null
-            );
-          }
-          catch (Exception exception)
-          {
-            (
-              await queue.Dequeue(
-                cancellationToken
-              )
-            ).SetException(
-              exception
-            );
-          }
-        },
-        cancellationToken
-      );
+          (await queue.Dequeue(cancellationToken)).SetResult(null);
+        }
+        catch (Exception exception)
+        {
+          (await queue.Dequeue(cancellationToken)).SetException(exception);
+        }
+      },
+      cancellationToken
+    );
 
-    while (
-      true
-    )
+    while (true)
     {
-      TaskCompletionSource<StrongBox<T>?> source =
-        new();
-      await queue.Enqueue(
-        source,
-        CancellationToken.None
-      );
+      TaskCompletionSource<StrongBox<T>?> source = new();
+      await queue.Enqueue(source, CancellationToken.None);
 
-      StrongBox<T>? result =
-        await source.Task;
-      if (
-        result
-        == null
-      )
+      StrongBox<T>? result = await source.Task;
+      if (result == null)
       {
         yield break;
       }
@@ -298,10 +207,16 @@ public sealed partial class ResourceManager
 
 public sealed record class ResourceTransaction
 {
+  public ResourceTransaction(Action<Func<Task>> registerOnFailure)
+  {
+    RegisterOnFailure = registerOnFailure;
+  }
+
   public static implicit operator CancellationToken(
     ResourceTransaction parameters
-  ) =>
-    parameters.CancellationToken;
+  ) => parameters.CancellationToken;
+
+  public readonly Action<Func<Task>> RegisterOnFailure;
 
   public required ulong TransactionId;
   public required Logger Logger;

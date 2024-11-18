@@ -12,42 +12,28 @@ public sealed partial class Connection
 {
   private sealed record class GetUsersRequest
   {
-    [BsonElement(
-      "searchString"
-    )]
+    [BsonElement("searchString")]
     public required string? SearchString;
 
-    [BsonElement(
-      "includeRole"
-    )]
+    [BsonElement("includeRole")]
     public required UserRole[]? IncludeRole;
 
-    [BsonElement(
-      "excludeRole"
-    )]
+    [BsonElement("excludeRole")]
     public required UserRole[]? ExcludeRole;
 
-    [BsonElement(
-      "username"
-    )]
+    [BsonElement("username")]
     public required string? Username;
 
-    [BsonElement(
-      "id"
-    )]
+    [BsonElement("id")]
     public required ObjectId? Id;
 
-    [BsonElement(
-      "pagination"
-    )]
+    [BsonElement("pagination")]
     public required PaginationOptions? Pagination;
   }
 
   private sealed record class GetUsersResponse
   {
-    [BsonElement(
-      "users"
-    )]
+    [BsonElement("users")]
     public required string[] Users;
   }
 
@@ -55,47 +41,26 @@ public sealed partial class Connection
     GetUsersRequest,
     GetUsersResponse
   > GetUsers =>
-    async (
-      transaction,
-      request,
-      _,
-      _,
-      _
-    ) =>
+    async (transaction, request, _, _, _) =>
     {
-      User[] users =
-        await Resources
-          .GetUsers(
-            transaction,
-            request.SearchString,
-            request.IncludeRole,
-            request.ExcludeRole,
-            request.Username,
-            request.Id
-          )
-          .ApplyPagination(
-            request.Pagination
-          )
-          .ToAsyncEnumerable()
-          .ToArrayAsync(
-            transaction.CancellationToken
-          );
+      User[] users = await Resources
+        .GetUsers(
+          transaction,
+          request.SearchString,
+          request.IncludeRole,
+          request.ExcludeRole,
+          request.Username,
+          request.Id
+        )
+        .ApplyPagination(request.Pagination)
+        .ToAsyncEnumerable()
+        .ToArrayAsync(transaction.CancellationToken);
 
       return new()
       {
-        Users =
-          users
-            .Select(
-              (
-                user
-              ) =>
-                JToken
-                  .FromObject(
-                    user
-                  )
-                  .ToString()
-            )
-            .ToArray(),
+        Users = users
+          .Select((user) => JToken.FromObject(user).ToString())
+          .ToArray(),
       };
     };
 }

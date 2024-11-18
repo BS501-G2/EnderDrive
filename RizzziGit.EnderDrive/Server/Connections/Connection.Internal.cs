@@ -26,16 +26,11 @@ public sealed partial class Connection
     UserAuthentication userAuthentication
   ) =>
     await Resources
-      .GetUsers(
-        transaction,
-        id: userAuthentication.UserId
-      )
+      .GetUsers(transaction, id: userAuthentication.UserId)
       .ToAsyncEnumerable()
-      .FirstAsync(
-        transaction.CancellationToken
-      );
+      .FirstAsync(transaction.CancellationToken);
 
-  private static async Task<T> Internal_GetFirst<T>(
+  private static async Task<T?> Internal_GetFirst<T>(
     ResourceTransaction transaction,
     IQueryable<T> query
   )
@@ -43,9 +38,7 @@ public sealed partial class Connection
     Internal_EnsureExists(
       await query
         .ToAsyncEnumerable()
-        .FirstOrDefaultAsync(
-          transaction.CancellationToken
-        )
+        .FirstOrDefaultAsync(transaction.CancellationToken)
     );
 
   private static async Task<T> Internal_EnsureFirst<T>(
@@ -53,24 +46,16 @@ public sealed partial class Connection
     IQueryable<T> query
   )
     where T : ResourceData =>
-    Internal_EnsureExists(
-      await Internal_GetFirst(
-        transaction,
-        query
-      )
-    );
+    Internal_EnsureExists(await Internal_GetFirst(transaction, query));
 
-  private static T Internal_EnsureExists<T>(
-    T? item
-  )
+  private static T Internal_EnsureExists<T>(T? item)
     where T : ResourceData =>
     item
     ?? throw new ConnectionResponseException(
       ResponseCode.ResourceNotFound,
       new ConnectionResponseExceptionData.ResourceNotFound()
       {
-        ResourceName =
-          typeof(T).Name,
+        ResourceName = typeof(T).Name,
       }
     );
 
@@ -80,21 +65,12 @@ public sealed partial class Connection
     ObjectId? fileId
   ) =>
     Internal_EnsureExists(
-      fileId
-      != null
+      fileId != null
         ? await Resources
-          .GetFiles(
-            transaction,
-            id: fileId
-          )
+          .GetFiles(transaction, id: fileId)
           .ToAsyncEnumerable()
-          .FirstOrDefaultAsync(
-            transaction.CancellationToken
-          )
-        : await Resources.GetRootFolder(
-          transaction,
-          me
-        )
+          .FirstOrDefaultAsync(transaction.CancellationToken)
+        : await Resources.GetRootFolder(transaction, me)
     );
 
   private async Task<FileAccessResult> Internal_UnlockFile(
@@ -102,23 +78,17 @@ public sealed partial class Connection
     File file,
     User user,
     UnlockedUserAuthentication userAuthentication,
-    FileAccessLevel? fileAccessLevel =
-      null
+    FileAccessLevel? fileAccessLevel = null
   ) =>
     await Resources.FindFileAccess(
       transaction,
       file,
       user,
       userAuthentication,
-      fileAccessLevel
-        ?? FileAccessLevel.Read
+      fileAccessLevel ?? FileAccessLevel.Read
     )
     ?? throw new ConnectionResponseException(
       ResponseCode.Forbidden,
-      new ConnectionResponseExceptionData.Forbidden()
-      {
-        FileId =
-          file.Id,
-      }
+      new ConnectionResponseExceptionData.Forbidden() { FileId = file.Id }
     );
 }

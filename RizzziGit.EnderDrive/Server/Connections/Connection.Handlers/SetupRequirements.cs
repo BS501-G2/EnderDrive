@@ -9,9 +9,7 @@ public sealed partial class Connection
 
   private sealed record class SetupRequirementsResponse
   {
-    [BsonElement(
-      "adminSetupRequired"
-    )]
+    [BsonElement("adminSetupRequired")]
     public required bool AdminSetupRequired;
   };
 
@@ -19,20 +17,12 @@ public sealed partial class Connection
     SetupRequirementsRequest,
     SetupRequirementsResponse
   > SetupRequirements =>
-    async (
-      transaction,
-      request
-    ) =>
+    async (transaction, request) =>
       new()
       {
-        AdminSetupRequired =
-          !await Resources
-            .GetAdminAccesses(
-              transaction
-            )
-            .ToAsyncEnumerable()
-            .AnyAsync(
-              transaction.CancellationToken
-            ),
+        AdminSetupRequired = !await Resources
+          .GetAdminAccesses(transaction)
+          .ToAsyncEnumerable()
+          .AnyAsync(transaction.CancellationToken),
       };
 }

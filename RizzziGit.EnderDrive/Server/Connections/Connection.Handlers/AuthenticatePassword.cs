@@ -12,27 +12,19 @@ public sealed partial class Connection
 {
   private sealed record class AuthenticatePasswordRequest
   {
-    [BsonElement(
-      "userId"
-    )]
+    [BsonElement("userId")]
     public required ObjectId UserId;
 
-    [BsonElement(
-      "password"
-    )]
+    [BsonElement("password")]
     public required string Password;
   }
 
   private sealed record class AuthenticatePasswordResponse
   {
-    [BsonElement(
-      "userId"
-    )]
+    [BsonElement("userId")]
     public required ObjectId UserId;
 
-    [BsonElement(
-      "token"
-    )]
+    [BsonElement("token")]
     public required string Token;
   }
 
@@ -40,34 +32,19 @@ public sealed partial class Connection
     AuthenticatePasswordRequest,
     AuthenticatePasswordResponse
   > AuthenticatePassword =>
-    async (
-      transaction,
-      request
-    ) =>
+    async (transaction, request) =>
     {
-      if (
-        GetContext().CurrentUser
-        != null
-      )
+      if (GetContext().CurrentUser != null)
       {
-        throw new InvalidOperationException(
-          "Already signed in."
-        );
+        throw new InvalidOperationException("Already signed in.");
       }
 
       User user =
         await Resources
-          .GetUsers(
-            transaction,
-            id: request.UserId
-          )
+          .GetUsers(transaction, id: request.UserId)
           .ToAsyncEnumerable()
-          .FirstOrDefaultAsync(
-            transaction.CancellationToken
-          )
-        ?? throw new InvalidOperationException(
-          "Invalid username or password."
-        );
+          .FirstOrDefaultAsync(transaction.CancellationToken)
+        ?? throw new InvalidOperationException("Invalid username or password.");
 
       UserAuthentication userAuthentication =
         await Resources
@@ -77,9 +54,7 @@ public sealed partial class Connection
             UserAuthenticationType.Password
           )
           .ToAsyncEnumerable()
-          .FirstOrDefaultAsync(
-            transaction.CancellationToken
-          )
+          .FirstOrDefaultAsync(transaction.CancellationToken)
         ?? throw new InvalidOperationException(
           "Password is unavailable for this account."
         );
@@ -87,10 +62,9 @@ public sealed partial class Connection
       UnlockedUserAuthentication unlockedUserAuthentication;
       try
       {
-        unlockedUserAuthentication =
-          userAuthentication.Unlock(
-            request.Password
-          );
+        unlockedUserAuthentication = userAuthentication.Unlock(
+          request.Password
+        );
       }
       catch (Exception exception)
       {
@@ -100,35 +74,19 @@ public sealed partial class Connection
         );
       }
 
-      await Resources.TruncateLatestToken(
+      await Resources.TruncateLatestToken(transaction, user, 10);
+      CompositeBuffer tokenPayload = CompositeBuffer.From(
+        CompositeBuffer.Random(16).ToHexString()
+      );
+
+      GetContext().CurrentUser = await Resources.AddUserAuthentication(
         transaction,
         user,
-        10
+        unlockedUserAuthentication,
+        UserAuthenticationType.Token,
+        tokenPayload.ToByteArray()
       );
-      CompositeBuffer tokenPayload =
-        CompositeBuffer.From(
-          CompositeBuffer
-            .Random(
-              16
-            )
-            .ToHexString()
-        );
 
-      GetContext().CurrentUser =
-        await Resources.AddUserAuthentication(
-          transaction,
-          user,
-          unlockedUserAuthentication,
-          UserAuthenticationType.Token,
-          tokenPayload.ToByteArray()
-        );
-
-      return new()
-      {
-        UserId =
-          user.Id,
-        Token =
-          tokenPayload.ToString(),
-      };
+      return new() { UserId = user.Id, Token = tokenPayload.ToString() };
     };
 }

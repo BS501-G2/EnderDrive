@@ -9,257 +9,71 @@ using Newtonsoft.Json;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
-public record class FileSnapshot
-  : ResourceData
+public record class FileSnapshot : ResourceData
 {
-  [JsonProperty(
-    "createTime"
-  )]
-  [BsonRepresentation(
-    representation: BsonType.DateTime
-  )]
+  [JsonProperty("createTime")]
+  [BsonRepresentation(representation: BsonType.DateTime)]
   public required DateTimeOffset CreateTime;
 
-  [JsonProperty(
-    "fileId"
-  )]
+  [JsonProperty("fileId")]
   public required ObjectId FileId;
 
-  [JsonProperty(
-    "fileContentId"
-  )]
+  [JsonProperty("fileContentId")]
   public required ObjectId FileContentId;
 
-  [JsonProperty(
-    "authorUserId"
-  )]
+  [JsonProperty("authorUserId")]
   public required ObjectId AuthorUserId;
 
-  [JsonProperty(
-    "baseFileSnapshotId"
-  )]
+  [JsonProperty("baseFileSnapshotId")]
   public required ObjectId? BaseFileSnapshotId;
-}
 
-public record class FileSize
-  : ResourceData
-{
-  public required ObjectId FileSnapshotId;
-
+  [JsonProperty("size")]
   public required long Size;
 }
 
 public sealed partial class ResourceManager
 {
-  public async Task<FileSnapshot> CreateFileSnapshot(
+  public async Task<Resource<FileSnapshot>> CreateFileSnapshot(
     ResourceTransaction transaction,
     UnlockedFile file,
-    FileContent fileContent,
+    Resource<FileContent> fileContent,
     UnlockedUserAuthentication userAuthentication,
     FileSnapshot? baseFileSnapshot
   )
   {
-    FileSnapshot fileSnapshot =
+    Resource<FileSnapshot> fileSnapshot = ToResource<FileSnapshot>(
+      transaction,
       new()
       {
-        Id =
-          ObjectId.GenerateNewId(),
+        Id = ObjectId.Empty,
 
-        FileId =
-          file.Id,
-        FileContentId =
-          fileContent.Id,
-        AuthorUserId =
-          userAuthentication.UserId,
-        BaseFileSnapshotId =
-          baseFileSnapshot?.Id,
+        FileId = file.File.Id,
+        FileContentId = fileContent.Id,
+        AuthorUserId = userAuthentication.UserAuthentication.Data.UserId,
+        BaseFileSnapshotId = baseFileSnapshot?.Id,
 
-        CreateTime =
-          DateTimeOffset.UtcNow,
-      };
-
-    await Insert(
-      transaction,
-      [
-        fileSnapshot,
-      ]
+        CreateTime = DateTimeOffset.UtcNow,
+        Size = baseFileSnapshot?.Size ?? 0,
+      }
     );
 
+    await fileSnapshot.Save(transaction);
     return fileSnapshot;
   }
 
-  public async Task<long> GetFileSize(
+  public async Task Delete(
     ResourceTransaction transaction,
-    FileSnapshot fileSnapshot
-  ) =>
-    (
-      await Query<FileSize>(
-          transaction,
-          (
-            query
-          ) =>
-            query.Where(
-              (
-                item
-              ) =>
-                item.FileSnapshotId
-                == fileSnapshot.Id
-            )
-        )
-        .ToAsyncEnumerable()
-        .FirstOrDefaultAsync(
-          transaction.CancellationToken
-        )
-    )?.Size
-    ?? 0;
-
-  public async Task<long> SetSize(
-    ResourceTransaction transaction,
-    FileSnapshot fileSnapshot,
-    long newSize
+    Resource<FileSnapshot> fileSnapshot
   )
   {
     await foreach (
-      FileSize entry in Query<FileSize>(
-          transaction,
-          (
-            query
-          ) =>
-            query.Where(
-              (
-                item
-              ) =>
-                item.FileSnapshotId
-                == fileSnapshot.Id
-            )
-        )
-        .ToAsyncEnumerable()
-    )
-    {
-      await Update(
+      Resource<FileData> data in Query<FileData>(
         transaction,
-        entry,
-        Builders<FileSize>.Update.Set(
-          nameof(
-            FileSize.Size
-          ),
-          newSize
-        )
-      );
-
-      return newSize;
-    }
-
-    await Insert<FileSize>(
-      transaction,
-      [
-        new()
-        {
-          Id =
-            ObjectId.GenerateNewId(),
-
-          FileSnapshotId =
-            fileSnapshot.Id,
-          Size =
-            newSize,
-        },
-      ]
-    );
-
-    return newSize;
-  }
-
-  public IQueryable<FileSnapshot> GetFileSnapshots(
-    ResourceTransaction transaction,
-    File file,
-    FileContent fileContent,
-    ObjectId? snapshotId =
-      null
-  ) =>
-    Query<FileSnapshot>(
-      transaction,
-      (
-        query
-      ) =>
-        query.Where(
-          (
-            item
-          ) =>
-            (
-              file.Id
-              == item.FileId
-            )
-            && (
-              fileContent.Id
-              == item.FileContentId
-            )
-            && (
-              snapshotId
-                == null
-              || item.Id
-                == snapshotId
-            )
-        )
-    );
-
-  public ValueTask<FileSnapshot?> GetLatestFileSnapshot(
-    ResourceTransaction transaction,
-    File file,
-    FileContent fileContent
-  ) =>
-    Query<FileSnapshot>(
-        transaction,
-        (
-          query
-        ) =>
-          query
-            .Where(
-              (
-                item
-              ) =>
-                item.FileId
-                  == file.Id
-                && item.FileContentId
-                  == fileContent.Id
-            )
-            .OrderByDescending(
-              (
-                item
-              ) =>
-                item.Id
-            )
+        (query) => query.Where((item) => item.FileSnapshotId == fileSnapshot.Id)
       )
-      .ToAsyncEnumerable()
-      .FirstOrDefaultAsync(
-        transaction.CancellationToken
-      );
-
-  public async Task DeleteSnapshot(
-    ResourceTransaction transaction,
-    FileSnapshot fileSnapshot
-  )
-  {
-    await foreach (
-      VirusReport virusReport in Query<VirusReport>(
-          transaction,
-          (
-            query
-          ) =>
-            query.Where(
-              (
-                item
-              ) =>
-                item.FileSnapshotId
-                == fileSnapshot.Id
-            )
-        )
-        .ToAsyncEnumerable()
     )
     {
-      await Delete(
-        transaction,
-        virusReport
-      );
+      await Delete(transaction, data);
     }
   }
 }

@@ -5,22 +5,16 @@ namespace RizzziGit.EnderDrive.Utilities;
 
 public sealed record class PaginationOptions
 {
-  public const int DEFAULT_COUNT =
-    25;
-  public const int DEFAULT_OFFSET =
-    0;
+  public const int DEFAULT_COUNT = 25;
+  public const int DEFAULT_OFFSET = 0;
 
   // private int? count = DEFAULT_COUNT;
   // private int? offset = DEFAULT_OFFSET;
 
-  [BsonElement(
-    "count"
-  )]
+  [BsonElement("count")]
   public required int? Count;
 
-  [BsonElement(
-    "offset"
-  )]
+  [BsonElement("offset")]
   public required int? Offset;
 
   // [BsonElement("count")]
@@ -45,35 +39,16 @@ public static class IQueryableExtensions
     PaginationOptions? pagination
   )
   {
-    if (
-      pagination
-      != null
-    )
+    if (pagination != null)
     {
-      if (
-        pagination.Offset
-        != null
-      )
+      if (pagination.Offset != null)
       {
-        queryable =
-          queryable.Skip(
-            pagination
-              .Offset
-              .Value
-          );
+        queryable = queryable.Skip(pagination.Offset.Value);
       }
 
-      if (
-        pagination.Count
-        != null
-      )
+      if (pagination.Count != null)
       {
-        queryable =
-          queryable.Take(
-            pagination
-              .Count
-              .Value
-          );
+        queryable = queryable.Take(pagination.Count.Value);
       }
     }
 

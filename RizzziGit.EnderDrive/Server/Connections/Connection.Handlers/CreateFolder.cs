@@ -8,20 +8,15 @@ namespace RizzziGit.EnderDrive.Server.Connections;
 
 public sealed partial class Connection
 {
-  private sealed record class CreateFolderRequest
-    : BaseFileRequest
+  private sealed record class CreateFolderRequest : BaseFileRequest
   {
-    [BsonElement(
-      "name"
-    )]
+    [BsonElement("name")]
     public required string Name;
   }
 
   private sealed record class CreateFolderResponse
   {
-    [BsonElement(
-      "file"
-    )]
+    [BsonElement("file")]
     public required string File;
   }
 
@@ -39,36 +34,21 @@ public sealed partial class Connection
       result
     ) =>
     {
-      ConnectionContext context =
-        GetContext();
+      ConnectionContext context = GetContext();
 
-      if (
-        file.Type
-        != FileType.Folder
-      )
+      if (file.Type != FileType.Folder)
       {
-        throw new InvalidOperationException(
-          "Parent is not a folder."
-        );
+        throw new InvalidOperationException("Parent is not a folder.");
       }
 
-      UnlockedFile newFile =
-        await Resources.CreateFile(
-          transaction,
-          me,
-          result.File,
-          FileType.Folder,
-          request.Name
-        );
+      UnlockedFile newFile = await Resources.CreateFile(
+        transaction,
+        me,
+        result.File,
+        FileType.Folder,
+        request.Name
+      );
 
-      return new()
-      {
-        File =
-          JToken
-            .FromObject(
-              newFile.Original
-            )
-            .ToString(),
-      };
+      return new() { File = JToken.FromObject(newFile.Original).ToString() };
     };
 }

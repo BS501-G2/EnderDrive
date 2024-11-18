@@ -3,8 +3,7 @@ using MongoDB.Bson;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
-public sealed record class Notification
-  : ResourceData
+public sealed record class Notification : ResourceData
 {
   public required ObjectId TargetUserId;
 }

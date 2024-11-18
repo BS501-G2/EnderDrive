@@ -15,63 +15,35 @@ public sealed class ApiServerBridgeContext
   public required Process Process;
 }
 
-public sealed partial class SocketIoBridge(
-  ApiServer server
-)
-  : Service<ApiServerBridgeContext>(
-    "Socket.IO Bridge",
-    server
-  )
+public sealed partial class SocketIoBridge(ApiServer server)
+  : Service<ApiServerBridgeContext>("Socket.IO Bridge", server)
 {
   protected override Task<ApiServerBridgeContext> OnStart(
     CancellationToken startupCancellationToken,
     CancellationToken serviceCancellationToken
   )
   {
-    string workingPath =
-      Path.GetFullPath(
-        "../RizzziGit.EnderDrive.Proxy"
-      );
+    string workingPath = Path.GetFullPath("../RizzziGit.EnderDrive.Proxy");
 
     ProcessStartInfo startInfo =
       new()
       {
-        FileName =
-          "/usr/bin/env",
-        UseShellExecute =
-          false,
-        WorkingDirectory =
-          workingPath,
-        RedirectStandardInput =
-          true,
-        RedirectStandardError =
-          true,
-        RedirectStandardOutput =
-          true,
+        FileName = "/usr/bin/env",
+        UseShellExecute = false,
+        WorkingDirectory = workingPath,
+        RedirectStandardInput = true,
+        RedirectStandardError = true,
+        RedirectStandardOutput = true,
       };
 
-    startInfo.ArgumentList.Add(
-      "/usr/bin/node"
-    );
-    startInfo.ArgumentList.Add(
-      workingPath
-    );
+    startInfo.ArgumentList.Add("/usr/bin/node");
+    startInfo.ArgumentList.Add(workingPath);
 
     Process? process =
-      Process.Start(
-        startInfo
-      )
-      ?? throw new InvalidOperationException(
-        "Failed to start node process."
-      );
+      Process.Start(startInfo)
+      ?? throw new InvalidOperationException("Failed to start node process.");
 
-    return Task.FromResult<ApiServerBridgeContext>(
-      new()
-      {
-        Process =
-          process,
-      }
-    );
+    return Task.FromResult<ApiServerBridgeContext>(new() { Process = process });
   }
 
   protected override async Task OnRun(
@@ -79,62 +51,32 @@ public sealed partial class SocketIoBridge(
     CancellationToken cancellationToken
   )
   {
-    async Task main(
-      StreamReader stream,
-      string name
-    )
+    async Task main(StreamReader stream, string name)
     {
-      while (
-        true
-      )
+      while (true)
       {
         cancellationToken.ThrowIfCancellationRequested();
 
-        string? line =
-          await stream.ReadLineAsync(
-            cancellationToken
-          );
+        string? line = await stream.ReadLineAsync(cancellationToken);
 
-        if (
-          line
-          == null
-        )
+        if (line == null)
         {
           break;
         }
 
-        if (
-          string.IsNullOrWhiteSpace(
-            line
-          )
-        )
+        if (string.IsNullOrWhiteSpace(line))
         {
           continue;
         }
 
-        Debug(
-          line,
-          name
-        );
+        Debug(line, name);
       }
     }
 
     await await Task.WhenAny(
-      main(
-        context
-          .Process
-          .StandardError,
-        "stderr"
-      ),
-      main(
-        context
-          .Process
-          .StandardOutput,
-        "stdout"
-      ),
-      context.Process.WaitForExitAsync(
-        cancellationToken
-      )
+      main(context.Process.StandardError, "stderr"),
+      main(context.Process.StandardOutput, "stdout"),
+      context.Process.WaitForExitAsync(cancellationToken)
     );
   }
 
@@ -144,26 +86,12 @@ public sealed partial class SocketIoBridge(
   )
   {
     context.Process.Kill();
-    if (
-      context
-        .Process
-        .HasExited
-      == false
-    )
+    if (context.Process.HasExited == false)
     {
       await context.Process.WaitForExitAsync();
     }
 
-    if (
-      context
-        .Process
-        .ExitCode
-        != 0
-      && context
-        .Process
-        .ExitCode
-        != 130
-    )
+    if (context.Process.ExitCode != 0 && context.Process.ExitCode != 130)
     {
       throw new InvalidOperationException(
         $"Node process exited with code {context.Process.ExitCode}."

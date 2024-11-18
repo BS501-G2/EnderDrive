@@ -16,30 +16,20 @@ public sealed partial class Connection
 {
   private sealed record CreateNewsRequest
   {
-    [BsonElement(
-      "title"
-    )]
+    [BsonElement("title")]
     public required string Title;
 
-    [BsonElement(
-      "imageFileIds"
-    )]
+    [BsonElement("imageFileIds")]
     public required ObjectId[] ImageFileIds;
 
-    [BsonElement(
-      "publishTime"
-    )]
-    [BsonRepresentation(
-      BsonType.DateTime
-    )]
+    [BsonElement("publishTime")]
+    [BsonRepresentation(BsonType.DateTime)]
     public required DateTimeOffset? PublishTime;
   }
 
   private sealed record CreateNewsResponse
   {
-    [BsonElement(
-      "news"
-    )]
+    [BsonElement("news")]
     public required string News;
   }
 
@@ -47,135 +37,79 @@ public sealed partial class Connection
     CreateNewsRequest,
     CreateNewsResponse
   > CreateNews =>
-    async (
-      transaction,
-      request,
-      userAuthentication,
-      me,
-      myAdminAccess
-    ) =>
+    async (transaction, request, userAuthentication, me, myAdminAccess) =>
     {
-      File[] files =
-        await Task.WhenAll(
-          request.ImageFileIds.Select(
-            async (
-              fileId
-            ) =>
+      File[] files = await Task.WhenAll(
+        request.ImageFileIds.Select(
+          async (fileId) =>
+          {
+            File file = await Internal_GetFile(transaction, me, fileId);
+            FileAccess fileAccess =
+              await Resources
+                .GetFileAccesses(transaction, targetFile: file)
+                .Where((item) => item.TargetEntity == null)
+                .ToAsyncEnumerable()
+                .FirstOrDefaultAsync(transaction)
+              ?? throw new InvalidOperationException("Images must be public.");
+
+            if (file.Type != FileType.File)
             {
-              File file =
-                await Internal_GetFile(
-                  transaction,
-                  me,
-                  fileId
-                );
-              FileAccess fileAccess =
-                await Resources
-                  .GetFileAccesses(
-                    transaction,
-                    targetFile: file
-                  )
-                  .Where(
-                    (
-                      item
-                    ) =>
-                      item.TargetEntity
-                      == null
-                  )
-                  .ToAsyncEnumerable()
-                  .FirstOrDefaultAsync(
-                    transaction
-                  )
-                ?? throw new InvalidOperationException(
-                  "Images must be public."
-                );
-
-              if (
-                file.Type
-                != FileType.File
-              )
-              {
-                throw new InvalidOperationException(
-                  "File is not a file"
-                );
-              }
-
-              if (
-                file.TrashTime
-                != null
-              )
-              {
-                throw new InvalidOperationException(
-                  "File is in the trash"
-                );
-              }
-
-              FileContent fileContent =
-                await Resources.GetMainFileContent(
-                  transaction,
-                  file
-                );
-
-              FileSnapshot fileSnapshot =
-                await Resources.GetLatestFileSnapshot(
-                  transaction,
-                  file,
-                  fileContent
-                )
-                ?? await Resources.CreateFileSnapshot(
-                  transaction,
-                  file.WithAesKey(
-                    fileAccess.EncryptedAesKey
-                  ),
-                  fileContent,
-                  userAuthentication,
-                  null
-                );
-
-              Definition? mimeResult =
-                await Server.MimeDetector.Inspect(
-                  transaction,
-                  file.WithAesKey(
-                    fileAccess.EncryptedAesKey
-                  ),
-                  fileContent,
-                  fileSnapshot
-                );
-
-              if (
-                mimeResult
-                  == null
-                || mimeResult
-                  .File
-                  .MimeType
-                  == null
-                || !mimeResult.File.MimeType.StartsWith(
-                  "image/"
-                )
-              )
-              {
-                throw new InvalidOperationException(
-                  "File is not an image"
-                );
-              }
-
-              return file;
+              throw new InvalidOperationException("File is not a file");
             }
-          )
-        );
 
-      News news =
-        await Resources.CreateNews(
-          transaction,
-          request.Title,
-          files,
-          me,
-          request.PublishTime
-        );
+            if (file.TrashTime != null)
+            {
+              throw new InvalidOperationException("File is in the trash");
+            }
 
-      return new()
-      {
-        News =
-          news.ToJson(),
-      };
+            FileContent fileContent = await Resources.GetMainFileContent(
+              transaction,
+              file
+            );
+
+            FileSnapshot fileSnapshot =
+              await Resources.GetLatestFileSnapshot(
+                transaction,
+                file,
+                fileContent
+              )
+              ?? await Resources.CreateFileSnapshot(
+                transaction,
+                file.WithAesKey(fileAccess.EncryptedAesKey),
+                fileContent,
+                userAuthentication,
+                null
+              );
+
+            Definition? mimeResult = await Server.MimeDetector.Inspect(
+              transaction,
+              file.WithAesKey(fileAccess.EncryptedAesKey),
+              fileContent,
+              fileSnapshot
+            );
+
+            if (
+              mimeResult == null
+              || mimeResult.File.MimeType == null
+              || !mimeResult.File.MimeType.StartsWith("image/")
+            )
+            {
+              throw new InvalidOperationException("File is not an image");
+            }
+
+            return file;
+          }
+        )
+      );
+
+      News news = await Resources.CreateNews(
+        transaction,
+        request.Title,
+        files,
+        me,
+        request.PublishTime
+      );
+
+      return new() { News = news.ToJson() };
     };
 }

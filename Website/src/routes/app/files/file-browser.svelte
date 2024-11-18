@@ -1,131 +1,67 @@
-<script
-  lang="ts"
->
+<script lang="ts">
   import {
     createFileBrowserContext,
     useFileBrowserContext,
     type FileBrowserOptions
-  } from '$lib/client/contexts/file-browser';
-  import Separator from '$lib/client/ui/separator.svelte';
-  import FileBrowserPath from './file-browser-path.svelte';
-  import FileManagerActionHost from './file-browser-action-host.svelte';
-  import FileBrowserProperties from './file-browser-properties.svelte';
-  import { useAppContext } from '$lib/client/contexts/app';
-  import FileBrowserResolver from './file-browser-resolver.svelte';
-  import FileBrowserAction from './file-browser-action.svelte';
-  import { fly } from 'svelte/transition';
-  import { onMount } from 'svelte';
-  import FileBrowserPropertiesMobile from './file-browser-properties-mobile.svelte';
+  } from '$lib/client/contexts/file-browser'
+  import Separator from '$lib/client/ui/separator.svelte'
+  import FileBrowserPath from './file-browser-path.svelte'
+  import FileManagerActionHost from './file-browser-action-host.svelte'
+  import FileBrowserProperties from './file-browser-properties.svelte'
+  import { useAppContext } from '$lib/client/contexts/app'
+  import FileBrowserResolver from './file-browser-resolver.svelte'
+  import FileBrowserAction from './file-browser-action.svelte'
+  import { fly } from 'svelte/transition'
+  import { onMount } from 'svelte'
+  import FileBrowserPropertiesMobile from './file-browser-properties-mobile.svelte'
 
-  const {
-    resolve,
-    onFileId,
-    selectMode,
-    customContext
-  }: FileBrowserOptions =
-    $props();
-  const {
-    actions,
-    top,
-    current,
-    middle,
-    bottom
-  } =
-    customContext ??
-    createFileBrowserContext(
-      onFileId,
-      selectMode
-    );
-  const {
-    showDetails,
-    fileListContext
-  } =
-    useFileBrowserContext();
-  const {
-    isMobile,
-    isDesktop
-  } =
-    useAppContext();
+  const { resolve, onFileId, selectMode, customContext }: FileBrowserOptions =
+    $props()
+  const { actions, top, current, middle, bottom } =
+    customContext ?? createFileBrowserContext(onFileId, selectMode)
+  const { showDetails, fileListContext } = useFileBrowserContext()
+  const { isMobile, isDesktop } = useAppContext()
 
-  let flattenedSelectedIds: string[] =
-    $state(
-      []
-    );
+  let flattenedSelectedIds: string[] = $state([])
 
-  onMount(
-    () =>
-      fileListContext.subscribe(
-        (
-          fileListContext
-        ) => {
-          if (
-            fileListContext !=
-            null
-          ) {
-            fileListContext.selectedFileIds.subscribe(
-              (
-                selectedFileIds
-              ) => {
-                flattenedSelectedIds =
-                  selectedFileIds;
-              }
-            );
-          }
-        }
-      )
-  );
+  onMount(() =>
+    fileListContext.subscribe((fileListContext) => {
+      if (fileListContext != null) {
+        fileListContext.selectedFileIds.subscribe((selectedFileIds) => {
+          flattenedSelectedIds = selectedFileIds
+        })
+      }
+    })
+  )
 
-  onMount(
-    () =>
-      isMobile.subscribe(
-        (
-          isMobile
-        ) => {
-          if (
-            isMobile
-          ) {
-            $showDetails = false;
-          }
-        }
-      )
-  );
+  onMount(() =>
+    isMobile.subscribe((isMobile) => {
+      if (isMobile) {
+        $showDetails = false
+      }
+    })
+  )
 </script>
 
-<div
-  class="file-browser"
->
-  <div
-    class="left"
-  >
+<div class="file-browser">
+  <div class="left">
     {#if $top.length}
-      <div
-        class="top"
-      >
+      <div class="top">
         {#each $top as { id, snippet }, index (id)}
           {#if index > 0}
-            <Separator
-              horizontal
-            />
+            <Separator horizontal />
           {/if}
 
           {@render snippet()}
         {/each}
       </div>
 
-      <Separator
-        horizontal
-      />
+      <Separator horizontal />
     {/if}
 
-    <div
-      class="middle"
-    >
+    <div class="middle">
       {#if resolve}
-        <FileBrowserResolver
-          {resolve}
-          {current}
-          {actions}
-        />
+        <FileBrowserResolver {resolve} {current} {actions} />
       {/if}
 
       {#each $middle as { id, snippet } (id)}
@@ -134,18 +70,12 @@
     </div>
 
     {#if $bottom.length}
-      <Separator
-        horizontal
-      />
+      <Separator horizontal />
 
-      <div
-        class="bottom"
-      >
+      <div class="bottom">
         {#each $bottom as { id, snippet }, index (id)}
           {#if index > 0}
-            <Separator
-              horizontal
-            />
+            <Separator horizontal />
           {/if}
 
           {@render snippet()}
@@ -155,9 +85,7 @@
   </div>
 
   {#if $isDesktop && $showDetails}
-    <Separator
-      vertical
-    />
+    <Separator vertical />
 
     <div
       class="right"
@@ -166,62 +94,38 @@
       }}
     >
       <FileBrowserProperties
-        selectedFileIds={$current.type ===
-        'folder'
-          ? flattenedSelectedIds
-          : $current.type ===
-              'file'
-            ? [
-                $current
-                  .file
-                  .id
-              ]
-            : []}
+        selectedFileIds={$current.type === 'file'
+          ? [$current.file.id]
+          : flattenedSelectedIds}
       />
     </div>
   {/if}
 </div>
 
 {#if $current.type === 'file' || $current.type === 'folder' || $current.type === 'loading'}
-  <FileBrowserPath
-    current={$current}
-  />
+  <FileBrowserPath current={$current} />
 {/if}
 
-<FileManagerActionHost
-  {actions}
-/>
+<FileManagerActionHost {actions} />
 
 {#if $current.type !== 'loading' && ($isDesktop || ($isMobile && flattenedSelectedIds.length))}
   <FileBrowserAction
     label="Details"
     icon={{
       icon: 'info',
-      thickness:
-        'solid'
+      thickness: 'solid'
     }}
-    onclick={() =>
-      showDetails.update(
-        (
-          value
-        ) =>
-          !value
-      )}
+    onclick={() => showDetails.update((value) => !value)}
     type="right-main"
   />
 {/if}
 
 {#if $isMobile && $showDetails && $fileListContext != null && flattenedSelectedIds.length > 0}
-  <FileBrowserPropertiesMobile
-    selectedFileIds={flattenedSelectedIds}
-  />
+  <FileBrowserPropertiesMobile selectedFileIds={flattenedSelectedIds} />
 {/if}
 
-<style
-  lang="scss"
->
-  @use '../../../global.scss'
-    as *;
+<style lang="scss">
+  @use '../../../global.scss' as *;
 
   div.file-browser {
     flex-grow: 1;
@@ -243,8 +147,7 @@
         flex-grow: 1;
         flex-direction: row;
 
-        overflow: hidden
-          auto;
+        overflow: hidden auto;
 
         min-height: 0;
 
@@ -259,10 +162,7 @@
     }
 
     > div.right {
-      @include force-size(
-        320px,
-        &
-      );
+      @include force-size(320px, &);
     }
   }
 </style>

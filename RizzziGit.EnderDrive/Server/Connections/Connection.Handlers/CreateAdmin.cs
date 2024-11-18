@@ -10,39 +10,25 @@ public sealed partial class Connection
 {
   private sealed record class CreateAdminRequest()
   {
-    [BsonElement(
-      "username"
-    )]
+    [BsonElement("username")]
     public required string Username;
 
-    [BsonElement(
-      "password"
-    )]
+    [BsonElement("password")]
     public required string Password;
 
-    [BsonElement(
-      "confirmPassword"
-    )]
+    [BsonElement("confirmPassword")]
     public required string ConfirmPassword;
 
-    [BsonElement(
-      "lastName"
-    )]
+    [BsonElement("lastName")]
     public required string LastName;
 
-    [BsonElement(
-      "firstName"
-    )]
+    [BsonElement("firstName")]
     public required string FirstName;
 
-    [BsonElement(
-      "middleName"
-    )]
+    [BsonElement("middleName")]
     public required string? MiddleName;
 
-    [BsonElement(
-      "displayName"
-    )]
+    [BsonElement("displayName")]
     public required string? DisplayName;
   };
 
@@ -52,51 +38,34 @@ public sealed partial class Connection
     CreateAdminRequest,
     CreateAdminResponse
   > CreateAdmin =>
-    async (
-      transaction,
-      request
-    ) =>
+    async (transaction, request) =>
     {
       if (
         await Resources
-          .GetAdminAccesses(
-            transaction
-          )
+          .GetAdminAccesses(transaction)
           .ToAsyncEnumerable()
-          .AnyAsync(
-            transaction.CancellationToken
-          )
+          .AnyAsync(transaction.CancellationToken)
       )
       {
-        throw new InvalidOperationException(
-          "Admin user already exists."
-        );
+        throw new InvalidOperationException("Admin user already exists.");
       }
 
-      UsernameValidation usernameValidation =
-        Resources.ValidateUsername(
-          request.Username
-        );
+      UsernameValidation usernameValidation = Resources.ValidateUsername(
+        request.Username
+      );
 
-      if (
-        usernameValidation
-        != UsernameValidation.OK
-      )
+      if (usernameValidation != UsernameValidation.OK)
       {
         throw new InvalidOperationException(
           $"Invalid Username: {usernameValidation}"
         );
       }
 
-      PasswordVerification passwordVerification =
-        Resources.VerifyPassword(
-          request.Password
-        );
+      PasswordVerification passwordVerification = Resources.VerifyPassword(
+        request.Password
+      );
 
-      if (
-        passwordVerification
-        != PasswordVerification.OK
-      )
+      if (passwordVerification != PasswordVerification.OK)
       {
         throw new InvalidOperationException(
           $"Invalid Password: {passwordVerification}"

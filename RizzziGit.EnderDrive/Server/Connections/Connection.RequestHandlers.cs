@@ -4,61 +4,23 @@ using Resources;
 
 public sealed partial class Connection
 {
-  private void RegisterHandlers(
-    ConnectionContext context
-  )
+  private void RegisterHandlers(ConnectionContext context)
   {
-    void registerHandler<
-      S,
-      R
-    >(
+    void registerHandler<S, R>(
       ServerSideRequestCode code,
-      RequestHandler<
-        S,
-        R
-      > handler
-    ) =>
-      RegisterHandler<
-        S,
-        R
-      >(
-        context,
-        code,
-        handler
-      );
+      RequestHandler<S, R> handler
+    ) => RegisterHandler<S, R>(context, code, handler);
 
-    void registerTransactedHandler<
-      S,
-      R
-    >(
+    void registerTransactedHandler<S, R>(
       ServerSideRequestCode code,
-      TransactedRequestHandler<
-        S,
-        R
-      > handler
-    ) =>
-      RegisterTransactedHandler<
-        S,
-        R
-      >(
-        context,
-        code,
-        handler
-      );
+      TransactedRequestHandler<S, R> handler
+    ) => RegisterTransactedHandler<S, R>(context, code, handler);
 
-    void registerAuthenticatedHandler<
-      S,
-      R
-    >(
+    void registerAuthenticatedHandler<S, R>(
       ServerSideRequestCode code,
-      AuthenticatedRequestHandler<
-        S,
-        R
-      > handler,
-      UserRole[]? requiredIncludeRole =
-        null,
-      UserRole[]? requiredExcludeRole =
-        null
+      AuthenticatedRequestHandler<S, R> handler,
+      UserRole[]? requiredIncludeRole = null,
+      UserRole[]? requiredExcludeRole = null
     ) =>
       RegisterAuthenticatedHandler(
         context,
@@ -68,41 +30,21 @@ public sealed partial class Connection
         requiredExcludeRole
       );
 
-    void registerFileHandler<
-      S,
-      R
-    >(
+    void registerFileHandler<S, R>(
       ServerSideRequestCode code,
-      FileRequestHandler<
-        S,
-        R
-      > handler,
-      FileType? fileType =
-        null,
-      FileAccessLevel? fileAccessLevel =
-        null
+      FileRequestHandler<S, R> handler,
+      FileType? fileType = null,
+      FileAccessLevel? fileAccessLevel = null
     )
       where S : BaseFileRequest =>
-      RegisterFileHandler(
-        context,
-        code,
-        handler,
-        fileAccessLevel,
-        fileType
-      );
+      RegisterFileHandler(context, code, handler, fileAccessLevel, fileType);
 
-    registerHandler(
-      ServerSideRequestCode.AmILoggedIn,
-      AmILoggedIn
-    );
+    registerHandler(ServerSideRequestCode.AmILoggedIn, AmILoggedIn);
     registerTransactedHandler(
       ServerSideRequestCode.SetupRequirements,
       SetupRequirements
     );
-    registerTransactedHandler(
-      ServerSideRequestCode.CreateAdmin,
-      CreateAdmin
-    );
+    registerTransactedHandler(ServerSideRequestCode.CreateAdmin, CreateAdmin);
     registerTransactedHandler(
       ServerSideRequestCode.ResolveUsername,
       ResolveUsername
@@ -119,30 +61,15 @@ public sealed partial class Connection
       ServerSideRequestCode.AuthenticateToken,
       AuthenticateToken
     );
-    registerTransactedHandler(
-      ServerSideRequestCode.AmIAdmin,
-      AmIAdmin
-    );
-    registerAuthenticatedHandler(
-      ServerSideRequestCode.Me,
-      Me
-    );
+    registerTransactedHandler(ServerSideRequestCode.AmIAdmin, AmIAdmin);
+    registerAuthenticatedHandler(ServerSideRequestCode.Me, Me);
     registerAuthenticatedHandler(
       ServerSideRequestCode.Deauthenticate,
       Deauthenticate
     );
-    registerAuthenticatedHandler(
-      ServerSideRequestCode.GetUser,
-      GetUser
-    );
-    registerAuthenticatedHandler(
-      ServerSideRequestCode.GetUsers,
-      GetUsers
-    );
-    registerAuthenticatedHandler(
-      ServerSideRequestCode.GetFiles,
-      GetFiles
-    );
+    registerAuthenticatedHandler(ServerSideRequestCode.GetUser, GetUser);
+    registerAuthenticatedHandler(ServerSideRequestCode.GetUsers, GetUsers);
+    registerAuthenticatedHandler(ServerSideRequestCode.GetFiles, GetFiles);
     registerAuthenticatedHandler(
       ServerSideRequestCode.GetFileAccesses,
       GetFileAccesses
@@ -155,32 +82,19 @@ public sealed partial class Connection
       ServerSideRequestCode.GetFileLogs,
       GetFileLogs
     );
-    registerAuthenticatedHandler(
-      ServerSideRequestCode.CreateFile,
-      CreateFile
-    );
-    registerAuthenticatedHandler(
-      ServerSideRequestCode.OpenStream,
-      OpenStream
-    );
+    registerAuthenticatedHandler(ServerSideRequestCode.CreateFile, CreateFile);
+    registerAuthenticatedHandler(ServerSideRequestCode.OpenStream, OpenStream);
     registerAuthenticatedHandler(
       ServerSideRequestCode.CreateNews,
       CreateNews,
-      [
-        UserRole.NewsEditor,
-      ]
+      [UserRole.NewsEditor]
     );
     registerAuthenticatedHandler(
       ServerSideRequestCode.DeleteNews,
       DeleteNews,
-      [
-        UserRole.NewsEditor,
-      ]
+      [UserRole.NewsEditor]
     );
-    registerAuthenticatedHandler(
-      ServerSideRequestCode.GetNews,
-      GetNews
-    );
+    registerAuthenticatedHandler(ServerSideRequestCode.GetNews, GetNews);
     registerAuthenticatedHandler(
       ServerSideRequestCode.SetFileStar,
       SetFileStar
@@ -239,41 +153,32 @@ public sealed partial class Connection
     );
     registerFileHandler(
       ServerSideRequestCode.GetMainFileContent,
-      GetMainFileContent
+      GetMainFileContent,
+      null,
+      FileAccessLevel.Read
     );
     registerFileHandler(
       ServerSideRequestCode.GetLatestFileSnapshot,
-      GetLatestFileSnapshot
+      GetLatestFileSnapshot,
+      null,
+      FileAccessLevel.Read
     );
-    registerHandler(
-      ServerSideRequestCode.CloseStream,
-      CloseStream
+    registerFileHandler(
+      ServerSideRequestCode.GetOldestFileSnapshot,
+      GetOldestFileSnapshot,
+      null,
+      FileAccessLevel.Read
     );
-    registerHandler(
-      ServerSideRequestCode.ReadStream,
-      ReadStream
-    );
-    registerHandler(
-      ServerSideRequestCode.WriteStream,
-      WriteStream
-    );
-    registerHandler(
-      ServerSideRequestCode.SetPosition,
-      SetPosition
-    );
-    registerHandler(
-      ServerSideRequestCode.GetStreamSize,
-      GetStreamSize
-    );
-    registerHandler(
-      ServerSideRequestCode.GetStreamPosition,
-      GetStreamPosition
-    );
+    registerHandler(ServerSideRequestCode.CloseStream, CloseStream);
+    registerHandler(ServerSideRequestCode.ReadStream, ReadStream);
+    registerHandler(ServerSideRequestCode.WriteStream, WriteStream);
+    registerHandler(ServerSideRequestCode.SetPosition, SetPosition);
+    registerHandler(ServerSideRequestCode.GetStreamSize, GetStreamSize);
+    registerHandler(ServerSideRequestCode.GetStreamPosition, GetStreamPosition);
   }
 }
 
-public enum ServerSideRequestCode
-  : byte
+public enum ServerSideRequestCode : byte
 {
   Echo,
 
@@ -306,6 +211,7 @@ public enum ServerSideRequestCode
   GetMainFileContent,
   GetFileSnapshots,
   GetLatestFileSnapshot,
+  GetOldestFileSnapshot,
   GetFileLogs,
   ScanFile,
   CreateFolder,

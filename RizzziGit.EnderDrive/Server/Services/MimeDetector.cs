@@ -31,62 +31,40 @@ public sealed record MimeDetectorRequest(
   CancellationToken CancellationToken
 );
 
-public sealed partial class MimeDetector(
-  Server server
-)
-  : Service<MimeDetectorContext>(
-    "Mime Detector",
-    server
-  )
+public sealed partial class MimeDetector(Server server)
+  : Service<MimeDetectorContext>("Mime Detector", server)
 {
-  public Server Server =>
-    server;
-  public ResourceManager Resources =>
-    Server.ResourceManager;
+  public Server Server => server;
+  public ResourceManager Resources => Server.ResourceManager;
 
   protected override Task<MimeDetectorContext> OnStart(
     CancellationToken startupCancellationToken,
     CancellationToken serviceCancellationToken
   )
   {
-    Info(
-      "Building definitions..."
-    );
-    ImmutableArray<Definition> definitions =
-      new ExhaustiveBuilder()
-      {
-        UsageType =
-          UsageType.PersonalNonCommercial,
-      }.Build();
+    Info("Building definitions...");
+    ImmutableArray<Definition> definitions = new ExhaustiveBuilder()
+    {
+      UsageType = UsageType.PersonalNonCommercial,
+    }.Build();
 
-    Info(
-      "Building content inspector..."
-    );
-    ContentInspector contentInspector =
-      new ContentInspectorBuilder()
+    Info("Building content inspector...");
+    ContentInspector contentInspector = new ContentInspectorBuilder()
+    {
+      Definitions = definitions,
+      StringSegmentOptions = new()
       {
-        Definitions =
-          definitions,
-        StringSegmentOptions =
-          new()
-          {
-            OptimizeFor =
-              StringSegmentResourceOptimization.HighSpeed,
-          },
-      }.Build();
+        OptimizeFor = StringSegmentResourceOptimization.HighSpeed,
+      },
+    }.Build();
 
-    Info(
-      "Initialization done!"
-    );
+    Info("Initialization done!");
     return Task.FromResult<MimeDetectorContext>(
       new()
       {
-        ContentInspector =
-          contentInspector,
-        WaitQueue =
-          new(),
-        Definitions =
-          definitions,
+        ContentInspector = contentInspector,
+        WaitQueue = new(),
+        Definitions = definitions,
       }
     );
   }
@@ -101,34 +79,25 @@ public sealed partial class MimeDetector(
         TaskCompletionSource<Definition?> output,
         Stream stream,
         CancellationToken cancellationToken
-      ) in context.WaitQueue.WithCancellation(
-        serviceCancellationToken
-      )
+      ) in context.WaitQueue.WithCancellation(serviceCancellationToken)
     )
     {
-      using CancellationTokenSource linked =
-        serviceCancellationToken.Link(
-          cancellationToken
-        );
-
-      DefinitionMatch? match =
-        await context
-          .ContentInspector.Inspect(
-            stream
-          )
-          .OrderByDescending(
-            (
-              match
-            ) =>
-              match.Percentage
-          )
-          .ToAsyncEnumerable()
-          .FirstOrDefaultAsync(
-            linked.Token
+      _ = Task.Run(
+        async () =>
+        {
+          using CancellationTokenSource linked = serviceCancellationToken.Link(
+            cancellationToken
           );
 
-      output.SetResult(
-        match?.Definition
+          DefinitionMatch? match = await context
+            .ContentInspector.Inspect(stream)
+            .OrderByDescending((match) => match.Percentage)
+            .ToAsyncEnumerable()
+            .FirstOrDefaultAsync(linked.Token);
+
+          output.SetResult(match?.Definition);
+        },
+        cancellationToken
       );
     }
   }
@@ -138,17 +107,11 @@ public sealed partial class MimeDetector(
     CancellationToken cancellationToken
   )
   {
-    MimeDetectorContext context =
-      GetContext();
-    TaskCompletionSource<Definition?> output =
-      new();
+    MimeDetectorContext context = GetContext();
+    TaskCompletionSource<Definition?> output = new();
 
     await context.WaitQueue.Enqueue(
-      new(
-        output,
-        stream,
-        cancellationToken
-      ),
+      new(output, stream, cancellationToken),
       cancellationToken
     );
     return await output.Task;
@@ -161,8 +124,7 @@ public sealed partial class MimeDetector(
     FileSnapshot fileSnapshot
   )
   {
-    MimeDetectorContext context =
-      GetContext();
+    MimeDetectorContext context = GetContext();
     MimeDetectionReport? mimeDetectionReport =
       await Resources.GetMimeDetectionReport(
         transaction,
@@ -171,35 +133,27 @@ public sealed partial class MimeDetector(
         fileSnapshot
       );
 
-    if (
-      mimeDetectionReport
-      == null
-    )
+    if (mimeDetectionReport == null)
     {
-      using Stream stream =
-        await server.ResourceManager.CreateReadStream(
-          transaction,
-          file,
-          fileContent,
-          fileSnapshot
-        );
+      using Stream stream = await server.ResourceManager.CreateReadStream(
+        transaction,
+        file,
+        fileContent,
+        fileSnapshot
+      );
 
-      Definition? definition =
-        await Inspect(
-          stream,
-          transaction.CancellationToken
-        );
+      Definition? definition = await Inspect(
+        stream,
+        transaction.CancellationToken
+      );
 
-      mimeDetectionReport =
-        await Resources.SetMimeDetectionReport(
-          transaction,
-          file,
-          fileContent,
-          fileSnapshot,
-          definition
-            ?.File
-            .MimeType
-        );
+      mimeDetectionReport = await Resources.SetMimeDetectionReport(
+        transaction,
+        file,
+        fileContent,
+        fileSnapshot,
+        definition?.File.MimeType
+      );
 
       return definition;
     }
@@ -207,11 +161,7 @@ public sealed partial class MimeDetector(
     {
       return context
         .Definitions.Where(
-          (
-            item
-          ) =>
-            item.File.MimeType
-            == mimeDetectionReport.Mime
+          (item) => item.File.MimeType == mimeDetectionReport.Mime
         )
         .FirstOrDefault();
     }
@@ -222,9 +172,6 @@ public sealed partial class MimeDetector(
     ExceptionDispatchInfo? exception
   )
   {
-    return base.OnStop(
-      context,
-      exception
-    );
+    return base.OnStop(context, exception);
   }
 }

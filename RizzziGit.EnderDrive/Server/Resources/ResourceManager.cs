@@ -14,14 +14,13 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 
 using Commons.Services;
 using Core;
+using RizzziGit.Commons.Collections;
 using Services;
 
 public abstract record class ResourceData
 {
   [BsonId]
-  [JsonProperty(
-    "id"
-  )]
+  [JsonProperty("id")]
   public required ObjectId Id;
 
   internal object ToJSON()
@@ -35,147 +34,58 @@ public sealed class ResourceManagerContext
   public required ILoggerFactory LoggerFactory;
   public required IMongoClient Client;
   public required RandomNumberGenerator RandomNumberGenerator;
+
+  public required WeakDictionary<ResourceKey, object> Resources;
 }
 
-public sealed record FileStreamKey(
-  ObjectId FileId,
-  ObjectId FileContentId,
-  ObjectId FileSnapshotId
-);
-
-public sealed class Resource<D>(
-  Func<D> getData,
-  Func<
-    ResourceTransaction,
-    Task
-  > update,
-  Func<
-    ResourceTransaction,
-    Task
-  > reset
-)
-  where D : ResourceData
+public sealed partial class ResourceManager(Server server)
+  : Service<ResourceManagerContext>("Resource Manager", server)
 {
-  public static implicit operator D(
-    Resource<D> resource
-  ) =>
-    resource.Data;
-
-  public static explicit operator Resource<D>(
-    Resource<ResourceData> v
-  )
-  {
-    throw new NotImplementedException();
-  }
-
-  public D Data =>
-    getData();
-
-  public Task Save(
-    ResourceTransaction transaction
-  ) =>
-    update(
-      transaction
-    );
-
-  public Task Reset(
-    ResourceTransaction transaction
-  ) =>
-    reset(
-      transaction
-    );
-}
-
-public sealed partial class ResourceManager(
-  Server server
-)
-  : Service<ResourceManagerContext>(
-    "Resource Manager",
-    server
-  )
-{
-  private Server Server =>
-    server;
-  private IMongoClient Client =>
-    GetContext().Client;
-  private IMongoDatabase Database =>
-    Client.GetDatabase(
-      "EnderDrive"
-    );
+  private Server Server => server;
+  private IMongoClient Client => GetContext().Client;
+  private IMongoDatabase Database => Client.GetDatabase("EnderDrive");
 
   private IMongoCollection<D> GetCollection<D>()
-    where D : ResourceData =>
-    Database.GetCollection<D>(
-      typeof(D).Name
-    );
+    where D : ResourceData => Database.GetCollection<D>(typeof(D).Name);
 
-  private KeyManager KeyManager =>
-    server.KeyManager;
-  private AdminManager AdminManager =>
-    server.AdminManager;
+  private KeyManager KeyManager => server.KeyManager;
+  private AdminManager AdminManager => server.AdminManager;
 
   protected override async Task<ResourceManagerContext> OnStart(
     CancellationToken startupCancellationToken,
     CancellationToken serviceCancellationToken
   )
   {
-    ILoggerFactory loggerFactory =
-      LoggerFactory.Create(
-        (
-          options
-        ) =>
-          options.AddProvider(
-            new LoggerProvider(
-              (
-                category
-              ) =>
-                new LoggerInstance(
-                  this
-                )
-            )
-          )
-      );
+    ILoggerFactory loggerFactory = LoggerFactory.Create(
+      (options) =>
+        options.AddProvider(
+          new LoggerProvider((category) => new LoggerInstance(this))
+        )
+    );
 
     MongoClient client =
       new(
         new MongoClientSettings()
         {
-          Server =
-            new MongoServerAddress(
-              "127.0.0.1"
-            ),
-          LoggingSettings =
-            new(
-              loggerFactory
-            ),
+          Server = new MongoServerAddress("127.0.0.1"),
+          LoggingSettings = new(loggerFactory),
         }
       );
 
     RandomNumberGenerator randomNumberGenerator =
       RandomNumberGenerator.Create();
 
-    if (
-      Environment
-        .GetCommandLineArgs()
-        .Contains(
-          "--delete-db"
-        )
-    )
+    if (Environment.GetCommandLineArgs().Contains("--delete-db"))
     {
-      await client.DropDatabaseAsync(
-        "EnderDrive",
-        startupCancellationToken
-      );
+      await client.DropDatabaseAsync("EnderDrive", startupCancellationToken);
     }
 
     return new()
     {
-      LoggerFactory =
-        loggerFactory,
-      Client =
-        client,
-      RandomNumberGenerator =
-        randomNumberGenerator,
+      LoggerFactory = loggerFactory,
+      Client = client,
+      RandomNumberGenerator = randomNumberGenerator,
+      Resources = new(),
     };
   }
 }

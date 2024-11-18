@@ -12,37 +12,25 @@ public sealed partial class Connection
 {
   private sealed record class GetFileLogsRequest
   {
-    [BsonElement(
-      "fileId"
-    )]
+    [BsonElement("fileId")]
     public required ObjectId? FileId;
 
-    [BsonElement(
-      "fileContentId"
-    )]
+    [BsonElement("fileContentId")]
     public required ObjectId? FileContentId;
 
-    [BsonElement(
-      "fileSnapshotId"
-    )]
+    [BsonElement("fileSnapshotId")]
     public required ObjectId? FileSnapshotId;
 
-    [BsonElement(
-      "userId"
-    )]
+    [BsonElement("userId")]
     public required ObjectId? UserId;
 
-    [BsonElement(
-      "pagination"
-    )]
+    [BsonElement("pagination")]
     public required PaginationOptions? Pagination;
   }
 
   private sealed record class GetFileLogsResponse
   {
-    [BsonElement(
-      "fileLogs"
-    )]
+    [BsonElement("fileLogs")]
     public required string[] FileLogs;
   }
 
@@ -50,26 +38,14 @@ public sealed partial class Connection
     GetFileLogsRequest,
     GetFileLogsResponse
   > GetFileLogs =>
-    async (
-      transaction,
-      request,
-      userAuthentication,
-      me,
-      myAdminAccess
-    ) =>
+    async (transaction, request, userAuthentication, me, myAdminAccess) =>
     {
       if (
-        me.Id
-          != request.UserId
+        me.Id != request.UserId
         && !await Resources
-          .GetAdminAccesses(
-            transaction,
-            me.Id
-          )
+          .GetAdminAccesses(transaction, me.Id)
           .ToAsyncEnumerable()
-          .AnyAsync(
-            transaction
-          )
+          .AnyAsync(transaction)
       )
       {
         throw new InvalidOperationException(
@@ -78,32 +54,20 @@ public sealed partial class Connection
       }
 
       User? user =
-        request.UserId
-        != null
+        request.UserId != null
           ? await Resources
-            .GetUsers(
-              transaction,
-              id: request.UserId
-            )
+            .GetUsers(transaction, id: request.UserId)
             .ToAsyncEnumerable()
-            .FirstOrDefaultAsync(
-              transaction
-            )
+            .FirstOrDefaultAsync(transaction)
           : null;
 
       File? file =
-        request.FileId
-        != null
-          ? await Internal_GetFile(
-            transaction,
-            me,
-            request.FileId
-          )
+        request.FileId != null
+          ? await Internal_GetFile(transaction, me, request.FileId)
           : null;
 
       FileAccessResult? fileAccessResult =
-        file
-        != null
+        file != null
           ? await Resources.FindFileAccess(
             transaction,
             file,
@@ -114,19 +78,12 @@ public sealed partial class Connection
           : null;
 
       if (
-        file
-          != null
-        && fileAccessResult
-          == null
+        file != null
+        && fileAccessResult == null
         && !await Resources
-          .GetAdminAccesses(
-            transaction,
-            me.Id
-          )
+          .GetAdminAccesses(transaction, me.Id)
           .ToAsyncEnumerable()
-          .AnyAsync(
-            transaction
-          )
+          .AnyAsync(transaction)
       )
       {
         throw new InvalidOperationException(
@@ -134,17 +91,10 @@ public sealed partial class Connection
         );
       }
 
-      FileContent? fileContent =
-        null;
-      if (
-        request.FileContentId
-        != null
-      )
+      FileContent? fileContent = null;
+      if (request.FileContentId != null)
       {
-        if (
-          file
-          == null
-        )
+        if (file == null)
         {
           throw new InvalidOperationException(
             "File ID is required when file content ID is provided."
@@ -153,32 +103,17 @@ public sealed partial class Connection
 
         fileContent =
           await Resources
-            .GetFileContents(
-              transaction,
-              file,
-              id: request.FileContentId
-            )
+            .GetFileContents(transaction, file, id: request.FileContentId)
             .ToAsyncEnumerable()
-            .FirstOrDefaultAsync(
-              transaction.CancellationToken
-            )
-          ?? throw new InvalidOperationException(
-            "File content not found."
-          );
+            .FirstOrDefaultAsync(transaction.CancellationToken)
+          ?? throw new InvalidOperationException("File content not found.");
       }
 
-      FileSnapshot? fileSnapshot =
-        null;
+      FileSnapshot? fileSnapshot = null;
 
-      if (
-        request.FileSnapshotId
-        != null
-      )
+      if (request.FileSnapshotId != null)
       {
-        if (
-          fileContent
-          == null
-        )
+        if (fileContent == null)
         {
           throw new InvalidOperationException(
             "File content ID is required when file snapshot ID is provided."
@@ -194,40 +129,19 @@ public sealed partial class Connection
               request.FileSnapshotId
             )
             .ToAsyncEnumerable()
-            .FirstOrDefaultAsync(
-              transaction.CancellationToken
-            )
-          ?? throw new InvalidOperationException(
-            "File snapshot not found."
-          );
+            .FirstOrDefaultAsync(transaction.CancellationToken)
+          ?? throw new InvalidOperationException("File snapshot not found.");
       }
 
-      FileLog[] fileLogs =
-        await Resources
-          .GetFileLogs(
-            transaction,
-            file,
-            fileContent,
-            fileSnapshot,
-            user
-          )
-          .ApplyPagination(
-            request.Pagination
-          )
-          .ToAsyncEnumerable()
-          .ToArrayAsync(
-            transaction.CancellationToken
-          );
+      FileLog[] fileLogs = await Resources
+        .GetFileLogs(transaction, file, fileContent, fileSnapshot, user)
+        .ApplyPagination(request.Pagination)
+        .ToAsyncEnumerable()
+        .ToArrayAsync(transaction.CancellationToken);
 
       return new()
       {
-        FileLogs =
-          fileLogs
-            .Select(
-              fileLog =>
-                fileLog.ToString()
-            )
-            .ToArray(),
+        FileLogs = fileLogs.Select(fileLog => fileLog.ToString()).ToArray(),
       };
     };
 }

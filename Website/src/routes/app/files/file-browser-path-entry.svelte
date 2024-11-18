@@ -1,64 +1,37 @@
-<script
-  lang="ts"
->
-  import {
-    FileType,
-    type FileResource
-  } from '$lib/client/client';
-  import Icon from '$lib/client/ui/icon.svelte';
-  import FileBrowserPathMenu from './file-browser-path-menu.svelte';
+<script lang="ts">
+  import { FileType, type FileResource } from '$lib/client/client'
+  import Icon from '$lib/client/ui/icon.svelte'
+  import FileBrowserPathMenu from './file-browser-path-menu.svelte'
 
   const {
     file
   }: {
-    file: FileResource;
-  } =
-    $props();
+    file: FileResource
+  } = $props()
 
-  let button: HTMLButtonElement =
-    $state(
-      null as never
-    );
-  let show: boolean =
-    $state(
-      false
-    );
+  let button: HTMLButtonElement = $state(null as never)
+  let show: boolean = $state(false)
 </script>
 
-<div
-  class="file-entry"
->
-  <div
-    class="arrow"
-  >
-    <Icon
-      icon="chevron-right"
-      thickness="solid"
-      size="0.5em"
-    />
+<div class="file-entry">
+  <div class="arrow">
+    <Icon icon="chevron-right" thickness="solid" size="0.5em" />
   </div>
 
   <button
     bind:this={button}
     class="file"
     onclick={() => {
-      show = true;
+      show = true
     }}
   >
     {#if file.type === FileType.Folder}
-      <Icon
-        icon="folder"
-      />
+      <Icon icon="folder" />
     {:else}
-      <Icon
-        icon="file"
-      />
+      <Icon icon="file" />
     {/if}
 
-    <p
-      class="name"
-      title={file.name}
-    >
+    <p class="name" title={file.name}>
       {file.name}
     </p>
   </button>
@@ -69,14 +42,12 @@
     {file}
     {button}
     ondismiss={() => {
-      show = false;
+      show = false
     }}
   />
 {/if}
 
-<style
-  lang="scss"
->
+<style lang="scss">
   div.file-entry {
     flex-direction: row;
 
@@ -90,8 +61,7 @@
     }
 
     > button.file {
-      overflow: hidden
-        hidden;
+      overflow: hidden hidden;
 
       display: flex;
       flex-direction: row;
@@ -109,8 +79,7 @@
       flex-shrink: 0;
 
       > p.name {
-        overflow: hidden
-          hidden;
+        overflow: hidden hidden;
         text-overflow: ellipsis;
         text-wrap: nowrap;
 

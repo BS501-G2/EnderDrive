@@ -7,135 +7,36 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 using System.Linq;
 using Services;
 
-public record class AdminAccess
-  : ResourceData
+public record class AdminAccess : ResourceData
 {
   [JsonIgnore]
   public required ObjectId UserId;
 
   [JsonIgnore]
   public required byte[] EncryptedAesKey;
-
-  public UnlockedAdminAccess WithAesKey(
-    byte[] aesKey
-  )
-  {
-    return new()
-    {
-      Id =
-        Id,
-
-      UserId =
-        UserId,
-
-      EncryptedAesKey =
-        EncryptedAesKey,
-      AdminAesKey =
-        aesKey,
-
-      Original =
-        this,
-    };
-  }
-
-  public UnlockedAdminAccess Unlock(
-    UnlockedUserAuthentication userAuthentication
-  )
-  {
-    byte[] aesKey =
-      KeyManager.Decrypt(
-        userAuthentication,
-        EncryptedAesKey
-      );
-
-    return WithAesKey(
-      aesKey
-    );
-  }
-}
-
-public record class UnlockedAdminAccess
-  : AdminAccess
-{
-  public static implicit operator byte[](
-    UnlockedAdminAccess adminClass
-  ) =>
-    adminClass.AdminAesKey;
-
-  [JsonIgnore]
-  public required AdminAccess Original;
-
-  [JsonIgnore]
-  public required byte[] AdminAesKey;
 }
 
 public sealed partial class ResourceManager
 {
-  public async Task<AdminAccess> AddAdminAccess(
+  public async Task<UnlockedAdminAccess> AddAdminAccess(
     ResourceTransaction transaction,
     UnlockedAdminKey adminKey,
     User user
   )
   {
-    AdminAccess adminAccess =
+    Resource<AdminAccess> adminAccess = ToResource<AdminAccess>(
+      transaction,
       new()
       {
-        Id =
-          ObjectId.GenerateNewId(),
+        Id = ObjectId.GenerateNewId(),
 
-        UserId =
-          user.Id,
+        UserId = user.Id,
 
-        EncryptedAesKey =
-          KeyManager.Encrypt(
-            user,
-            adminKey.AesKey
-          ),
-      };
-
-    await Insert(
-      transaction,
-      [
-        adminAccess,
-      ]
+        EncryptedAesKey = KeyManager.Encrypt(user, adminKey.AesKey),
+      }
     );
 
-    return adminAccess.WithAesKey(
-      KeyManager.Encrypt(
-        user,
-        adminKey.AesKey
-      )
-    );
+    await adminAccess.Save(transaction);
+    return new(adminAccess) { AdminAesKey = adminKey.AesKey };
   }
-
-  public IQueryable<AdminAccess> GetAdminAccesses(
-    ResourceTransaction transaction,
-    ObjectId? userId =
-      null,
-    ObjectId? id =
-      null
-  ) =>
-    Query<AdminAccess>(
-      transaction,
-      (
-        query
-      ) =>
-        query.Where(
-          (
-            item
-          ) =>
-            (
-              userId
-                == null
-              || item.UserId
-                == userId
-            )
-            && (
-              id
-                == null
-              || item.Id
-                == id
-            )
-        )
-    );
 }

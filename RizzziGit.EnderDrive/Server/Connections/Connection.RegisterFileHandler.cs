@@ -11,16 +11,11 @@ public sealed partial class Connection
 {
   private abstract record class BaseFileRequest
   {
-    [BsonElement(
-      "fileId"
-    )]
+    [BsonElement("fileId")]
     public required ObjectId? FileId;
   }
 
-  private delegate Task<R> FileRequestHandler<
-    S,
-    R
-  >(
+  private delegate Task<R> FileRequestHandler<S, R>(
     ResourceTransaction transaction,
     S request,
     UnlockedUserAuthentication userAuthentication,
@@ -31,63 +26,35 @@ public sealed partial class Connection
   )
     where S : BaseFileRequest;
 
-  private void RegisterFileHandler<
-    S,
-    R
-  >(
+  private void RegisterFileHandler<S, R>(
     ConnectionContext context,
     ServerSideRequestCode code,
-    FileRequestHandler<
-      S,
-      R
-    > requestHandler,
-    FileAccessLevel? fileAccessLevel =
-      null,
-    FileType? fileType =
-      null
+    FileRequestHandler<S, R> requestHandler,
+    FileAccessLevel? fileAccessLevel = null,
+    FileType? fileType = null
   )
     where S : BaseFileRequest =>
-    RegisterAuthenticatedHandler<
-      S,
-      R
-    >(
+    RegisterAuthenticatedHandler<S, R>(
       context,
       code,
-      async (
-        transaction,
-        request,
-        userAuthentication,
-        me,
-        myAdminAccess
-      ) =>
+      async (transaction, request, userAuthentication, me, myAdminAccess) =>
       {
-        File file =
-          await Internal_GetFile(
-            transaction,
-            me,
-            request.FileId
-          );
+        File file = await Internal_GetFile(transaction, me, request.FileId);
 
-        if (
-          fileType
-            != null
-          && file.Type
-            != fileType
-        )
+        if (fileType != null && file.Type != fileType)
         {
           throw new InvalidOperationException(
             $"Required file type: {fileType}"
           );
         }
 
-        FileAccessResult accessResult =
-          await Internal_UnlockFile(
-            transaction,
-            file,
-            me,
-            userAuthentication,
-            fileAccessLevel
-          );
+        FileAccessResult accessResult = await Internal_UnlockFile(
+          transaction,
+          file,
+          me,
+          userAuthentication,
+          fileAccessLevel
+        );
 
         return await requestHandler(
           transaction,

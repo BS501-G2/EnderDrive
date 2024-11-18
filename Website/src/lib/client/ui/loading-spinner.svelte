@@ -1,146 +1,77 @@
 <!-- https://www.benmvp.com/blog/how-to-create-circle-svg-gradient-loading-spinner -->
 
-<script
-  lang="ts"
-  module
->
-  import {
-    get,
-    writable,
-    type Writable
-  } from 'svelte/store';
+<script lang="ts" module>
+  import { get, writable, type Writable } from 'svelte/store'
 
-  let spinner: Writable<
-    [
-      degrees: number,
-      time:
-        | number
-        | null
-    ]
-  > =
-    writable(
-      [
-        0,
-        null
-      ]
-    );
-  let activeCount: number = 0;
+  let spinner: Writable<[degrees: number, time: number | null]> = writable([
+    0,
+    null
+  ])
+  let activeCount: number = 0
 
-  let degreesIncrement =
-    1000 /
-    360;
+  let degreesIncrement = 1000 / 360
 
   function connect() {
-    if (
-      activeCount ==
-      0
-    ) {
-      const oldData =
-        get(
-          spinner
-        );
+    if (activeCount == 0) {
+      const oldData = get(spinner)
 
-      if (
-        oldData[1] ==
-          null ||
-        oldData[1] <
-          Date.now() -
-            10000
-      ) {
-        spinner.set(
-          [
-            0,
-            null
-          ]
-        );
+      if (oldData[1] == null || oldData[1] < Date.now() - 10000) {
+        spinner.set([0, null])
       }
 
-      const update =
-        () => {
-          if (
-            activeCount <=
-            0
-          ) {
-            activeCount = 0;
+      const update = () => {
+        if (activeCount <= 0) {
+          activeCount = 0
 
-            return;
+          return
+        }
+
+        spinner.update((v) => {
+          if (v[0] >= 360) {
+            v[0] = 0
           }
 
-          spinner.update(
-            (
-              v
-            ) => {
-              if (
-                v[0] >=
-                360
-              ) {
-                v[0] = 0;
-              }
+          return [
+            v[0] + (Date.now() - (v[1] ?? Date.now())) / degreesIncrement,
+            Date.now()
+          ]
+        })
 
-              return [
-                v[0] +
-                  (Date.now() -
-                    (v[1] ??
-                      Date.now())) /
-                    degreesIncrement,
-                Date.now()
-              ];
-            }
-          );
+        requestAnimationFrame(update)
+      }
 
-          requestAnimationFrame(
-            update
-          );
-        };
-
-      activeCount++;
-      requestAnimationFrame(
-        update
-      );
-      return;
+      activeCount++
+      requestAnimationFrame(update)
+      return
     } else {
-      activeCount++;
+      activeCount++
     }
   }
 
   function disconnect() {
-    activeCount--;
+    activeCount--
   }
 
-  export type Size =
-    `${number}${'px' | 'em' | 'rem'}`;
+  export type Size = `${number}${'px' | 'em' | 'rem'}`
 </script>
 
-<script
-  lang="ts"
->
-  import {
-    onDestroy,
-    onMount
-  } from 'svelte';
+<script lang="ts">
+  import { onDestroy, onMount } from 'svelte'
 
-  export let degrees: number = 0;
-  export let size: Size | null =
-    null;
+  export let degrees: number = 0
+  export let size: Size | null = null
 
-  onMount(
-    () => {
-      connect();
-    }
-  );
+  onMount(() => {
+    connect()
+  })
 
-  onDestroy(
-    () =>
-      disconnect()
-  );
+  onDestroy(() => disconnect())
 
-  $: degrees =
-    $spinner[0];
+  $: degrees = $spinner[0]
   $: sizeStyle =
-    size !=
-    null
+    size != null
       ? `min-width: ${size}; min-height: ${size}; max-width: ${size}; max-height: ${size};`
-      : `min-width: 100%; min-height: 100%; max-width: 100%; max-height: 100%;`;
+      : `min-width: 100%; min-height: 100%; max-width: 100%; max-height: 100%;`
 </script>
 
 <svg
@@ -149,41 +80,18 @@
   style="transform: rotate({$spinner[0]}deg); {sizeStyle}"
   xmlns="http://www.w3.org/2000/svg"
 >
-  <defs
-  >
-    <linearGradient
-      id="spinner-secondHalf"
-    >
-      <stop
-        offset="0%"
-        stop-opacity="0"
-        stop-color="currentColor"
-      />
-      <stop
-        offset="100%"
-        stop-opacity="0.5"
-        stop-color="currentColor"
-      />
+  <defs>
+    <linearGradient id="spinner-secondHalf">
+      <stop offset="0%" stop-opacity="0" stop-color="currentColor" />
+      <stop offset="100%" stop-opacity="0.5" stop-color="currentColor" />
     </linearGradient>
-    <linearGradient
-      id="spinner-firstHalf"
-    >
-      <stop
-        offset="0%"
-        stop-opacity="1"
-        stop-color="currentColor"
-      />
-      <stop
-        offset="100%"
-        stop-opacity="0.5"
-        stop-color="currentColor"
-      />
+    <linearGradient id="spinner-firstHalf">
+      <stop offset="0%" stop-opacity="1" stop-color="currentColor" />
+      <stop offset="100%" stop-opacity="0.5" stop-color="currentColor" />
     </linearGradient>
   </defs>
 
-  <g
-    stroke-width="1"
-  >
+  <g stroke-width="1">
     <path
       stroke="url(#spinner-secondHalf)"
       d="M 4 100 A 96 96 0 0 1 196 100"

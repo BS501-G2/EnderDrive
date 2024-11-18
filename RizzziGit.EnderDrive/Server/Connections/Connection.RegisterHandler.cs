@@ -6,43 +6,26 @@ namespace RizzziGit.EnderDrive.Server.Connections;
 
 public sealed partial class Connection
 {
-  private delegate Task<R> RequestHandler<
-    S,
-    R
-  >(
+  private delegate Task<R> RequestHandler<S, R>(
     S request,
     CancellationToken cancellationToken
   );
 
-  private static void RegisterHandler<
-    S,
-    R
-  >(
+  private static void RegisterHandler<S, R>(
     ConnectionContext context,
     ServerSideRequestCode code,
-    RequestHandler<
-      S,
-      R
-    > handler
+    RequestHandler<S, R> handler
   )
   {
     if (
       !context.Handlers.TryAdd(
         code,
-        async (
-          requestBuffer,
-          cancellationToken
-        ) =>
+        async (requestBuffer, cancellationToken) =>
         {
           try
           {
-            S request =
-              requestBuffer.DeserializeData<S>();
-            R response =
-              await handler(
-                request,
-                cancellationToken
-              );
+            S request = requestBuffer.DeserializeData<S>();
+            R response = await handler(request, cancellationToken);
 
             return ConnectionPacket<ResponseCode>.Create(
               ResponseCode.OK,
@@ -60,9 +43,7 @@ public sealed partial class Connection
       )
     )
     {
-      throw new InvalidOperationException(
-        "Handler is already added."
-      );
+      throw new InvalidOperationException("Handler is already added.");
     }
   }
 }

@@ -13,53 +13,33 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 using Services;
 
 [Flags]
-public enum UserRole
-  : byte
+public enum UserRole : byte
 {
-  None =
-    0b01,
-  NewsEditor =
-    0b10,
+  None = 0b01,
+  NewsEditor = 0b10,
 }
 
-public record class User
-  : ResourceData
+public record class User : ResourceData
 {
-  public static implicit operator RSA(
-    User user
-  ) =>
-    KeyManager.DeserializeAsymmetricKey(
-      user.RsaPublicKey
-    );
+  public static implicit operator RSA(User user) =>
+    KeyManager.DeserializeAsymmetricKey(user.RsaPublicKey);
 
-  [JsonProperty(
-    "username"
-  )]
+  [JsonProperty("username")]
   public required string Username;
 
-  [JsonProperty(
-    "firstName"
-  )]
+  [JsonProperty("firstName")]
   public required string FirstName;
 
-  [JsonProperty(
-    "middleName"
-  )]
+  [JsonProperty("middleName")]
   public required string? MiddleName;
 
-  [JsonProperty(
-    "lastName"
-  )]
+  [JsonProperty("lastName")]
   public required string LastName;
 
-  [JsonProperty(
-    "displayName"
-  )]
+  [JsonProperty("displayName")]
   public required string? DisplayName;
 
-  [JsonProperty(
-    "role"
-  )]
+  [JsonProperty("role")]
   public required UserRole[] Roles;
 
   [JsonIgnore]
@@ -87,67 +67,39 @@ public record class User
 [Flags]
 public enum UsernameValidation
 {
-  OK =
-    0,
-  TooShort =
-    1
-    << 0,
-  TooLong =
-    1
-    << 1,
-  InvalidChars =
-    1
-    << 2,
+  OK = 0,
+  TooShort = 1 << 0,
+  TooLong = 1 << 1,
+  InvalidChars = 1 << 2,
 }
 
 public sealed partial class ResourceManager
 {
-  [GeneratedRegex(
-    "^\\w*$"
-  )]
+  [GeneratedRegex("^\\w*$")]
   private static partial Regex GetUsernameRegex();
 
-  public static readonly Regex USERNAME_REGEX =
-    GetUsernameRegex();
+  public static readonly Regex USERNAME_REGEX = GetUsernameRegex();
 
-  public const int USERNAME_MIN_LENGTH =
-    6;
-  public const int USERNAME_MAX_LENGTH =
-    12;
+  public const int USERNAME_MIN_LENGTH = 6;
+  public const int USERNAME_MAX_LENGTH = 12;
 
-  public UsernameValidation ValidateUsername(
-    string username
-  )
+  public UsernameValidation ValidateUsername(string username)
   {
-    UsernameValidation validation =
-      default;
+    UsernameValidation validation = default;
 
-    if (
-      username.Length
-      < USERNAME_MIN_LENGTH
-    )
+    if (username.Length < USERNAME_MIN_LENGTH)
     {
-      validation |=
-        UsernameValidation.TooShort;
+      validation |= UsernameValidation.TooShort;
     }
 
-    if (
-      username.Length
-      > USERNAME_MAX_LENGTH
-    )
+    if (username.Length > USERNAME_MAX_LENGTH)
     {
-      validation |=
-        UsernameValidation.TooLong;
+      validation |= UsernameValidation.TooLong;
     }
 
-    if (
-      !USERNAME_REGEX.IsMatch(
-        username
-      )
-    )
+    if (!USERNAME_REGEX.IsMatch(username))
     {
-      validation |=
-        UsernameValidation.InvalidChars;
+      validation |= UsernameValidation.InvalidChars;
     }
 
     return validation;
@@ -168,90 +120,50 @@ public sealed partial class ResourceManager
   {
     transaction.CancellationToken.ThrowIfCancellationRequested();
 
-    ResourceManagerContext context =
-      GetContext();
+    ResourceManagerContext context = GetContext();
 
-    RSA rsaKey =
-      await KeyManager.GenerateAsymmetricKey(
-        transaction.CancellationToken
-      );
+    RSA rsaKey = await KeyManager.GenerateAsymmetricKey(
+      transaction.CancellationToken
+    );
 
-    byte[] rsaPublicKey =
-      KeyManager.SerializeAsymmetricKey(
-        rsaKey,
-        false
-      );
-    byte[] rsaPrivateKey =
-      KeyManager.SerializeAsymmetricKey(
-        rsaKey,
-        true
-      );
+    byte[] rsaPublicKey = KeyManager.SerializeAsymmetricKey(rsaKey, false);
+    byte[] rsaPrivateKey = KeyManager.SerializeAsymmetricKey(rsaKey, true);
 
     User user =
       new()
       {
-        Id =
-          ObjectId.GenerateNewId(),
-        Username =
-          username,
-        FirstName =
-          firstName,
-        MiddleName =
-          middleName,
-        LastName =
-          lastName,
-        DisplayName =
-          displayName,
+        Id = ObjectId.GenerateNewId(),
+        Username = username,
+        FirstName = firstName,
+        MiddleName = middleName,
+        LastName = lastName,
+        DisplayName = displayName,
 
-        Roles =
+        Roles = [],
 
-          [],
+        RsaPublicKey = rsaPublicKey,
+        AdminEncryptedRsaPrivateKey = KeyManager.Encrypt(
+          AdminManager.AdminKey,
+          rsaPrivateKey
+        ),
 
-        RsaPublicKey =
-          rsaPublicKey,
-        AdminEncryptedRsaPrivateKey =
-          KeyManager.Encrypt(
-            AdminManager.AdminKey,
-            rsaPrivateKey
-          ),
+        TrashFileId = null,
+        RootFileId = null,
+        ProfilePictureId = null,
+        LatestNewsId = null,
 
-        TrashFileId =
-          null,
-        RootFileId =
-          null,
-        ProfilePictureId =
-          null,
-        LatestNewsId =
-          null,
-
-        PrivacyPolicyAgreement =
-          false,
+        PrivacyPolicyAgreement = false,
       };
 
-    await Insert(
-      transaction,
-      [
-        user,
-      ]
-    );
+    await InsertOld(transaction, [user]);
 
     if (
-      !await GetAdminAccesses(
-          transaction
-        )
+      !await GetAdminAccesses(transaction)
         .ToAsyncEnumerable()
-        .AnyAsync(
-          transaction.CancellationToken
-        )
+        .AnyAsync(transaction.CancellationToken)
     )
     {
-      await AddAdminAccess(
-        transaction,
-        Server
-          .AdminManager
-          .AdminKey,
-        user
-      );
+      await AddAdminAccess(transaction, Server.AdminManager.AdminKey, user);
     }
 
     UnlockedUserAuthentication userAuthentication =
@@ -259,9 +171,7 @@ public sealed partial class ResourceManager
         transaction,
         user,
         UserAuthenticationType.Password,
-        Encoding.UTF8.GetBytes(
-          password
-        ),
+        Encoding.UTF8.GetBytes(password),
         rsaPublicKey,
         rsaPrivateKey
       );
@@ -270,15 +180,10 @@ public sealed partial class ResourceManager
       transaction,
       user,
       userAuthentication,
-      Server
-        .AdminManager
-        .AdminKey
+      Server.AdminManager.AdminKey
     );
 
-    return (
-      user,
-      userAuthentication
-    );
+    return (user, userAuthentication);
   }
 
   public async Task SetUserProfilePictureId(
@@ -287,20 +192,13 @@ public sealed partial class ResourceManager
     UnlockedFile? file
   )
   {
-    await Update(
+    await UpdateOld(
       transaction,
       user,
-      Builders<User>.Update.Set(
-        (
-          item
-        ) =>
-          item.ProfilePictureId,
-        file?.Id
-      )
+      Builders<User>.Update.Set((item) => item.ProfilePictureId, file?.Id)
     );
 
-    user.ProfilePictureId =
-      file?.Id;
+    user.ProfilePictureId = file?.Id;
   }
 
   public async Task SetUserLatestNewsId(
@@ -309,20 +207,13 @@ public sealed partial class ResourceManager
     News? news
   )
   {
-    await Update(
+    await UpdateOld(
       transaction,
       user,
-      Builders<User>.Update.Set(
-        (
-          item
-        ) =>
-          item.LatestNewsId,
-        news?.Id
-      )
+      Builders<User>.Update.Set((item) => item.LatestNewsId, news?.Id)
     );
 
-    user.LatestNewsId =
-      news?.Id;
+    user.LatestNewsId = news?.Id;
   }
 
   public async Task DeleteUser(
@@ -332,17 +223,11 @@ public sealed partial class ResourceManager
   )
   {
     await foreach (
-      UserAuthentication toDelete in Query<UserAuthentication>(
+      UserAuthentication toDelete in QueryOld<UserAuthentication>(
           transaction,
-          (
-            query
-          ) =>
+          (query) =>
             query.Where(
-              (
-                userAuthentication
-              ) =>
-                userAuthentication.UserId
-                == user.Id
+              (userAuthentication) => userAuthentication.UserId == user.Id
             )
         )
         .ToAsyncEnumerable()
@@ -350,39 +235,22 @@ public sealed partial class ResourceManager
     {
       await RemoveUserAuthentication(
         transaction,
-        userAuthentication.Id
-        != toDelete.Id
-          ? toDelete.Unlock(
-            userAuthentication
-          )
+        userAuthentication.Id != toDelete.Id
+          ? toDelete.Unlock(userAuthentication)
           : userAuthentication,
         true
       );
     }
 
     await foreach (
-      File file in Query<File>(
+      File file in QueryOld<File>(
           transaction,
-          (
-            query
-          ) =>
-            query.Where(
-              (
-                file
-              ) =>
-                file.OwnerUserId
-                == user.Id
-            )
+          (query) => query.Where((file) => file.OwnerUserId == user.Id)
         )
         .ToAsyncEnumerable()
     )
     {
-      await DeleteFile(
-        transaction,
-        file.Unlock(
-          userAuthentication
-        )
-      );
+      await DeleteFile(transaction, file.Unlock(userAuthentication));
     }
 
     await foreach (
@@ -393,16 +261,10 @@ public sealed partial class ResourceManager
         .ToAsyncEnumerable()
     )
     {
-      await Delete(
-        transaction,
-        userAdminBackdoor
-      );
+      await DeleteOld(transaction, userAdminBackdoor);
     }
 
-    await Delete(
-      transaction,
-      user
-    );
+    await DeleteOld(transaction, user);
   }
 
   public ValueTask SetUserRole(
@@ -410,52 +272,33 @@ public sealed partial class ResourceManager
     User user,
     UserRole role
   ) =>
-    Update(
+    UpdateOld(
       transaction,
       user,
-      Builders<User>.Update.Set(
-        (
-          item
-        ) =>
-          item.Roles,
-        [
-          role,
-        ]
-      )
+      Builders<User>.Update.Set((item) => item.Roles, [role])
     );
 
   public IQueryable<User> GetUsers(
     ResourceTransaction transaction,
-    string? searchString =
-      null,
-    UserRole[]? includeRole =
-      null,
-    UserRole[]? excludeRole =
-      null,
-    string? username =
-      null,
-    ObjectId? id =
-      null
+    string? searchString = null,
+    UserRole[]? includeRole = null,
+    UserRole[]? excludeRole = null,
+    string? username = null,
+    ObjectId? id = null
   )
   {
-    return Query<User>(
-        transaction
-      )
+    return QueryOld<User>(transaction)
       .Where(
-        (
-          user
-        ) =>
+        (user) =>
           (
-            searchString
-              == null
+            searchString == null
             || (
               user.FirstName.Contains(
                 searchString,
                 StringComparison.CurrentCultureIgnoreCase
               )
               || (
-                user.MiddleName
-                  != null
+                user.MiddleName != null
                 && user.MiddleName.Contains(
                   searchString,
                   StringComparison.CurrentCultureIgnoreCase
@@ -467,37 +310,10 @@ public sealed partial class ResourceManager
               )
             )
           )
-          && (
-            includeRole
-              == null
-            || user.Roles.Intersect(
-                includeRole
-              )
-              .Any()
-          )
-          && (
-            excludeRole
-              == null
-            || (
-              !user
-                .Roles.Intersect(
-                  excludeRole
-                )
-                .Any()
-            )
-          )
-          && (
-            username
-              == null
-            || user.Username
-              == username
-          )
-          && (
-            id
-              == null
-            || user.Id
-              == id
-          )
+          && (includeRole == null || user.Roles.Intersect(includeRole).Any())
+          && (excludeRole == null || (!user.Roles.Intersect(excludeRole).Any()))
+          && (username == null || user.Username == username)
+          && (id == null || user.Id == id)
       );
   }
 }

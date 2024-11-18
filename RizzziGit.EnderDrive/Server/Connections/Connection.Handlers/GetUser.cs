@@ -11,17 +11,13 @@ public sealed partial class Connection
 {
   private sealed record class GetUserRequest
   {
-    [BsonElement(
-      "userId"
-    )]
+    [BsonElement("userId")]
     public required ObjectId UserId;
   };
 
   private sealed record class GetUserResponse
   {
-    [BsonElement(
-      "user"
-    )]
+    [BsonElement("user")]
     public required string? User;
   };
 
@@ -29,36 +25,16 @@ public sealed partial class Connection
     GetUserRequest,
     GetUserResponse
   > GetUser =>
-    async (
-      transaction,
-      request,
-      _,
-      _,
-      _
-    ) =>
+    async (transaction, request, _, _, _) =>
     {
-      User? user =
-        await Resources
-          .GetUsers(
-            transaction,
-            id: request.UserId
-          )
-          .ToAsyncEnumerable()
-          .FirstOrDefaultAsync(
-            transaction.CancellationToken
-          );
+      User? user = await Resources
+        .GetUsers(transaction, id: request.UserId)
+        .ToAsyncEnumerable()
+        .FirstOrDefaultAsync(transaction.CancellationToken);
 
       return new()
       {
-        User =
-          user
-          != null
-            ? JToken
-              .FromObject(
-                user
-              )
-              .ToString()
-            : null,
+        User = user != null ? JToken.FromObject(user).ToString() : null,
       };
     };
 }

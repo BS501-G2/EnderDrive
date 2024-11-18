@@ -31,179 +31,114 @@ public sealed class VirusScannerContext
   public required VirusScanner.TcpForwarder TcpForwarder;
 }
 
-public sealed partial class VirusScanner(
-  Server server,
-  string unixSocketPath
-)
-  : Service<VirusScannerContext>(
-    "Virus Scanner",
-    server
-  )
+public sealed partial class VirusScanner(Server server, string unixSocketPath)
+  : Service<VirusScannerContext>("Virus Scanner", server)
 {
   protected override async Task<VirusScannerContext> OnStart(
     CancellationToken startupCancellationToken,
     CancellationToken serviceCancellationToken
   )
   {
-    (
-      IPEndPoint ipEndPoint,
-      TcpForwarder tcpForwarder
-    ) =
-      await StartTcpForwarder(
+    (IPEndPoint ipEndPoint, TcpForwarder tcpForwarder) =
+      await StartTcpForwarder(startupCancellationToken);
+
+    {
+      using IClamAvClient client = ClamAvClient.Create(
+        new($"tcp://{ipEndPoint}")
+      );
+      VersionResult version = await client.GetVersionAsync(
         startupCancellationToken
       );
 
-    {
-      using IClamAvClient client =
-        ClamAvClient.Create(
-          new(
-            $"tcp://{ipEndPoint}"
-          )
-        );
-      VersionResult version =
-        await client.GetVersionAsync(
-          startupCancellationToken
-        );
-
-      Info(
-        version.ProgramVersion,
-        "Version"
-      );
-      Info(
-        $"Virus Database {version.VirusDbVersion}",
-        "Version"
-      );
+      Info(version.ProgramVersion, "Version");
+      Info($"Virus Database {version.VirusDbVersion}", "Version");
     }
 
     return new()
     {
-      IPEndPoint =
-        ipEndPoint,
-      WaitQueue =
-        new(),
-      TcpForwarder =
-        tcpForwarder,
+      IPEndPoint = ipEndPoint,
+      WaitQueue = new(),
+      TcpForwarder = tcpForwarder,
     };
   }
 
   private async Task<(
     IPEndPoint ipEndPoint,
     TcpForwarder tcpForwarder
-  )> StartTcpForwarder(
-    CancellationToken cancellationToken
-  )
+  )> StartTcpForwarder(CancellationToken cancellationToken)
   {
-    while (
-      true
-    )
+    while (true)
     {
       try
       {
         IPEndPoint ipEndPoint =
-          new(
-            IPAddress.Loopback,
-            Random.Shared.Next(
-              1025,
-              65535
-            )
-          );
-        TcpForwarder tcpForwarder =
-          new(
-            this,
-            ipEndPoint,
-            unixSocketPath
-          );
+          new(IPAddress.Loopback, Random.Shared.Next(1025, 65535));
+        TcpForwarder tcpForwarder = new(this, ipEndPoint, unixSocketPath);
 
-        await StartServices(
-          [
-            tcpForwarder,
-          ],
-          cancellationToken
-        );
+        await StartServices([tcpForwarder], cancellationToken);
 
-        return (
-          ipEndPoint,
-          tcpForwarder
-        );
+        return (ipEndPoint, tcpForwarder);
       }
       catch (Exception exception)
       {
-        Error(
-          exception
-        );
+        Error(exception);
       }
     }
   }
 
-  private async Task RunScanQueue(
-    CancellationToken serviceCancellationToken
-  )
+  private async Task RunScanQueue(CancellationToken serviceCancellationToken)
   {
-    while (
-      true
-    )
+    while (true)
     {
       serviceCancellationToken.ThrowIfCancellationRequested();
-      VirusScannerContext context =
-        GetContext();
+      VirusScannerContext context = GetContext();
 
       await foreach (
         var (
           source,
           stream,
           cancellationToken
-        ) in context.WaitQueue.WithCancellation(
-          serviceCancellationToken
-        )
+        ) in context.WaitQueue.WithCancellation(serviceCancellationToken)
       )
       {
-        Debug(
-          $"Received Scan Request."
+        Debug($"Received Scan Request.");
+
+        _ = Task.Run(
+          async () =>
+          {
+            using CancellationTokenSource linked =
+              CancellationTokenSource.CreateLinkedTokenSource(
+                serviceCancellationToken,
+                cancellationToken
+              );
+
+            try
+            {
+              using IClamAvClient client = ClamAvClient.Create(
+                new($"tcp://{context.IPEndPoint}")
+              );
+              ScanResult result = await client.ScanDataAsync(
+                stream,
+                linked.Token
+              );
+
+              source.SetResult(result);
+
+              Debug($"Scan Request Completed.");
+            }
+            catch (Exception exception)
+            {
+              source.SetException(
+                ExceptionDispatchInfo.SetCurrentStackTrace(
+                  new AggregateException("Virus scanner has failed.", exception)
+                )
+              );
+
+              Error(exception);
+            }
+          },
+          serviceCancellationToken
         );
-
-        using CancellationTokenSource linked =
-          CancellationTokenSource.CreateLinkedTokenSource(
-            serviceCancellationToken,
-            cancellationToken
-          );
-
-        try
-        {
-          using IClamAvClient client =
-            ClamAvClient.Create(
-              new(
-                $"tcp://{context.IPEndPoint}"
-              )
-            );
-          ScanResult result =
-            await client.ScanDataAsync(
-              stream,
-              linked.Token
-            );
-
-          source.SetResult(
-            result
-          );
-
-          Debug(
-            $"Scan Request Completed."
-          );
-        }
-        catch (Exception exception)
-        {
-          source.SetException(
-            ExceptionDispatchInfo.SetCurrentStackTrace(
-              new AggregateException(
-                "Virus scanner has failed.",
-                exception
-              )
-            )
-          );
-
-          Error(
-            exception
-          );
-        }
       }
     }
   }
@@ -215,12 +150,8 @@ public sealed partial class VirusScanner(
   {
     await Task.WhenAll(
       [
-        RunScanQueue(
-          cancellationToken
-        ),
-        data.TcpForwarder.Watch(
-          cancellationToken
-        ),
+        RunScanQueue(cancellationToken),
+        data.TcpForwarder.Watch(cancellationToken),
       ]
     );
   }
@@ -230,30 +161,19 @@ public sealed partial class VirusScanner(
     ExceptionDispatchInfo? exception
   )
   {
-    await StopServices(
-      [
-        data.TcpForwarder,
-      ]
-    );
+    await StopServices([data.TcpForwarder]);
   }
 
   public async Task<ScanResult> Scan(
     Stream stream,
-    CancellationToken cancellationToken =
-      default
+    CancellationToken cancellationToken = default
   )
   {
-    VirusScannerContext context =
-      GetContext();
+    VirusScannerContext context = GetContext();
 
-    TaskCompletionSource<ScanResult> source =
-      new();
+    TaskCompletionSource<ScanResult> source = new();
     await context.WaitQueue.Enqueue(
-      (
-        source,
-        stream,
-        cancellationToken
-      ),
+      (source, stream, cancellationToken),
       cancellationToken
     );
     return await source.Task;
@@ -267,64 +187,45 @@ public sealed partial class VirusScanner(
     bool forceRescan
   )
   {
-    VirusReport? virusReport =
-      await server.ResourceManager.GetVirusReport(
-        transaction,
-        file,
-        fileContent,
-        fileSnapshot
-      );
+    VirusReport? virusReport = await server.ResourceManager.GetVirusReport(
+      transaction,
+      file,
+      fileContent,
+      fileSnapshot
+    );
 
-    if (
-      forceRescan
-      || virusReport
-        == null
-    )
+    if (forceRescan || virusReport == null)
     {
       try
       {
-        using Stream stream =
-          await server.ResourceManager.CreateReadStream(
-            transaction,
-            file,
-            fileContent,
-            fileSnapshot
-          );
+        using Stream stream = await server.ResourceManager.CreateReadStream(
+          transaction,
+          file,
+          fileContent,
+          fileSnapshot
+        );
 
-        ScanResult result =
-          await Scan(
-            stream,
-            transaction.CancellationToken
-          );
+        ScanResult result = await Scan(stream, transaction.CancellationToken);
 
-        virusReport =
-          await server.ResourceManager.SetVirusReport(
-            transaction,
-            file,
-            fileContent,
-            fileSnapshot,
-            VirusReportStatus.Completed,
-            result.VirusName
-            != null
-              ?
-              [
-                result.VirusName,
-              ]
-              :
-              []
-          );
+        virusReport = await server.ResourceManager.SetVirusReport(
+          transaction,
+          file,
+          fileContent,
+          fileSnapshot,
+          VirusReportStatus.Completed,
+          result.VirusName != null ? [result.VirusName] : []
+        );
       }
       catch
       {
-        virusReport =
-          await server.ResourceManager.SetVirusReport(
-            transaction,
-            file,
-            fileContent,
-            fileSnapshot,
-            VirusReportStatus.Failed,
-            []
-          );
+        virusReport = await server.ResourceManager.SetVirusReport(
+          transaction,
+          file,
+          fileContent,
+          fileSnapshot,
+          VirusReportStatus.Failed,
+          []
+        );
       }
     }
 

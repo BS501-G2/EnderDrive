@@ -6,43 +6,22 @@ using Resources;
 
 public sealed partial class Connection
 {
-  private delegate Task<R> TransactedRequestHandler<
-    S,
-    R
-  >(
+  private delegate Task<R> TransactedRequestHandler<S, R>(
     ResourceTransaction transaction,
     S request
   );
 
-  private void RegisterTransactedHandler<
-    S,
-    R
-  >(
+  private void RegisterTransactedHandler<S, R>(
     ConnectionContext context,
     ServerSideRequestCode code,
-    TransactedRequestHandler<
-      S,
-      R
-    > handler
+    TransactedRequestHandler<S, R> handler
   ) =>
-    RegisterHandler<
-      S,
-      R
-    >(
+    RegisterHandler<S, R>(
       context,
       code,
-      (
-        request,
-        cancellationToken
-      ) =>
+      (request, cancellationToken) =>
         Resources.Transact(
-          (
-            transaction
-          ) =>
-            handler(
-              transaction,
-              request
-            ),
+          (transaction) => handler(transaction, request),
           cancellationToken
         )
     );

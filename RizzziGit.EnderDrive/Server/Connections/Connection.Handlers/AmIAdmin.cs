@@ -11,9 +11,7 @@ public sealed partial class Connection
 
   private sealed record class AmIAdminResponse
   {
-    [BsonElement(
-      "isAdmin"
-    )]
+    [BsonElement("isAdmin")]
     public required bool isAdmin;
   }
 
@@ -21,34 +19,20 @@ public sealed partial class Connection
     AmIAdminRequest,
     AmIAdminResponse
   > AmIAdmin =>
-    async (
-      transaction,
-      request
-    ) =>
+    async (transaction, request) =>
     {
-      ConnectionContext context =
-        GetContext();
+      ConnectionContext context = GetContext();
 
       UnlockedUserAuthentication userAuthentication =
         Internal_EnsureAuthentication();
-      User me =
-        await Internal_Me(
-          transaction,
-          userAuthentication
-        );
+      User me = await Internal_Me(transaction, userAuthentication);
 
       return new()
       {
-        isAdmin =
-          await Resources
-            .GetAdminAccesses(
-              transaction,
-              me.Id
-            )
-            .ToAsyncEnumerable()
-            .AnyAsync(
-              transaction.CancellationToken
-            ),
+        isAdmin = await Resources
+          .GetAdminAccesses(transaction, me.Id)
+          .ToAsyncEnumerable()
+          .AnyAsync(transaction.CancellationToken),
       };
     };
 }

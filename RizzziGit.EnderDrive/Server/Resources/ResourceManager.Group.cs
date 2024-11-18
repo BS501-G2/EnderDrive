@@ -13,24 +13,15 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 using MongoDB.Bson.Serialization.Attributes;
 using Services;
 
-public record class Group
-  : ResourceData
+public record class Group : ResourceData
 {
-  public static implicit operator RSA(
-    Group groupMembership
-  ) =>
-    KeyManager.DeserializeAsymmetricKey(
-      groupMembership.RsaPublicKey
-    );
+  public static implicit operator RSA(Group groupMembership) =>
+    KeyManager.DeserializeAsymmetricKey(groupMembership.RsaPublicKey);
 
-  [JsonProperty(
-    "name"
-  )]
+  [JsonProperty("name")]
   public required string Name;
 
-  [JsonProperty(
-    "description"
-  )]
+  [JsonProperty("description")]
   public required string? Description;
 
   [JsonIgnore]
@@ -44,19 +35,12 @@ public enum GroupMembershipRole
   Owner,
 }
 
-public record class GroupMembership
-  : ResourceData
+public record class GroupMembership : ResourceData
 {
-  public static implicit operator RSA(
-    GroupMembership groupMembership
-  ) =>
-    KeyManager.DeserializeAsymmetricKey(
-      groupMembership.RsaPublicKey
-    );
+  public static implicit operator RSA(GroupMembership groupMembership) =>
+    KeyManager.DeserializeAsymmetricKey(groupMembership.RsaPublicKey);
 
-  [BsonElement(
-    "groupId"
-  )]
+  [BsonElement("groupId")]
   public required ObjectId GroupId;
 
   [BsonIgnore]
@@ -68,67 +52,48 @@ public record class GroupMembership
   [BsonIgnore]
   public required byte[] EncryptedRsaPrivateKey;
 
-  [BsonElement(
-    "role"
-  )]
+  [BsonElement("role")]
   public required GroupMembershipRole Role;
 
-  [BsonElement(
-    "accepted"
-  )]
+  [BsonElement("accepted")]
   public required bool Accepted;
 
   public UnlockedGroupMembership Unlock(
     UnlockedUserAuthentication userAuthentication
   )
   {
-    byte[] rsaPrivateKey =
-      KeyManager.Decrypt(
-        userAuthentication,
-        EncryptedRsaPrivateKey
-      );
+    byte[] rsaPrivateKey = KeyManager.Decrypt(
+      userAuthentication,
+      EncryptedRsaPrivateKey
+    );
 
     return new()
     {
-      Id =
-        Id,
+      Id = Id,
 
-      Original =
-        this,
+      Original = this,
 
-      GroupId =
-        GroupId,
-      UserId =
-        UserId,
+      GroupId = GroupId,
+      UserId = UserId,
 
-      RsaPublicKey =
-        RsaPublicKey,
-      EncryptedRsaPrivateKey =
-        EncryptedRsaPrivateKey,
+      RsaPublicKey = RsaPublicKey,
+      EncryptedRsaPrivateKey = EncryptedRsaPrivateKey,
 
-      Role =
-        Role,
-      Accepted =
-        Accepted,
+      Role = Role,
+      Accepted = Accepted,
 
-      RsaPrivateKey =
-        rsaPrivateKey,
+      RsaPrivateKey = rsaPrivateKey,
     };
   }
 }
 
-public record class UnlockedGroupMembership
-  : GroupMembership
+public record class UnlockedGroupMembership : GroupMembership
 {
-  public UnlockedGroupMembership()
-  { }
+  public UnlockedGroupMembership() { }
 
   public static implicit operator RSA(
     UnlockedGroupMembership groupMembership
-  ) =>
-    KeyManager.DeserializeAsymmetricKey(
-      groupMembership.RsaPrivateKey
-    );
+  ) => KeyManager.DeserializeAsymmetricKey(groupMembership.RsaPrivateKey);
 
   public required GroupMembership Original;
 
@@ -137,50 +102,29 @@ public record class UnlockedGroupMembership
 
 public sealed partial class ResourceManager
 {
-  public async Task<(
-    Group Group,
-    GroupMembership GroupMembership
-  )> CreateGroup(
+  public async Task<(Group Group, GroupMembership GroupMembership)> CreateGroup(
     ResourceTransaction transaction,
     string name,
     string? description,
     UnlockedUserAuthentication unlockedUserAuthentication
   )
   {
-    RSA rsa =
-      await KeyManager.GenerateAsymmetricKey(
-        transaction.CancellationToken
-      );
-    byte[] rsaPrivateKey =
-      KeyManager.SerializeAsymmetricKey(
-        rsa,
-        true
-      );
-    byte[] rsaPublicKey =
-      KeyManager.SerializeAsymmetricKey(
-        rsa,
-        false
-      );
+    RSA rsa = await KeyManager.GenerateAsymmetricKey(
+      transaction.CancellationToken
+    );
+    byte[] rsaPrivateKey = KeyManager.SerializeAsymmetricKey(rsa, true);
+    byte[] rsaPublicKey = KeyManager.SerializeAsymmetricKey(rsa, false);
 
     Group group =
       new()
       {
-        Id =
-          ObjectId.GenerateNewId(),
-        Name =
-          name,
-        Description =
-          description,
-        RsaPublicKey =
-          rsaPublicKey,
+        Id = ObjectId.GenerateNewId(),
+        Name = name,
+        Description = description,
+        RsaPublicKey = rsaPublicKey,
       };
 
-    await Insert(
-      transaction,
-      [
-        group,
-      ]
-    );
+    await InsertOld(transaction, [group]);
 
     return (
       group,
@@ -202,66 +146,44 @@ public sealed partial class ResourceManager
     byte[] rsaPublicKey
   )
   {
-    byte[] encryptedRsaPrivateKey =
-      KeyManager.Encrypt(
-        userAuthentication,
-        rsaPrivateKey
-      );
+    byte[] encryptedRsaPrivateKey = KeyManager.Encrypt(
+      userAuthentication,
+      rsaPrivateKey
+    );
 
     GroupMembership membership =
       new()
       {
-        Id =
-          ObjectId.GenerateNewId(),
+        Id = ObjectId.GenerateNewId(),
 
-        GroupId =
-          group.Id,
-        UserId =
-          userAuthentication.UserId,
+        GroupId = group.Id,
+        UserId = userAuthentication.UserId,
 
-        RsaPublicKey =
-          rsaPublicKey,
-        EncryptedRsaPrivateKey =
-          encryptedRsaPrivateKey,
+        RsaPublicKey = rsaPublicKey,
+        EncryptedRsaPrivateKey = encryptedRsaPrivateKey,
 
-        Role =
-          GroupMembershipRole.Owner,
-        Accepted =
-          true,
+        Role = GroupMembershipRole.Owner,
+        Accepted = true,
       };
 
-    await Insert(
-      transaction,
-      [
-        membership,
-      ]
-    );
+    await InsertOld(transaction, [membership]);
 
     return new()
     {
-      Original =
-        membership,
+      Original = membership,
 
-      Id =
-        membership.Id,
+      Id = membership.Id,
 
-      GroupId =
-        group.Id,
-      UserId =
-        membership.Id,
+      GroupId = group.Id,
+      UserId = membership.Id,
 
-      RsaPublicKey =
-        membership.RsaPublicKey,
-      EncryptedRsaPrivateKey =
-        encryptedRsaPrivateKey,
+      RsaPublicKey = membership.RsaPublicKey,
+      EncryptedRsaPrivateKey = encryptedRsaPrivateKey,
 
-      Role =
-        membership.Role,
-      Accepted =
-        membership.Accepted,
+      Role = membership.Role,
+      Accepted = membership.Accepted,
 
-      RsaPrivateKey =
-        rsaPrivateKey,
+      RsaPrivateKey = rsaPrivateKey,
     };
   }
 
@@ -271,66 +193,44 @@ public sealed partial class ResourceManager
     User user
   )
   {
-    byte[] encryptedRsaPublicKey =
-      KeyManager.Encrypt(
-        user,
-        adder.RsaPrivateKey
-      );
+    byte[] encryptedRsaPublicKey = KeyManager.Encrypt(
+      user,
+      adder.RsaPrivateKey
+    );
 
     GroupMembership membership =
       new()
       {
-        Id =
-          ObjectId.GenerateNewId(),
+        Id = ObjectId.GenerateNewId(),
 
-        GroupId =
-          adder.GroupId,
-        UserId =
-          user.Id,
+        GroupId = adder.GroupId,
+        UserId = user.Id,
 
-        RsaPublicKey =
-          adder.RsaPublicKey,
-        EncryptedRsaPrivateKey =
-          encryptedRsaPublicKey,
+        RsaPublicKey = adder.RsaPublicKey,
+        EncryptedRsaPrivateKey = encryptedRsaPublicKey,
 
-        Role =
-          GroupMembershipRole.Member,
-        Accepted =
-          false,
+        Role = GroupMembershipRole.Member,
+        Accepted = false,
       };
 
-    await Insert(
-      transaction,
-      [
-        membership,
-      ]
-    );
+    await InsertOld(transaction, [membership]);
 
     return new()
     {
-      Original =
-        membership,
+      Original = membership,
 
-      Id =
-        membership.Id,
+      Id = membership.Id,
 
-      GroupId =
-        membership.GroupId,
-      UserId =
-        membership.UserId,
+      GroupId = membership.GroupId,
+      UserId = membership.UserId,
 
-      RsaPublicKey =
-        membership.RsaPublicKey,
-      EncryptedRsaPrivateKey =
-        membership.EncryptedRsaPrivateKey,
+      RsaPublicKey = membership.RsaPublicKey,
+      EncryptedRsaPrivateKey = membership.EncryptedRsaPrivateKey,
 
-      Role =
-        membership.Role,
-      Accepted =
-        membership.Accepted,
+      Role = membership.Role,
+      Accepted = membership.Accepted,
 
-      RsaPrivateKey =
-        adder.RsaPrivateKey,
+      RsaPrivateKey = adder.RsaPrivateKey,
     };
   }
 
@@ -340,102 +240,48 @@ public sealed partial class ResourceManager
     GroupMembership membership
   )
   {
-    if (
-      membership.Accepted
-    )
+    if (membership.Accepted)
     {
       return membership;
     }
 
-    return await UpdateReturn(
+    return await UpdateReturnOld(
       transaction,
       membership,
-      Builders<GroupMembership>.Update.Set(
-        (
-          e
-        ) =>
-          e.Accepted,
-        true
-      )
+      Builders<GroupMembership>.Update.Set((e) => e.Accepted, true)
     );
   }
 
   public Task RemoveGroupMember(
     ResourceTransaction transaction,
     GroupMembership membership
-  ) =>
-    Delete(
-      transaction,
-      membership
-    );
+  ) => DeleteOld(transaction, membership);
 
   public IQueryable<Group> GetGroups(
     ResourceTransaction transaction,
-    ObjectId? id =
-      null
+    ObjectId? id = null
   ) =>
-    Query<Group>(
+    QueryOld<Group>(
       transaction,
-      (
-        query
-      ) =>
-        query.Where(
-          (
-            item
-          ) =>
-            (
-              id
-                == null
-              || item.Id
-                == id
-            )
-        )
+      (query) => query.Where((item) => (id == null || item.Id == id))
     );
 
   public IQueryable<GroupMembership> GetGroupMemberships(
     ResourceTransaction transaction,
-    User? user =
-      null,
-    Group? group =
-      null,
-    GroupMembershipRole? minRole =
-      null,
-    GroupMembershipRole? maxRole =
-      null
+    User? user = null,
+    Group? group = null,
+    GroupMembershipRole? minRole = null,
+    GroupMembershipRole? maxRole = null
   ) =>
-    Query<GroupMembership>(
+    QueryOld<GroupMembership>(
       transaction,
-      (
-        query
-      ) =>
+      (query) =>
         query.Where(
-          (
-            item
-          ) =>
-            (
-              user
-                == null
-              || item.UserId
-                == user.Id
-            )
-            && (
-              group
-                == null
-              || item.GroupId
-                == group.Id
-            )
-            && (
-              minRole
-                == null
-              || item.Role
-                >= minRole
-            )
-            && (
-              maxRole
-                == null
-              || item.Role
-                <= maxRole
-            )
+          (item) =>
+            (user == null || item.UserId == user.Id)
+            && (group == null || item.GroupId == group.Id)
+            && (minRole == null || item.Role >= minRole)
+            && (maxRole == null || item.Role <= maxRole)
         )
     );
 }

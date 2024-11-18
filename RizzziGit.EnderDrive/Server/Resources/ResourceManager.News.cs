@@ -7,30 +7,19 @@ using Newtonsoft.Json;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
-public record class News
-  : ResourceData
+public record class News : ResourceData
 {
-  [JsonProperty(
-    "title"
-  )]
+  [JsonProperty("title")]
   public required string Title;
 
-  [JsonProperty(
-    "publishTime"
-  )]
-  [BsonRepresentation(
-    BsonType.DateTime
-  )]
+  [JsonProperty("publishTime")]
+  [BsonRepresentation(BsonType.DateTime)]
   public required DateTimeOffset? PublishTime;
 
-  [JsonProperty(
-    "imageFileIds"
-  )]
+  [JsonProperty("imageFileIds")]
   public required ObjectId[] ImageFileIds;
 
-  [JsonProperty(
-    "authorUserId"
-  )]
+  [JsonProperty("authorUserId")]
   public required ObjectId AuthorUserId;
 }
 
@@ -47,85 +36,42 @@ public sealed partial class ResourceManager
     News news =
       new()
       {
-        Id =
-          ObjectId.GenerateNewId(),
-        Title =
-          title,
-        ImageFileIds =
-          images
-            .Select(
-              (
-                item
-              ) =>
-                item.Id
-            )
-            .ToArray(),
-        AuthorUserId =
-          newsAuthor.Id,
-        PublishTime =
-          publishTime,
+        Id = ObjectId.GenerateNewId(),
+        Title = title,
+        ImageFileIds = images.Select((item) => item.Id).ToArray(),
+        AuthorUserId = newsAuthor.Id,
+        PublishTime = publishTime,
       };
 
-    await Insert(
-      transaction,
-      news
-    );
+    await InsertOld(transaction, news);
     return news;
   }
 
-  public async Task DeleteNews(
-    ResourceTransaction transaction,
-    News news
-  )
+  public async Task DeleteNews(ResourceTransaction transaction, News news)
   {
-    await Delete(
-      transaction,
-      news
-    );
+    await DeleteOld(transaction, news);
   }
 
   public IQueryable<News> GetNews(
     ResourceTransaction transaction,
-    bool? published =
-      null,
-    ObjectId? id =
-      null
+    bool? published = null,
+    ObjectId? id = null
   ) =>
-    Query<News>(
+    QueryOld<News>(
       transaction,
-      (
-        query
-      ) =>
+      (query) =>
         query
           .Where(
-            (
-              item
-            ) =>
+            (item) =>
               (
-                (
-                  published
-                  == null
-                )
+                (published == null)
                 || (
                   (bool)published
-                    ? item.PublishTime
-                      != null
-                    : item.PublishTime
-                      == null
+                    ? item.PublishTime != null
+                    : item.PublishTime == null
                 )
-              )
-              && (
-                id
-                  == null
-                || item.Id
-                  == id
-              )
+              ) && (id == null || item.Id == id)
           )
-          .OrderByDescending(
-            (
-              item
-            ) =>
-              item.Id
-          )
+          .OrderByDescending((item) => item.Id)
     );
 }

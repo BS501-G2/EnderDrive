@@ -8,72 +8,13 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 
 using Services;
 
-public record class AdminKey
-  : ResourceData
+public record class AdminKey : ResourceData
 {
   public required int Iterations;
   public required byte[] Salt;
 
   public required byte[] ChallengeBytes;
   public required byte[] EncryptedChallengeBytes;
-
-  public UnlockedAdminKey Unlock(
-    string password
-  )
-  {
-    using Rfc2898DeriveBytes rfc2898DeriveBytes =
-      new(
-        Encoding.UTF8.GetBytes(
-          password
-        ),
-        Salt,
-        Iterations,
-        HashAlgorithmName.SHA256
-      );
-    byte[] aesKey =
-      rfc2898DeriveBytes.GetBytes(
-        32
-      );
-
-    byte[] decryptedChallengeBytes =
-      KeyManager.Decrypt(
-        aesKey,
-        EncryptedChallengeBytes
-      );
-
-    return new UnlockedAdminKey()
-    {
-      Id =
-        Id,
-      Iterations =
-        Iterations,
-      Salt =
-        Salt,
-
-      ChallengeBytes =
-        ChallengeBytes,
-      EncryptedChallengeBytes =
-        EncryptedChallengeBytes,
-
-      Original =
-        this,
-      AesKey =
-        aesKey,
-    };
-  }
-}
-
-public sealed record class UnlockedAdminKey
-  : AdminKey
-{
-  public static implicit operator byte[](
-    UnlockedAdminKey adminKey
-  ) =>
-    adminKey.AesKey;
-
-  public required AdminKey Original;
-
-  public required byte[] AesKey;
 }
 
 public sealed partial class ResourceManager
@@ -83,107 +24,38 @@ public sealed partial class ResourceManager
     string password
   )
   {
-    ResourceManagerContext context =
-      GetContext();
+    ResourceManagerContext context = GetContext();
 
-    int iterations =
-      10000;
+    int iterations = 10000;
 
-    byte[] salt =
-      new byte[
-        16
-      ];
-    context.RandomNumberGenerator.GetBytes(
-      salt
+    byte[] salt = new byte[16];
+    context.RandomNumberGenerator.GetBytes(salt);
+
+    byte[] iv = new byte[16];
+    context.RandomNumberGenerator.GetBytes(iv);
+
+    byte[] aesKey = HashPayload(
+      salt,
+      iterations,
+      Encoding.UTF8.GetBytes(password)
     );
 
-    byte[] iv =
-      new byte[
-        16
-      ];
-    context.RandomNumberGenerator.GetBytes(
-      iv
-    );
+    byte[] challengeBytes = new byte[1024 * 8];
+    byte[] encryptedChallengeBytes = KeyManager.Encrypt(aesKey, challengeBytes);
 
-    byte[] aesKey =
-      HashPayload(
-        salt,
-        iterations,
-        Encoding.UTF8.GetBytes(
-          password
-        )
-      );
-
-    byte[] challengeBytes =
-      new byte[
-        1024
-          * 8
-      ];
-    byte[] encryptedChallengeBytes =
-      KeyManager.Encrypt(
-        aesKey,
-        challengeBytes
-      );
-
-    AdminKey adminKey =
+    Resource<AdminKey> adminKey = ToResource<AdminKey>(
+      transaction,
       new()
       {
-        Id =
-          ObjectId.GenerateNewId(),
-        Iterations =
-          iterations,
-        Salt =
-          salt,
+        Id = ObjectId.GenerateNewId(),
+        Iterations = iterations,
+        Salt = salt,
 
-        ChallengeBytes =
-          challengeBytes,
-        EncryptedChallengeBytes =
-          encryptedChallengeBytes,
-      };
-
-    await Insert(
-      transaction,
-      [
-        adminKey,
-      ]
+        ChallengeBytes = challengeBytes,
+        EncryptedChallengeBytes = encryptedChallengeBytes,
+      }
     );
 
-    return new()
-    {
-      Id =
-        adminKey.Id,
-      Iterations =
-        adminKey.Iterations,
-      Salt =
-        adminKey.Salt,
-
-      ChallengeBytes =
-        adminKey.ChallengeBytes,
-      EncryptedChallengeBytes =
-        adminKey.EncryptedChallengeBytes,
-
-      Original =
-        adminKey,
-
-      AesKey =
-        aesKey,
-    };
-  }
-
-  public async Task<AdminKey?> GetExistingAdminKey(
-    ResourceTransaction transaction
-  )
-  {
-    return await Query<AdminKey>(
-        transaction,
-        (
-          query
-        ) =>
-          query
-      )
-      .ToAsyncEnumerable()
-      .FirstOrDefaultAsync(
-        transaction.CancellationToken
-      );
+    return new(adminKey) { AesKey = aesKey };
   }
 }

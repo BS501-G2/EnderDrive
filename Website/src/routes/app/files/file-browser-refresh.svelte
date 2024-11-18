@@ -1,19 +1,10 @@
-<script
-  lang="ts"
->
-  import { useAppContext } from '$lib/client/contexts/app';
-  import { useFileBrowserContext } from '$lib/client/contexts/file-browser';
-  import FileBrowserAction from './file-browser-action.svelte';
+<script lang="ts">
+  import { useAppContext } from '$lib/client/contexts/app'
+  import { useFileBrowserContext } from '$lib/client/contexts/file-browser'
+  import FileBrowserAction from './file-browser-action.svelte'
 
-  const {
-    refresh
-  } =
-    useFileBrowserContext();
-  const {
-    isDesktop,
-    isMobile
-  } =
-    useAppContext();
+  const { refresh } = useFileBrowserContext()
+  const { isDesktop, isMobile } = useAppContext()
 </script>
 
 {#if $isDesktop}
@@ -21,8 +12,7 @@
     label="Refresh"
     icon={{
       icon: 'refresh',
-      thickness:
-        'solid'
+      thickness: 'solid'
     }}
     onclick={refresh}
     type="right"
@@ -32,8 +22,7 @@
     label="Refresh"
     icon={{
       icon: 'refresh',
-      thickness:
-        'solid'
+      thickness: 'solid'
     }}
     onclick={refresh}
     type="right-main"

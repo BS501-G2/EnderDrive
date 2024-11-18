@@ -1,12 +1,6 @@
-import {
-  writable,
-  type Writable
-} from 'svelte/store';
-import type { IconOptions } from '../ui/icon.svelte';
-import {
-  getContext,
-  setContext
-} from 'svelte';
+import { writable, type Writable } from 'svelte/store'
+import type { IconOptions } from '../ui/icon.svelte'
+import { getContext, setContext } from 'svelte'
 
 export interface OverlayContext {
   pushButton: (
@@ -14,89 +8,56 @@ export interface OverlayContext {
     icon: IconOptions,
     onclick: (
       event: MouseEvent & {
-        currentTarget: EventTarget &
-          HTMLButtonElement;
+        currentTarget: EventTarget & HTMLButtonElement
       }
     ) => void
-  ) => () => void;
+  ) => () => void
 }
 
 export interface WindowButton {
-  id: number;
-  tooltip: string;
+  id: number
+  tooltip: string
 
-  icon: IconOptions;
+  icon: IconOptions
   onclick: (
     event: MouseEvent & {
-      currentTarget: EventTarget &
-        HTMLButtonElement;
+      currentTarget: EventTarget & HTMLButtonElement
     }
-  ) => void;
+  ) => void
 }
 
-const overlayContextName =
-  'Overlay Context';
+const overlayContextName = 'Overlay Context'
 
 export function createOverlayContext() {
-  const buttons: Writable<
-    WindowButton[]
-  > =
-    writable(
-      []
-    );
+  const buttons: Writable<WindowButton[]> = writable([])
 
-  const context =
-    setContext<OverlayContext>(
-      overlayContextName,
-      {
-        pushButton:
-          (
-            tooltip,
-            icon,
-            onclick
-          ) => {
-            const id =
-              Math.random();
+  const context = setContext<OverlayContext>(overlayContextName, {
+    pushButton: (tooltip, icon, onclick) => {
+      const id = Math.random()
 
-            buttons.update(
-              (
-                buttons
-              ) => [
-                ...buttons,
-                {
-                  id,
-                  tooltip,
-                  icon,
-                  onclick
-                }
-              ]
-            );
+      buttons.update((buttons) => [
+        ...buttons,
+        {
+          id,
+          tooltip,
+          icon,
+          onclick
+        }
+      ])
 
-            return () =>
-              buttons.update(
-                (
-                  buttons
-                ) =>
-                  buttons.filter(
-                    (
-                      button
-                    ) =>
-                      button.id !==
-                      id
-                  )
-              );
-          }
-      }
-    );
+      return () =>
+        buttons.update((buttons) =>
+          buttons.filter((button) => button.id !== id)
+        )
+    }
+  })
 
   return {
     buttons,
     context
-  };
+  }
 }
 
 export function getOverlayContext() {
-  return getContext<OverlayContext>(
-    overlayContextName
-  );
+  return getContext<OverlayContext>(overlayContextName)
 }

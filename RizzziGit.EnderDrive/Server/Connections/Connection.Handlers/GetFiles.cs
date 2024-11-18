@@ -13,47 +13,31 @@ public sealed partial class Connection
 {
   private sealed record class GetFilesRequest
   {
-    [BsonElement(
-      "parentFolderId"
-    )]
+    [BsonElement("parentFolderId")]
     public required ObjectId? ParentFolderId;
 
-    [BsonElement(
-      "fileType"
-    )]
+    [BsonElement("fileType")]
     public required FileType? FileType;
 
-    [BsonElement(
-      "name"
-    )]
+    [BsonElement("name")]
     public required string? Name;
 
-    [BsonElement(
-      "ownerUserId"
-    )]
+    [BsonElement("ownerUserId")]
     public required ObjectId? OwnerUserId;
 
-    [BsonElement(
-      "id"
-    )]
+    [BsonElement("id")]
     public required ObjectId? Id;
 
-    [BsonElement(
-      "trashOptions"
-    )]
+    [BsonElement("trashOptions")]
     public required TrashOptions? TrashOptions;
 
-    [BsonElement(
-      "pagination"
-    )]
+    [BsonElement("pagination")]
     public required PaginationOptions? Pagination;
   }
 
   private sealed record class GetFilesResponse
   {
-    [BsonElement(
-      "files"
-    )]
+    [BsonElement("files")]
     public required string[] Files;
   }
 
@@ -61,23 +45,15 @@ public sealed partial class Connection
     GetFilesRequest,
     GetFilesResponse
   > GetFiles =>
-    async (
-      transaction,
-      request,
-      userAuthentication,
-      me,
-      _
-    ) =>
+    async (transaction, request, userAuthentication, me, _) =>
     {
-      File? parentFolder =
-        await Internal_GetFile(
-          transaction,
-          me,
-          request.ParentFolderId
-        );
+      File? parentFolder = await Internal_GetFile(
+        transaction,
+        me,
+        request.ParentFolderId
+      );
       FileAccessResult? parentFolderAccess =
-        parentFolder
-        != null
+        parentFolder != null
           ? await Internal_UnlockFile(
             transaction,
             parentFolder,
@@ -88,34 +64,21 @@ public sealed partial class Connection
           : null;
 
       User? ownerUser =
-        request.OwnerUserId
-        != null
+        request.OwnerUserId != null
           ? await Resources
-            .GetUsers(
-              transaction,
-              id: request.OwnerUserId
-            )
+            .GetUsers(transaction, id: request.OwnerUserId)
             .ToAsyncEnumerable()
-            .FirstOrDefaultAsync(
-              transaction.CancellationToken
-            )
+            .FirstOrDefaultAsync(transaction.CancellationToken)
           : null;
 
       if (
-        ownerUser
-          == null
+        ownerUser == null
         || (
-          ownerUser.Id
-            != me.Id
+          ownerUser.Id != me.Id
           && !await Resources
-            .GetAdminAccesses(
-              transaction,
-              userId: me.Id
-            )
+            .GetAdminAccesses(transaction, userId: me.Id)
             .ToAsyncEnumerable()
-            .AnyAsync(
-              transaction.CancellationToken
-            )
+            .AnyAsync(transaction.CancellationToken)
         )
       )
       {
@@ -124,41 +87,26 @@ public sealed partial class Connection
         );
       }
 
-      File[] files =
-        await Resources
-          .GetFiles(
-            transaction,
-            parentFolder,
-            request.FileType,
-            request.Name,
-            ownerUser,
-            request.Id,
-            request.TrashOptions
-              ?? TrashOptions.NotIncluded
-          )
-          .ApplyPagination(
-            request.Pagination
-          )
-          .ToAsyncEnumerable()
-          .ToArrayAsync(
-            transaction.CancellationToken
-          );
+      File[] files = await Resources
+        .GetFiles(
+          transaction,
+          parentFolder,
+          request.FileType,
+          request.Name,
+          ownerUser,
+          request.Id,
+          request.TrashOptions ?? TrashOptions.NotIncluded
+        )
+        .OrderByDescending((file) => file.Type)
+        .ApplyPagination(request.Pagination)
+        .ToAsyncEnumerable()
+        .ToArrayAsync(transaction.CancellationToken);
 
       return new()
       {
-        Files =
-          files
-            .Select(
-              (
-                file
-              ) =>
-                JToken
-                  .FromObject(
-                    file
-                  )
-                  .ToString()
-            )
-            .ToArray(),
+        Files = files
+          .Select((file) => JToken.FromObject(file).ToString())
+          .ToArray(),
       };
     };
 }

@@ -1,8 +1,6 @@
-<script
-  lang="ts"
->
-  import type { Snippet } from 'svelte';
-  import Overlay from '../../../routes/overlay.svelte';
+<script lang="ts">
+  import type { Snippet } from 'svelte'
+  import Overlay from '../../../routes/overlay.svelte'
 
   const {
     ondismiss,
@@ -10,59 +8,43 @@
     children,
     footer
   }: {
-    ondismiss: () => void;
-    head?: Snippet;
-    footer?: Snippet;
-    children?: Snippet;
-  } =
-    $props();
+    ondismiss: () => void
+    head?: Snippet
+    footer?: Snippet
+    children?: Snippet
+  } = $props()
 </script>
 
-<Overlay
-  {ondismiss}
->
-  <div
-    class="dialog"
-  >
+<Overlay {ondismiss}>
+  <div class="dialog">
     {#if head}
-      <div
-        class="head"
-      >
+      <div class="head">
         {@render head()}
       </div>
     {/if}
 
     {#if children}
-      <div
-        class="body"
-      >
+      <div class="body">
         {@render children()}
       </div>
     {/if}
 
     {#if footer}
-      <div
-        class="footer"
-      >
+      <div class="footer">
         {@render footer()}
       </div>
     {/if}
   </div>
 </Overlay>
 
-<style
-  lang="scss"
->
+<style lang="scss">
   div.dialog {
     display: flex;
     flex-direction: column;
 
     padding: 8px;
 
-    box-shadow: 2px
-      2px
-      8px
-      black;
+    box-shadow: 2px 2px 8px black;
     background-color: white;
 
     padding: 16px;

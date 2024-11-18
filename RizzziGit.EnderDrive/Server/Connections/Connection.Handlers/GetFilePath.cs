@@ -12,20 +12,15 @@ using Utilities;
 
 public sealed partial class Connection
 {
-  private sealed record class GetFilePathRequest
-    : BaseFileRequest
+  private sealed record class GetFilePathRequest : BaseFileRequest
   {
-    [BsonElement(
-      "pagination"
-    )]
+    [BsonElement("pagination")]
     public required PaginationOptions? Pagination;
   }
 
   private sealed record class GetFilePathResponse
   {
-    [BsonElement(
-      "path"
-    )]
+    [BsonElement("path")]
     public required string[] Path;
   }
 
@@ -44,44 +39,25 @@ public sealed partial class Connection
     ) =>
     {
       File rootFile =
-        result.FileAccess
-        != null
+        result.FileAccess != null
           ? result.File
-          : await Resources.GetRootFolder(
-            transaction,
-            me
-          );
+          : await Resources.GetRootFolder(transaction, me);
 
-      List<File> path =
-
-        [
-          currentFile,
-        ];
-      while (
-        true
-      )
+      List<File> path = [currentFile];
+      while (true)
       {
-        currentFile =
-          await Internal_GetFile(
-            transaction,
-            me,
-            currentFile.ParentId
-          );
+        currentFile = await Internal_GetFile(
+          transaction,
+          me,
+          currentFile.ParentId
+        );
 
-        if (
-          path.Last().Id
-          != currentFile.Id
-        )
+        if (path.Last().Id != currentFile.Id)
         {
-          path.Add(
-            currentFile
-          );
+          path.Add(currentFile);
         }
 
-        if (
-          currentFile.Id
-          == rootFile.Id
-        )
+        if (currentFile.Id == rootFile.Id)
         {
           break;
         }
@@ -89,19 +65,9 @@ public sealed partial class Connection
 
       return new()
       {
-        Path =
-          path.Reverse<File>()
-            .Select(
-              (
-                entry
-              ) =>
-                JToken
-                  .FromObject(
-                    entry
-                  )
-                  .ToString()
-            )
-            .ToArray(),
+        Path = path.Reverse<File>()
+          .Select((entry) => JToken.FromObject(entry).ToString())
+          .ToArray(),
       };
     };
 }

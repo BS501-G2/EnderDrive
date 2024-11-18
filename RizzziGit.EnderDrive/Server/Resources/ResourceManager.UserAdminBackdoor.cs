@@ -9,48 +9,37 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 
 using Services;
 
-public record class UserAdminBackdoor
-  : ResourceData
+public record class UserAdminBackdoor : ResourceData
 {
   public required ObjectId UserId;
 
   public required byte[] EncryptedUserPrivateRsaKey;
 
-  public UnlockedUserAdminBackdoor Unlocked(
-    UnlockedAdminAccess adminAccess
-  )
+  public UnlockedUserAdminBackdoor Unlocked(UnlockedAdminAccess adminAccess)
   {
-    byte[] userAesKey =
-      KeyManager.Decrypt(
-        adminAccess,
-        EncryptedUserPrivateRsaKey
-      );
+    byte[] userAesKey = KeyManager.Decrypt(
+      adminAccess,
+      EncryptedUserPrivateRsaKey
+    );
 
     return new()
     {
-      Id =
-        Id,
+      Id = Id,
 
-      Original =
-        this,
-      UserPrivateRsaKey =
-        userAesKey,
+      Original = this,
+      UserPrivateRsaKey = userAesKey,
 
-      UserId =
-        UserId,
-      EncryptedUserPrivateRsaKey =
-        EncryptedUserPrivateRsaKey,
+      UserId = UserId,
+      EncryptedUserPrivateRsaKey = EncryptedUserPrivateRsaKey,
     };
   }
 }
 
-public record class UnlockedUserAdminBackdoor
-  : UserAdminBackdoor
+public record class UnlockedUserAdminBackdoor : UserAdminBackdoor
 {
   public static implicit operator byte[](
     UnlockedUserAdminBackdoor userAdminBackdoor
-  ) =>
-    userAdminBackdoor.UserPrivateRsaKey;
+  ) => userAdminBackdoor.UserPrivateRsaKey;
 
   public required UserAdminBackdoor Original;
 
@@ -66,62 +55,38 @@ public sealed partial class ResourceManager
     UnlockedAdminKey adminKey
   )
   {
-    byte[] userPrivateRsaKey =
-      userAuthentication.UserRsaPrivateKey;
+    byte[] userPrivateRsaKey = userAuthentication.UserRsaPrivateKey;
     UserAdminBackdoor item =
       new()
       {
-        Id =
-          ObjectId.GenerateNewId(),
+        Id = ObjectId.GenerateNewId(),
 
-        UserId =
-          user.Id,
-        EncryptedUserPrivateRsaKey =
-          KeyManager.Encrypt(
-            adminKey,
-            userPrivateRsaKey
-          ),
+        UserId = user.Id,
+        EncryptedUserPrivateRsaKey = KeyManager.Encrypt(
+          adminKey,
+          userPrivateRsaKey
+        ),
       };
 
-    await Insert(
-      transaction,
-      item
-    );
+    await InsertOld(transaction, item);
 
     return new()
     {
-      Id =
-        item.Id,
-      UserId =
-        item.UserId,
-      EncryptedUserPrivateRsaKey =
-        item.EncryptedUserPrivateRsaKey,
-      UserPrivateRsaKey =
-        userPrivateRsaKey,
+      Id = item.Id,
+      UserId = item.UserId,
+      EncryptedUserPrivateRsaKey = item.EncryptedUserPrivateRsaKey,
+      UserPrivateRsaKey = userPrivateRsaKey,
 
-      Original =
-        item,
+      Original = item,
     };
   }
 
   public IQueryable<UserAdminBackdoor> GetUserAdminBackdoors(
     ResourceTransaction transaction,
-    ObjectId? userId =
-      null
+    ObjectId? userId = null
   ) =>
-    Query<UserAdminBackdoor>(
+    QueryOld<UserAdminBackdoor>(
       transaction,
-      (
-        query
-      ) =>
-        query.Where(
-          (
-            item
-          ) =>
-            userId
-              == null
-            || item.UserId
-              == userId
-        )
+      (query) => query.Where((item) => userId == null || item.UserId == userId)
     );
 }

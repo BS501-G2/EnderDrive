@@ -11,22 +11,16 @@ public sealed partial class Connection
 {
   private sealed record class AuthenticateGoogleRequest
   {
-    [BsonElement(
-      "token"
-    )]
+    [BsonElement("token")]
     public required string Token;
   }
 
   private sealed record class AuthenticateGoogleResponse
   {
-    [BsonElement(
-      "userId"
-    )]
+    [BsonElement("userId")]
     public required string UserId;
 
-    [BsonElement(
-      "token"
-    )]
+    [BsonElement("token")]
     public required string Token;
   }
 
@@ -34,19 +28,14 @@ public sealed partial class Connection
     AuthenticateGoogleRequest,
     AuthenticateGoogleResponse
   > AuthenticateGoogle =>
-    async (
-      transaction,
-      request
-    ) =>
+    async (transaction, request) =>
     {
-      byte[] payload =
-        await Server.GoogleService.GetPayload(
-          request.Token,
-          transaction.CancellationToken
-        );
+      byte[] payload = await Server.GoogleService.GetPayload(
+        request.Token,
+        transaction.CancellationToken
+      );
 
-      UnlockedUserAuthentication? unlockedUserAuthentication =
-        null;
+      UnlockedUserAuthentication? unlockedUserAuthentication = null;
       await foreach (
         UserAuthentication userAuthentication in Resources
           .GetUserAuthentications(
@@ -58,66 +47,41 @@ public sealed partial class Connection
       {
         try
         {
-          unlockedUserAuthentication =
-            userAuthentication.Unlock(
-              payload
-            );
+          unlockedUserAuthentication = userAuthentication.Unlock(payload);
           break;
         }
-        catch
-        { }
+        catch { }
       }
 
-      if (
-        unlockedUserAuthentication
-        == null
-      )
+      if (unlockedUserAuthentication == null)
       {
         throw new InvalidOperationException(
           "No EnderDrive account associated with this Google account."
         );
       }
 
-      User user =
-        await Resources
-          .GetUsers(
-            transaction,
-            id: unlockedUserAuthentication.UserId
-          )
-          .ToAsyncEnumerable()
-          .FirstAsync(
-            transaction.CancellationToken
-          );
+      User user = await Resources
+        .GetUsers(transaction, id: unlockedUserAuthentication.UserId)
+        .ToAsyncEnumerable()
+        .FirstAsync(transaction.CancellationToken);
 
-      await Resources.TruncateLatestToken(
+      await Resources.TruncateLatestToken(transaction, user, 10);
+      CompositeBuffer tokenPayload = CompositeBuffer.From(
+        CompositeBuffer.Random(16).ToHexString()
+      );
+
+      GetContext().CurrentUser = await Resources.AddUserAuthentication(
         transaction,
         user,
-        10
+        unlockedUserAuthentication,
+        UserAuthenticationType.Token,
+        tokenPayload.ToByteArray()
       );
-      CompositeBuffer tokenPayload =
-        CompositeBuffer.From(
-          CompositeBuffer
-            .Random(
-              16
-            )
-            .ToHexString()
-        );
-
-      GetContext().CurrentUser =
-        await Resources.AddUserAuthentication(
-          transaction,
-          user,
-          unlockedUserAuthentication,
-          UserAuthenticationType.Token,
-          tokenPayload.ToByteArray()
-        );
 
       return new()
       {
-        UserId =
-          user.Id.ToString(),
-        Token =
-          tokenPayload.ToString(),
+        UserId = user.Id.ToString(),
+        Token = tokenPayload.ToString(),
       };
     };
 }

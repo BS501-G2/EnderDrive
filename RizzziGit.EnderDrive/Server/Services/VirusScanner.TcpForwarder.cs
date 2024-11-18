@@ -22,35 +22,21 @@ public sealed partial class VirusScanner
     VirusScanner scanner,
     IPEndPoint ipEndPoint,
     string unixSocketPath
-  )
-    : Service<TcpForwarderContext>(
-      "TCP Forwarder",
-      scanner
-    )
+  ) : Service<TcpForwarderContext>("TCP Forwarder", scanner)
   {
     protected override Task<TcpForwarderContext> OnStart(
       CancellationToken startupCancellationToken,
       CancellationToken serviceCancellationToken
     )
     {
-      TcpListener internalTcpListener =
-        new(
-          ipEndPoint
-        );
+      TcpListener internalTcpListener = new(ipEndPoint);
 
       internalTcpListener.Start();
 
-      Debug(
-        $"{ipEndPoint}",
-        "EndPoint"
-      );
+      Debug($"{ipEndPoint}", "EndPoint");
 
       return Task.FromResult<TcpForwarderContext>(
-        new()
-        {
-          InternalTcpListener =
-            internalTcpListener,
-        }
+        new() { InternalTcpListener = internalTcpListener }
       );
     }
 
@@ -60,73 +46,32 @@ public sealed partial class VirusScanner
     )
     {
       using Socket socket =
-        new(
-          AddressFamily.Unix,
-          SocketType.Stream,
-          ProtocolType.IP
-        );
-      await socket.ConnectAsync(
-        new UnixDomainSocketEndPoint(
-          unixSocketPath
-        )
-      );
+        new(AddressFamily.Unix, SocketType.Stream, ProtocolType.IP);
+      await socket.ConnectAsync(new UnixDomainSocketEndPoint(unixSocketPath));
 
-      using NetworkStream clientStream =
-        client.GetStream();
-      using NetworkStream socketStream =
-        new(
-          socket,
-          true
-        );
+      using NetworkStream clientStream = client.GetStream();
+      using NetworkStream socketStream = new(socket, true);
 
-      async Task pipe(
-        NetworkStream from,
-        NetworkStream to
-      )
+      async Task pipe(NetworkStream from, NetworkStream to)
       {
-        byte[] buffer =
-          new byte[
-            1024
-              * 256
-          ];
-        while (
-          true
-        )
+        byte[] buffer = new byte[1024 * 256];
+        while (true)
         {
-          int bufferRead =
-            await from.ReadAsync(
-              buffer,
-              cancellationToken
-            );
-          if (
-            bufferRead
-            == 0
-          )
+          int bufferRead = await from.ReadAsync(buffer, cancellationToken);
+          if (bufferRead == 0)
           {
             break;
           }
 
           await to.WriteAsync(
-            buffer.AsMemory(
-              0,
-              bufferRead
-            ),
+            buffer.AsMemory(0, bufferRead),
             cancellationToken
           );
         }
       }
 
       await Task.WhenAny(
-        [
-          pipe(
-            socketStream,
-            clientStream
-          ),
-          pipe(
-            clientStream,
-            socketStream
-          ),
-        ]
+        [pipe(socketStream, clientStream), pipe(clientStream, socketStream)]
       );
     }
 
@@ -135,101 +80,72 @@ public sealed partial class VirusScanner
       CancellationToken cancellationToken
     )
     {
-      List<Task> connections =
-
-        [];
+      List<Task> connections = [];
 
       try
       {
-        while (
-          true
-        )
+        while (true)
         {
           cancellationToken.ThrowIfCancellationRequested();
 
-          TaskCompletionSource source =
-            new();
+          TaskCompletionSource source = new();
 
-          _ =
-            Task.Run(
-              async () =>
+          _ = Task.Run(
+            async () =>
+            {
+              TcpClient client;
+
+              try
               {
-                TcpClient client;
+                Info($"Waiting for ClamAV client...");
+                client = await listener.AcceptTcpClientAsync(cancellationToken);
 
-                try
+                source.SetResult();
+              }
+              catch (Exception exception)
+              {
+                source.SetException(exception);
+                return;
+              }
+
+              async Task handle()
+              {
+                using (client)
                 {
-                  Info(
-                    $"Waiting for ClamAV client..."
-                  );
-                  client =
-                    await listener.AcceptTcpClientAsync(
-                      cancellationToken
-                    );
-
-                  source.SetResult();
+                  await HandleTcpClient(client, cancellationToken);
                 }
-                catch (Exception exception)
-                {
-                  source.SetException(
-                    exception
-                  );
-                  return;
-                }
+              }
 
-                async Task handle()
+              Task task = handle();
+              try
+              {
+                lock (connections)
                 {
-                  using (
-                    client
-                  )
-                  {
-                    await HandleTcpClient(
-                      client,
-                      cancellationToken
-                    );
-                  }
+                  connections.Add(task);
                 }
 
-                Task task =
-                  handle();
-                try
+                await task;
+              }
+              catch (Exception exception)
+              {
+                lock (connections)
                 {
-                  lock (connections)
-                  {
-                    connections.Add(
-                      task
-                    );
-                  }
-
-                  await task;
+                  connections.Remove(task);
                 }
-                catch (Exception exception)
-                {
-                  lock (connections)
-                  {
-                    connections.Remove(
-                      task
-                    );
-                  }
 
-                  Error(
-                    $"Handler Exception: {exception.ToPrintable()}"
-                  );
-                }
-              },
-              CancellationToken.None
-            );
+                Error($"Handler Exception: {exception.ToPrintable()}");
+              }
+            },
+            CancellationToken.None
+          );
 
           await source.Task;
-          Info(
-            $"ClamAV client connected."
-          );
+          Info($"ClamAV client connected.");
         }
       }
       catch
       {
-        await Task.WhenAll(
-          connections
-        );
+        await Task.WhenAll(connections);
 
         throw;
       }
@@ -240,10 +156,7 @@ public sealed partial class VirusScanner
       CancellationToken cancellationToken
     )
     {
-      await ListenTcp(
-        GetContext().InternalTcpListener,
-        cancellationToken
-      );
+      await ListenTcp(GetContext().InternalTcpListener, cancellationToken);
     }
 
     protected override Task OnStop(
@@ -251,8 +164,7 @@ public sealed partial class VirusScanner
       ExceptionDispatchInfo? exception
     )
     {
-      GetContext()
-        .InternalTcpListener.Stop();
+      GetContext().InternalTcpListener.Stop();
       return Task.CompletedTask;
     }
   }

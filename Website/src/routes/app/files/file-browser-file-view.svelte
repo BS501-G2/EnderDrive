@@ -1,104 +1,49 @@
-<script
-  lang="ts"
->
-  import {
-    useServerContext,
-    type FileResource
-  } from '$lib/client/client';
-  import {
-    onMount,
-    type Snippet
-  } from 'svelte';
-  import Overlay from '../../overlay.svelte';
-  import FileBrowserRefresh from './file-browser-refresh.svelte';
-  import { useAppContext } from '$lib/client/contexts/app';
-  import FileBrowserFileContent from './file-browser-file-content.svelte';
+<script lang="ts">
+  import { useServerContext, type FileResource } from '$lib/client/client'
+  import { onMount, type Snippet } from 'svelte'
+  import Overlay from '../../overlay.svelte'
+  import FileBrowserRefresh from './file-browser-refresh.svelte'
+  import { useAppContext } from '$lib/client/contexts/app'
+  import FileBrowserFileContent from './file-browser-file-content.svelte'
   import {
     useFileBrowserContext,
     type FileBrowserAction
-  } from '$lib/client/contexts/file-browser';
-  import FileBrowserActionHostMobile from './file-browser-action-host-mobile.svelte';
-  import {
-    derived,
-    writable,
-    type Readable
-  } from 'svelte/store';
-  import { createFileBrowserListContext } from '$lib/client/contexts/file-browser-list';
+  } from '$lib/client/contexts/file-browser'
+  import FileBrowserActionHostMobile from './file-browser-action-host-mobile.svelte'
+  import { derived, writable, type Readable } from 'svelte/store'
+  import { createFileBrowserListContext } from '$lib/client/contexts/file-browser-list'
 
   const {
     file,
     actions
   }: {
-    file: FileResource;
-    actions: Readable<
-      FileBrowserAction[]
-    >;
-  } =
-    $props();
-  const {
-    getFile,
-    getFileContents,
-    getFileSnapshots,
-    scanFile
-  } =
-    useServerContext();
-  const {
-    setFileListContext
-  } =
-    useFileBrowserContext();
+    file: FileResource
+    actions: Readable<FileBrowserAction[]>
+  } = $props()
+  const { getFile, getFileContents, getFileSnapshots, scanFile } =
+    useServerContext()
+  const { setFileListContext } = useFileBrowserContext()
 
-  const {
-    isMobile,
-    isDesktop
-  } =
-    useAppContext();
-  const {
-    selectedFileIds,
-    context
-  } =
-    createFileBrowserListContext();
+  const { isMobile, isDesktop } = useAppContext()
+  const { selectedFileIds, context } = createFileBrowserListContext()
 
-  onMount(
-    () => {
-      const ondestroy =
-        setFileListContext(
-          context
-        );
-      selectedFileIds.set(
-        [
-          file.id
-        ]
-      );
+  onMount(() => {
+    const ondestroy = setFileListContext(context)
+    selectedFileIds.set([file.id])
 
-      return ondestroy;
-    }
-  );
+    return ondestroy
+  })
 </script>
 
-<FileBrowserRefresh
-/>
+<FileBrowserRefresh />
 
 {#if $isMobile}
-  <Overlay
-    ondismiss={() =>
-      window.history.back()}
-    x={0}
-    y={0}
-  >
-    {#snippet children(
-      windowButtons: Snippet
-    )}
-      <div
-        class="overlay"
-      >
-        <div
-          class="header"
-        >
-          <div
-            class="title"
-          >
-            <p
-            >
+  <Overlay ondismiss={() => window.history.back()} x={0} y={0}>
+    {#snippet children(windowButtons: Snippet)}
+      <div class="overlay">
+        <div class="header">
+          <div class="title">
+            <p>
               {file.name}
             </p>
           </div>
@@ -106,12 +51,8 @@
           {@render windowButtons()}
         </div>
 
-        <div
-          class="main"
-        >
-          <FileBrowserFileContent
-            fileId={file.id}
-          />
+        <div class="main">
+          <FileBrowserFileContent fileId={file.id} />
         </div>
         <!--
 				<div class="footer">
@@ -123,37 +64,24 @@
 {/if}
 
 {#if $isDesktop}
-  <div
-    class="content"
-  >
-    <FileBrowserFileContent
-      fileId={file.id}
-    />
+  <div class="content">
+    <FileBrowserFileContent fileId={file.id} />
   </div>
 {/if}
 
-<style
-  lang="scss"
->
-  @use '../../../global.scss'
-    as *;
+<style lang="scss">
+  @use '../../../global.scss' as *;
 
   div.content {
     // @include force-size(100dvw, 100dvh);
+    flex-grow: 1;
   }
 
   div.overlay {
-    @include force-size(
-      100dvw,
-      100dvh
-    );
+    @include force-size(100dvw, 100dvh);
 
-    background-color: var(
-      --color-10
-    );
-    color: var(
-      --color-5
-    );
+    background-color: var(--color-10);
+    color: var(--color-5);
 
     > div.header {
       flex-direction: row;

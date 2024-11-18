@@ -1,91 +1,54 @@
-<script
-  lang="ts"
->
-  import {
-    useServerContext,
-    type UserResource
-  } from '$lib/client/client';
-  import { useDashboardContext } from '$lib/client/contexts/dashboard';
-  import Button from '$lib/client/ui/button.svelte';
-  import Icon from '$lib/client/ui/icon.svelte';
-  import { type Snippet } from 'svelte';
-  import Overlay from '../overlay.svelte';
-  import UserMenu from './user-menu.svelte';
-  import { goto } from '$app/navigation';
-  import Separator from '$lib/client/ui/separator.svelte';
-  import { fly } from 'svelte/transition';
+<script lang="ts">
+  import { useServerContext, type UserResource } from '$lib/client/client'
+  import { useDashboardContext } from '$lib/client/contexts/dashboard'
+  import Button from '$lib/client/ui/button.svelte'
+  import Icon from '$lib/client/ui/icon.svelte'
+  import { type Snippet } from 'svelte'
+  import Overlay from '../overlay.svelte'
+  import UserMenu from './user-menu.svelte'
+  import { goto } from '$app/navigation'
+  import Separator from '$lib/client/ui/separator.svelte'
+  import { fly } from 'svelte/transition'
 
-  const {
-    pushDesktopTopRight
-  } =
-    useDashboardContext();
+  const { pushDesktopTopRight } = useDashboardContext()
 
   let {
     user,
     logoutConfirmation = $bindable()
   }: {
-    user: UserResource;
-    logoutConfirmation: boolean;
-  } =
-    $props();
+    user: UserResource
+    logoutConfirmation: boolean
+  } = $props()
 
-  $effect(
-    () =>
-      pushDesktopTopRight(
-        desktop
-      )
-  );
+  $effect(() => pushDesktopTopRight(desktop))
 
-  let showUserMenu: boolean =
-    $state(
-      false
-    );
-  let buttonElement: HTMLDivElement =
-    $state(
-      null as never
-    );
+  let showUserMenu: boolean = $state(false)
+  let buttonElement: HTMLDivElement = $state(null as never)
 </script>
 
 {#snippet desktop()}
-  {#snippet background(
-    view: Snippet
-  )}
-    <div
-      class="background"
-      bind:this={buttonElement}
-    >
+  {#snippet background(view: Snippet)}
+    <div class="background" bind:this={buttonElement}>
       {@render view()}
     </div>
   {/snippet}
 
-  {#snippet foreground(
-    view: Snippet
-  )}
-    <div
-      class="foreground"
-    >
+  {#snippet foreground(view: Snippet)}
+    <div class="foreground">
       {@render view()}
     </div>
   {/snippet}
 
-  <div
-    class="user-button"
-  >
+  <div class="user-button">
     <Button
       {background}
       {foreground}
       onclick={() => {
-        showUserMenu = true;
+        showUserMenu = true
       }}
     >
-      <Icon
-        icon="user-circle"
-        size="2rem"
-      />
-      <Icon
-        icon="chevron-down"
-        thickness="solid"
-      />
+      <Icon icon="user-circle" size="2rem" />
+      <Icon icon="chevron-down" thickness="solid" />
       <!-- <p>{user!.firstName}</p> -->
     </Button>
   </div>
@@ -94,22 +57,18 @@
 {#if showUserMenu}
   <Overlay
     ondismiss={() => {
-      showUserMenu = false;
+      showUserMenu = false
     }}
     nodim
     notransition
     x={-(
       1 +
       window.innerWidth -
-      (buttonElement.getBoundingClientRect()
-        .x +
-        buttonElement.getBoundingClientRect()
-          .width)
+      (buttonElement.getBoundingClientRect().x +
+        buttonElement.getBoundingClientRect().width)
     )}
-    y={buttonElement.getBoundingClientRect()
-      .y +
-      buttonElement.getBoundingClientRect()
-        .height}
+    y={buttonElement.getBoundingClientRect().y +
+      buttonElement.getBoundingClientRect().height}
   >
     <div
       class="user-menu"
@@ -117,70 +76,48 @@
         y: -16
       }}
     >
-      {#snippet foreground(
-        view: Snippet
-      )}
-        <div
-          class="foreground"
-        >
+      {#snippet foreground(view: Snippet)}
+        <div class="foreground">
           {@render view()}
         </div>
       {/snippet}
       <Button
         {foreground}
         onclick={() => {
-          goto(
-            `/app/profile?id=${user.id}`
-          );
-          showUserMenu = false;
+          goto(`/app/profile?id=${user.id}`)
+          showUserMenu = false
         }}
         hint="Go to your profile"
       >
-        <div
-          class="details"
-        >
-          <div
-            class="avatar"
-          >
-            <Icon
-              icon="user-circle"
-              size="3rem"
-            />
+        <div class="details">
+          <div class="avatar">
+            <Icon icon="user-circle" size="3rem" />
           </div>
-          <div
-            class="info"
-          >
-            <h2
-              class="name"
-            >
+          <div class="info">
+            <h2 class="name">
               {user.firstName}
             </h2>
-            <p
-            >
+            <p>
               @{user.username}
             </p>
           </div>
         </div>
       </Button>
 
-      <Separator
-        horizontal
-      />
+      <Separator horizontal />
 
       <UserMenu
         {user}
         bind:logoutConfirmation
         ondismiss={() => {
-          showUserMenu = false;
+          showUserMenu = false
         }}
       />
     </div>
   </Overlay>
 {/if}
 
-<style
-  lang="scss"
->
+<style lang="scss">
   div.background {
     border-radius: 8px;
     overflow: hidden;
@@ -201,12 +138,8 @@
   }
 
   div.user-menu {
-    background-color: var(
-      --color-9
-    );
-    color: var(
-      --color-1
-    );
+    background-color: var(--color-9);
+    color: var(--color-1);
 
     border-radius: 8px;
 

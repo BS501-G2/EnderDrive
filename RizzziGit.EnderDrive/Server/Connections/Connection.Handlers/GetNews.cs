@@ -11,27 +11,19 @@ public sealed partial class Connection
 {
   private sealed record class GetNewsRequest
   {
-    [BsonElement(
-      "pagination"
-    )]
+    [BsonElement("pagination")]
     public required PaginationOptions? Pagination;
 
-    [BsonElement(
-      "afterId"
-    )]
+    [BsonElement("afterId")]
     public required ObjectId? AfterId;
 
-    [BsonElement(
-      "published"
-    )]
+    [BsonElement("published")]
     public required bool? Published;
   }
 
   private sealed record class GetNewsResponse
   {
-    [BsonElement(
-      "newsEntries"
-    )]
+    [BsonElement("newsEntries")]
     public required string[] NewsEntries;
   }
 
@@ -39,33 +31,14 @@ public sealed partial class Connection
     GetNewsRequest,
     GetNewsResponse
   > GetNews =>
-    async (
-      transaction,
-      request,
-      userAuthentication,
-      me,
-      myAdminAccess
-    ) =>
+    async (transaction, request, userAuthentication, me, myAdminAccess) =>
     {
-      News[] news =
-        await Resources
-          .GetNews(
-            transaction,
-            request.Published,
-            me.Id
-          )
-          .ApplyPagination(
-            request.Pagination
-          )
-          .ToAsyncEnumerable()
-          .ToArrayAsync(
-            transaction.CancellationToken
-          );
+      News[] news = await Resources
+        .GetNews(transaction, request.Published, me.Id)
+        .ApplyPagination(request.Pagination)
+        .ToAsyncEnumerable()
+        .ToArrayAsync(transaction.CancellationToken);
 
-      return new()
-      {
-        NewsEntries =
-          news.ToJson(),
-      };
+      return new() { NewsEntries = news.ToJson() };
     };
 }

@@ -11,25 +11,18 @@ using Utilities;
 
 public sealed partial class Connection
 {
-  private sealed record class GetFileSnapshotsRequest
-    : BaseFileRequest
+  private sealed record class GetFileSnapshotsRequest : BaseFileRequest
   {
-    [BsonElement(
-      "fileContentId"
-    )]
+    [BsonElement("fileContentId")]
     public required ObjectId? FileContentId;
 
-    [BsonElement(
-      "pagination"
-    )]
+    [BsonElement("pagination")]
     public required PaginationOptions? Pagination;
   }
 
   private sealed record class GetFileSnapshotsResponse
   {
-    [BsonElement(
-      "fileSnapshots"
-    )]
+    [BsonElement("fileSnapshots")]
     public required string[] FileSnapshots;
   }
 
@@ -47,55 +40,29 @@ public sealed partial class Connection
       fileAccessResult
     ) =>
     {
-      ConnectionContext context =
-        GetContext();
+      ConnectionContext context = GetContext();
 
       FileContent fileContent =
         await Resources
-          .GetFileContents(
-            transaction,
-            file,
-            id: request.FileContentId
-          )
+          .GetFileContents(transaction, file, id: request.FileContentId)
           .ToAsyncEnumerable()
-          .FirstOrDefaultAsync(
-            transaction.CancellationToken
-          )
-        ?? throw new InvalidOperationException(
-          "Invalid file content id."
-        );
+          .FirstOrDefaultAsync(transaction.CancellationToken)
+        ?? throw new InvalidOperationException("Invalid file content id.");
 
-      FileSnapshot[] fileSnapshots =
-        await Resources
-          .GetFileSnapshots(
-            transaction,
-            file,
-            fileContent
-          )
-          .ApplyPagination(
-            request.Pagination
-          )
-          .ToAsyncEnumerable()
-          .ToArrayAsync(
-            transaction.CancellationToken
-          );
+      FileSnapshot[] fileSnapshots = await Resources
+        .GetFileSnapshots(transaction, file, fileContent)
+        .ApplyPagination(request.Pagination)
+        .ToAsyncEnumerable()
+        .ToArrayAsync(transaction.CancellationToken);
 
       return new()
       {
         FileSnapshots =
-
-          [
-            .. fileSnapshots.Select(
-              (
-                fileSnapshot
-              ) =>
-                JToken
-                  .FromObject(
-                    fileSnapshot
-                  )
-                  .ToString()
-            ),
-          ],
+        [
+          .. fileSnapshots.Select(
+            (fileSnapshot) => JToken.FromObject(fileSnapshot).ToString()
+          ),
+        ],
       };
     };
 }

@@ -8,17 +8,13 @@ public sealed partial class Connection
 {
   private sealed record class ResolveUsernameRequest
   {
-    [BsonElement(
-      "username"
-    )]
+    [BsonElement("username")]
     public required string Username;
   }
 
   private sealed record class ResolveUsernameResponse
   {
-    [BsonElement(
-      "userId"
-    )]
+    [BsonElement("userId")]
     public required ObjectId? UserId;
   }
 
@@ -26,23 +22,14 @@ public sealed partial class Connection
     ResolveUsernameRequest,
     ResolveUsernameResponse
   > ResolveUsername =>
-    async (
-      transaction,
-      request
-    ) =>
+    async (transaction, request) =>
       new()
       {
-        UserId =
-          (
-            await Resources
-              .GetUsers(
-                transaction,
-                request.Username
-              )
-              .ToAsyncEnumerable()
-              .FirstOrDefaultAsync(
-                transaction.CancellationToken
-              )
-          )?.Id,
+        UserId = (
+          await Resources
+            .GetUsers(transaction, request.Username)
+            .ToAsyncEnumerable()
+            .FirstOrDefaultAsync(transaction.CancellationToken)
+        )?.Id,
       };
 }

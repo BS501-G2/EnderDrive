@@ -11,22 +11,16 @@ public sealed partial class Connection
 {
   private sealed record class AuthenticateTokenRequest
   {
-    [BsonElement(
-      "userId"
-    )]
+    [BsonElement("userId")]
     public required ObjectId UserId;
 
-    [BsonElement(
-      "token"
-    )]
+    [BsonElement("token")]
     public required string Token;
   };
 
   private sealed record class AuthenticateTokenResponse
   {
-    [BsonElement(
-      "renewedToken"
-    )]
+    [BsonElement("renewedToken")]
     public required string? RenewedToken;
   };
 
@@ -34,37 +28,21 @@ public sealed partial class Connection
     AuthenticateTokenRequest,
     AuthenticateTokenResponse
   > AuthenticateToken =>
-    async (
-      transaction,
-      request
-    ) =>
+    async (transaction, request) =>
     {
-      if (
-        GetContext().CurrentUser
-        != null
-      )
+      if (GetContext().CurrentUser != null)
       {
-        throw new InvalidOperationException(
-          "Already signed in."
-        );
+        throw new InvalidOperationException("Already signed in.");
       }
 
       User? user =
         await Resources
-          .GetUsers(
-            transaction,
-            id: request.UserId
-          )
+          .GetUsers(transaction, id: request.UserId)
           .ToAsyncEnumerable()
-          .FirstOrDefaultAsync(
-            transaction.CancellationToken
-          )
-        ?? throw new InvalidOperationException(
-          "Invalid user id."
-        );
+          .FirstOrDefaultAsync(transaction.CancellationToken)
+        ?? throw new InvalidOperationException("Invalid user id.");
 
-      UnlockedUserAuthentication? unlockedUserAuthentication =
-        null;
+      UnlockedUserAuthentication? unlockedUserAuthentication = null;
       await foreach (
         UserAuthentication userAuthentication in Resources
           .GetUserAuthentications(
@@ -77,33 +55,19 @@ public sealed partial class Connection
       {
         try
         {
-          unlockedUserAuthentication =
-            userAuthentication.Unlock(
-              request.Token
-            );
+          unlockedUserAuthentication = userAuthentication.Unlock(request.Token);
           break;
         }
-        catch
-        { }
+        catch { }
       }
 
-      if (
-        unlockedUserAuthentication
-        == null
-      )
+      if (unlockedUserAuthentication == null)
       {
-        throw new InvalidOperationException(
-          "Invalid token."
-        );
+        throw new InvalidOperationException("Invalid token.");
       }
 
-      GetContext().CurrentUser =
-        unlockedUserAuthentication;
+      GetContext().CurrentUser = unlockedUserAuthentication;
 
-      return new()
-      {
-        RenewedToken =
-          null,
-      };
+      return new() { RenewedToken = null };
     };
 }

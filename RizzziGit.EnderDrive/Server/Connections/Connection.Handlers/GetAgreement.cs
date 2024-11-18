@@ -8,9 +8,7 @@ public sealed partial class Connection
 
   private sealed record class GetAgreementResponse
   {
-    [BsonElement(
-      "agreed"
-    )]
+    [BsonElement("agreed")]
     public required bool Agreed;
   }
 
@@ -18,18 +16,8 @@ public sealed partial class Connection
     GetAgreementRequest,
     GetAgreementResponse
   > GetAgreement =>
-    async (
-      transaction,
-      request,
-      userAuthentication,
-      me,
-      myAdminAccess
-    ) =>
+    async (transaction, request, userAuthentication, me, myAdminAccess) =>
     {
-      return new()
-      {
-        Agreed =
-          me.PrivacyPolicyAgreement,
-      };
+      return new() { Agreed = me.PrivacyPolicyAgreement };
     };
 }

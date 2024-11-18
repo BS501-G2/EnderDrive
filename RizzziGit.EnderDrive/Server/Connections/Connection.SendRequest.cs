@@ -7,8 +7,7 @@ namespace RizzziGit.EnderDrive.Server.Connections;
 using Commons.Memory;
 using MessagePack;
 
-public enum ClientSideRequestCode
-  : byte
+public enum ClientSideRequestCode : byte
 {
   Ping,
   Notify,
@@ -16,23 +15,16 @@ public enum ClientSideRequestCode
 
 public sealed partial class Connection
 {
-  public async Task<R> SendRequest<
-    S,
-    R
-  >(
+  public async Task<R> SendRequest<S, R>(
     ClientSideRequestCode code,
     S data,
     CancellationToken cancellationToken
   )
   {
-    var context =
-      GetContext();
+    var context = GetContext();
 
     ConnectionPacket<ClientSideRequestCode> request =
-      ConnectionPacket<ClientSideRequestCode>.Create(
-        code,
-        data
-      );
+      ConnectionPacket<ClientSideRequestCode>.Create(code, data);
 
     ConnectionPacket<ResponseCode> response =
       ConnectionPacket<ResponseCode>.Deserialize(
@@ -44,10 +36,7 @@ public sealed partial class Connection
         ).ToByteArray()
       );
 
-    if (
-      response.Code
-      != ResponseCode.OK
-    )
+    if (response.Code != ResponseCode.OK)
     {
       throw new ConnectionResponseException(
         response.Code,

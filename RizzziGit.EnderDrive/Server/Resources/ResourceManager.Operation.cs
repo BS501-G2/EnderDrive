@@ -1,330 +1,214 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
 using Commons.Collections;
-using MongoDB.Driver.Linq;
+using Utilities;
+
+public sealed record class ResourceKey(Type Type, ObjectId ObjectId);
+
+public record class Resource<T>
+  where T : ResourceData
+{
+  public delegate ValueTask OnSave(
+    ResourceTransaction transaction,
+    Resource<T> data
+  );
+  public delegate ValueTask OnDelete(
+    ResourceTransaction transaction,
+    Resource<T> data
+  );
+
+  public Resource(OnSave save)
+  {
+    this.save = save;
+  }
+
+  public ObjectId Id
+  {
+    get => Data.Id;
+    set => Data.Id = value;
+  }
+
+  public required T Data;
+
+  private readonly OnSave save;
+
+  public ValueTask Save(ResourceTransaction transaction) =>
+    save(transaction, this);
+
+  public ValueTask Update(Func<T, T> callback, ResourceTransaction transaction)
+  {
+    Data = callback(Data);
+    return Save(transaction);
+  }
+
+  public string ToJson() => Data.ToJson();
+}
+
+public static class ResourceExtensions
+{
+  public static IEnumerable<string> ToJson<T>(
+    this IEnumerable<Resource<T>> resources
+  )
+    where T : ResourceData => resources.Select(r => r.ToJson());
+
+  public static IEnumerable<string> ToJson<T>(
+    this IEnumerable<UnlockedResource<T>> resources
+  )
+    where T : ResourceData => resources.Select(r => r.ToJson());
+}
 
 public sealed partial class ResourceManager
 {
-  private sealed record ResourceHolderKey(
-    ObjectId Id,
-    Type Type
-  );
-
-  private delegate IQueryable<T> QueryBuilder<T>(
-    IQueryable<T> query
-  )
-    where T : ResourceData;
-
-  private async Task Insert<T>(
+  private async ValueTask Save<T>(
     ResourceTransaction transaction,
-    params T[] items
+    Resource<T> document
   )
     where T : ResourceData
   {
-    await foreach (
-      T _ in InsertReturn(
-        transaction,
-        items
-      )
-    )
+    IMongoCollection<T> collection = GetCollection<T>();
+
+    T? oldData =
+      document.Id == ObjectId.Empty
+        ? null
+        : await collection
+          .AsQueryable()
+          .Where((item) => item.Id == document.Id)
+          .FirstOrDefaultAsync(
+            cancellationToken: transaction.CancellationToken
+          );
+
+    if (oldData == null)
     {
-      continue;
-    }
-  }
+      ObjectId oldId = document.Id;
 
-  private async IAsyncEnumerable<T> InsertReturn<T>(
-    ResourceTransaction transaction,
-    params T[] items
-  )
-    where T : ResourceData
-  {
-    IMongoCollection<T> collection =
-      GetCollection<T>();
+      document.Id = ObjectId.GenerateNewId();
 
-    await collection.InsertManyAsync(
-      items,
-      null,
-      transaction.CancellationToken
-    );
+      transaction.RegisterOnFailure(async () =>
+      {
+        document.Id = oldId;
+      });
 
-    foreach (
-      T item in items
-    )
-    {
-      yield return item;
-    }
-  }
-
-  private async ValueTask Update<T>(
-    ResourceTransaction transaction,
-    T item,
-    UpdateDefinition<T> update
-  )
-    where T : ResourceData
-  {
-    _ =
-      await UpdateReturn(
-        transaction,
-        item,
-        update
+      await collection.InsertOneAsync(
+        document: document.Data,
+        cancellationToken: transaction.CancellationToken
       );
+
+      return;
+    }
+
+    transaction.RegisterOnFailure(async () =>
+    {
+      document.Data = oldData;
+    });
+
+    await collection.ReplaceOneAsync(
+      filter: (item) => item.Id == document.Id,
+      replacement: document.Data,
+      options: new ReplaceOptions() { IsUpsert = true },
+      cancellationToken: transaction.CancellationToken
+    );
   }
 
-  private ValueTask<T> UpdateReturn<T>(
+  private async ValueTask Delete<T>(
     ResourceTransaction transaction,
-    T item,
-    UpdateDefinition<T> update
+    Resource<T> document
   )
-    where T : ResourceData =>
-    UpdateReturn(
-        transaction,
-        new T[]
+    where T : ResourceData
+  {
+    ResourceManagerContext context = GetContext();
+
+    IMongoCollection<T> collection = GetCollection<T>();
+
+    if (document.Id == ObjectId.Empty)
+    {
+      return;
+    }
+
+    lock (context.Resources)
+    {
+      context.Resources.Remove(new ResourceKey(typeof(T), document.Id));
+
+      transaction.RegisterOnFailure(async () =>
+      {
+        lock (context.Resources)
         {
-          item,
-        }.ToAsyncEnumerable(),
-        update
-      )
-      .FirstAsync(
-        transaction.CancellationToken
-      );
-
-  private async Task Update<T>(
-    ResourceTransaction transaction,
-    IAsyncEnumerable<T> enumerable,
-    UpdateDefinition<T> update
-  )
-    where T : ResourceData
-  {
-    await foreach (
-      T item in UpdateReturn<T>(
-        transaction,
-        enumerable,
-        update
-      )
-    )
-    {
-      continue;
+          context.Resources.Add(
+            new ResourceKey(typeof(T), document.Id),
+            document
+          );
+        }
+      });
     }
-  }
 
-  private async IAsyncEnumerable<T> UpdateReturn<T>(
-    ResourceTransaction transaction,
-    IAsyncEnumerable<T> enumerable,
-    UpdateDefinition<T> update
-  )
-    where T : ResourceData
-  {
-    IMongoCollection<T> collection =
-      GetCollection<T>();
-    transaction.CancellationToken.ThrowIfCancellationRequested();
-
-    await foreach (
-      T updateItem in enumerable
-    )
-    {
-      transaction.CancellationToken.ThrowIfCancellationRequested();
-
-      UpdateResult a =
-        await collection.UpdateOneAsync(
-          Builders<T>.Filter.Where(
-            (
-              e
-            ) =>
-              e.Id
-              == updateItem.Id
-          ),
-          update,
-          null,
-          transaction.CancellationToken
-        );
-
-      yield return await Query<T>(
-          transaction,
-          (
-            query
-          ) =>
-            query.Where(
-              (
-                item
-              ) =>
-                item.Id
-                == updateItem.Id
-            )
-        )
-        .ToAsyncEnumerable()
-        .FirstAsync(
-          transaction.CancellationToken
-        );
-    }
-  }
-
-  private async Task Delete<T>(
-    ResourceTransaction transaction,
-    T item
-  )
-    where T : ResourceData
-  {
-    _ =
-      await DeleteReturn(
-        transaction,
-        item
-      );
-  }
-
-  private ValueTask<T> DeleteReturn<T>(
-    ResourceTransaction transaction,
-    T item
-  )
-    where T : ResourceData =>
-    DeleteReturn(
-        transaction,
-        new T[]
-        {
-          item,
-        }.ToAsyncEnumerable()
-      )
-      .FirstAsync(
-        transaction.CancellationToken
-      );
-
-  private async Task Delete<T>(
-    ResourceTransaction transaction,
-    IAsyncEnumerable<T> enumerable
-  )
-    where T : ResourceData
-  {
-    await foreach (
-      T _ in DeleteReturn(
-        transaction,
-        enumerable
-      )
-    )
-    {
-      continue;
-    }
-  }
-
-  private async IAsyncEnumerable<T> DeleteReturn<T>(
-    ResourceTransaction transaction,
-    IAsyncEnumerable<T> enumerable
-  )
-    where T : ResourceData
-  {
-    IMongoCollection<T> collection =
-      GetCollection<T>();
-    transaction.CancellationToken.ThrowIfCancellationRequested();
-
-    await foreach (
-      T deleteItem in enumerable
-    )
-    {
-      transaction.CancellationToken.ThrowIfCancellationRequested();
-
-      await collection.DeleteOneAsync(
-        (
-          item
-        ) =>
-          deleteItem.Id
-          == item.Id,
-        null,
-        transaction.CancellationToken
-      );
-
-      yield return deleteItem;
-    }
-  }
-
-  private IQueryable<T> Query<T>(
-    ResourceTransaction transaction
-  )
-    where T : ResourceData =>
-    Query<T>(
-      transaction,
-      (
-        query
-      ) =>
-        query
-    );
-
-  private IQueryable<T> Query<T>(
-    ResourceTransaction transaction,
-    QueryBuilder<T> query
-  )
-    where T : ResourceData
-  {
-    IMongoCollection<T> collection =
-      GetCollection<T>();
-    transaction.CancellationToken.ThrowIfCancellationRequested();
-
-    return query(
-      collection.AsQueryable()
+    await collection.DeleteOneAsync(
+      filter: (item) => item.Id == document.Id,
+      cancellationToken: transaction.CancellationToken
     );
   }
 
-  private async IAsyncEnumerable<T> Query<T>(
+  public IAsyncEnumerable<Resource<T>> Query<T>(
     ResourceTransaction transaction,
-    FilterDefinition<T> filter
+    Func<IQueryable<T>, IQueryable<T>> filter
   )
+    where T : ResourceData =>
+    filter(GetCollection<T>().AsQueryable())
+      .ToAsyncEnumerable()
+      .Select((item) => ToResource(transaction, item));
+
+  private Resource<T> ToResource<T>(ResourceTransaction transaction, T data)
     where T : ResourceData
   {
-    IMongoCollection<T> collection =
-      GetCollection<T>();
-    transaction.CancellationToken.ThrowIfCancellationRequested();
+    ResourceManagerContext context = GetContext();
 
-    var cursor =
-      await collection.FindAsync(
-        filter,
-        null,
-        transaction.CancellationToken
-      );
-    while (
-      await cursor.MoveNextAsync(
-        transaction.CancellationToken
-      )
-    )
+    lock (context.Resources)
     {
-      transaction.CancellationToken.ThrowIfCancellationRequested();
-
-      await foreach (
-        T item in cursor.Current.ToAsyncEnumerable()
+      if (
+        context.Resources.TryGetValue(new(typeof(T), data.Id), out object? raw)
       )
       {
-        transaction.CancellationToken.ThrowIfCancellationRequested();
+        if (raw is Resource<T> resourceItem)
+        {
+          resourceItem.Data = data;
+          return resourceItem;
+        }
 
-        yield return item;
+        context.Resources.Remove(new ResourceKey(typeof(T), data.Id));
+
+        transaction.RegisterOnFailure(async () =>
+        {
+          lock (context.Resources)
+          {
+            context.Resources.Add(
+              new ResourceKey(typeof(T), data.Id),
+              (Resource<T>)raw!
+            );
+          }
+        });
       }
+
+      Resource<T> resource = new(Save) { Data = data };
+      context.Resources.Add(new(typeof(T), data.Id), resource);
+
+      transaction.RegisterOnFailure(async () =>
+      {
+        lock (context.Resources)
+        {
+          context.Resources.Remove(new ResourceKey(typeof(T), data.Id));
+        }
+      });
+
+      return resource;
     }
   }
-
-  public ValueTask<T?> QueryById<T>(
-    ResourceTransaction transaction,
-    ObjectId objectId
-  )
-    where T : ResourceData =>
-    Query<T>(
-        transaction,
-        (
-          query
-        ) =>
-          query.Where(
-            (
-              item
-            ) =>
-              item.Id
-              == objectId
-          )
-      )
-      .ToAsyncEnumerable()
-      .FirstOrDefaultAsync(
-        transaction.CancellationToken
-      );
 }

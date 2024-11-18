@@ -9,17 +9,13 @@ public sealed partial class Connection
 {
   private sealed record class GetFileStarRequest
   {
-    [BsonElement(
-      "fileId"
-    )]
+    [BsonElement("fileId")]
     public required ObjectId FileId;
   }
 
   private sealed record class GetFileStarResponse
   {
-    [BsonElement(
-      "starred"
-    )]
+    [BsonElement("starred")]
     public required bool Starred;
   }
 
@@ -27,44 +23,26 @@ public sealed partial class Connection
     GetFileStarRequest,
     GetFileStarResponse
   > GetFileStar =>
-    async (
-      transaction,
-      request,
-      userAuthentication,
-      me,
-      myAdminAccess
-    ) =>
+    async (transaction, request, userAuthentication, me, myAdminAccess) =>
     {
-      File file =
-        await Internal_EnsureFirst(
-          transaction,
-          Resources.GetFiles(
-            transaction: transaction,
-            id: request.FileId
-          )
-        );
+      File file = await Internal_EnsureFirst(
+        transaction,
+        Resources.GetFiles(transaction: transaction, id: request.FileId)
+      );
 
-      FileAccessResult fileAccessResult =
-        await Internal_UnlockFile(
-          transaction,
-          file,
-          me,
-          userAuthentication
-        );
+      FileAccessResult fileAccessResult = await Internal_UnlockFile(
+        transaction,
+        file,
+        me,
+        userAuthentication
+      );
 
       return new()
       {
-        Starred =
-          await Resources
-            .GetFileStars(
-              transaction,
-              file,
-              me
-            )
-            .ToAsyncEnumerable()
-            .AnyAsync(
-              transaction
-            ),
+        Starred = await Resources
+          .GetFileStars(transaction, file, me)
+          .ToAsyncEnumerable()
+          .AnyAsync(transaction),
       };
     };
 }

@@ -8,14 +8,11 @@ using Utilities;
 
 public sealed partial class Connection
 {
-  private sealed record class GetMainFileContentRequest
-    : BaseFileRequest { }
+  private sealed record class GetMainFileContentRequest : BaseFileRequest { }
 
   private sealed record class GetMainFileContentResonse
   {
-    [BsonElement(
-      "fileContent"
-    )]
+    [BsonElement("fileContent")]
     public required string FileContent;
   }
 
@@ -33,15 +30,10 @@ public sealed partial class Connection
       fileAccessResult
     ) =>
     {
-      FileContent fileContent =
-        await Resources.GetMainFileContent(
-          transaction,
-          fileAccessResult.File
-        );
-      return new()
-      {
-        FileContent =
-          fileContent.ToJson(),
-      };
+      FileContent fileContent = await Resources.GetMainFileContent(
+        transaction,
+        fileAccessResult.File
+      );
+      return new() { FileContent = fileContent.ToJson() };
     };
 }

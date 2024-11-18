@@ -35,8 +35,7 @@ public sealed partial class ConnectionContext
   > FileStreams;
 }
 
-public enum ResponseCode
-  : byte
+public enum ResponseCode : byte
 {
   OK,
   Cancelled,
@@ -54,48 +53,20 @@ public enum ResponseCode
 public sealed partial class ConnectionPacket<T>
   where T : Enum
 {
-  public static ConnectionPacket<T> Deserialize(
-    CompositeBuffer bytes
-  ) =>
+  public static ConnectionPacket<T> Deserialize(CompositeBuffer bytes) =>
     new()
     {
-      Code =
-        (T)
-          Enum.ToObject(
-            typeof(T),
-            bytes[
-              0
-            ]
-          ),
-      Data =
-        bytes.Slice(
-          1
-        ),
+      Code = (T)Enum.ToObject(typeof(T), bytes[0]),
+      Data = bytes.Slice(1),
     };
 
-  public static ConnectionPacket<T> Create<V>(
-    T code,
-    V data
-  )
+  public static ConnectionPacket<T> Create<V>(T code, V data)
   {
-    using MemoryStream stream =
-      new();
-    using BsonBinaryWriter writer =
-      new(
-        stream
-      );
-    BsonSerializer.Serialize(
-      writer,
-      data
-    );
+    using MemoryStream stream = new();
+    using BsonBinaryWriter writer = new(stream);
+    BsonSerializer.Serialize(writer, data);
 
-    return new()
-    {
-      Code =
-        code,
-      Data =
-        stream.ToArray(),
-    };
+    return new() { Code = code, Data = stream.ToArray() };
   }
 
   public required T Code;
@@ -103,49 +74,26 @@ public sealed partial class ConnectionPacket<T>
 
   public V DeserializeData<V>()
   {
-    using MemoryStream stream =
-      new(
-        Data.ToByteArray()
-      );
-    using BsonBinaryReader reader =
-      new(
-        stream
-      );
+    using MemoryStream stream = new(Data.ToByteArray());
+    using BsonBinaryReader reader = new(stream);
 
-    return BsonSerializer.Deserialize<V>(
-      reader
-    );
+    return BsonSerializer.Deserialize<V>(reader);
   }
 
   public CompositeBuffer Serialize() =>
-    CompositeBuffer.Concat(
-      new byte[]
-      {
-        Convert.ToByte(
-          Code
-        ),
-      },
-      Data
-    );
+    CompositeBuffer.Concat(new byte[] { Convert.ToByte(Code) }, Data);
 }
 
 public sealed partial class Connection(
   ConnectionManager manager,
   ulong connectionId,
   WebSocket webSocket
-)
-  : Service<ConnectionContext>(
-    $"Connection #{connectionId}"
-  )
+) : Service<ConnectionContext>($"Connection #{connectionId}")
 {
-  public ConnectionManager Manager =>
-    manager;
-  public Server Server =>
-    Manager.Server;
-  public ResourceManager Resources =>
-    Server.ResourceManager;
-  public UnlockedUserAuthentication? CurrentUser =>
-    GetContext().CurrentUser;
+  public ConnectionManager Manager => manager;
+  public Server Server => Manager.Server;
+  public ResourceManager Resources => Server.ResourceManager;
+  public UnlockedUserAuthentication? CurrentUser => GetContext().CurrentUser;
 
   protected override async Task<ConnectionContext> OnStart(
     CancellationToken startupCancellationToken,
@@ -157,47 +105,30 @@ public sealed partial class Connection(
         webSocket,
         new()
         {
-          Name =
-            $"Connection #{ConnectionId}",
-          Logger =
-            (
-              (IService)manager
-            ).Logger,
+          Name = $"Connection #{ConnectionId}",
+          Logger = ((IService)manager).Logger,
         }
       );
 
-    await StartServices(
-      [
-        connection,
-      ],
-      startupCancellationToken
-    );
+    await StartServices([connection], startupCancellationToken);
 
     ConnectionContext context =
       new()
       {
-        Internal =
-          connection,
-        CurrentUser =
-          null,
-        Handlers =
-          new(),
+        Internal = connection,
+        CurrentUser = null,
+        Handlers = new(),
 
-        NextFileStreamId =
-          0,
-        FileStreams =
-          new(),
+        NextFileStreamId = 0,
+        FileStreams = new(),
       };
 
-    RegisterHandlers(
-      context
-    );
+    RegisterHandlers(context);
 
     return context;
   }
 
-  public ulong ConnectionId =>
-    connectionId;
+  public ulong ConnectionId => connectionId;
 
   protected override async Task OnRun(
     ConnectionContext context,
@@ -205,21 +136,12 @@ public sealed partial class Connection(
   )
   {
     Task[] tasks =
+    [
+      WatchService(context.Internal, serviceCancellationToken),
+      RunWorker(context, serviceCancellationToken),
+    ];
 
-      [
-        WatchService(
-          context.Internal,
-          serviceCancellationToken
-        ),
-        RunWorker(
-          context,
-          serviceCancellationToken
-        ),
-      ];
-
-    await await Task.WhenAny(
-      tasks
-    );
+    await await Task.WhenAny(tasks);
   }
 
   private async Task RunWorker(
@@ -227,35 +149,23 @@ public sealed partial class Connection(
     CancellationToken cancellationToken
   )
   {
-    while (
-      true
-    )
+    while (true)
     {
       cancellationToken.ThrowIfCancellationRequested();
 
-      WebConnectionRequest? request =
-        await context.Internal.ReceiveRequest(
-          cancellationToken
-        );
+      WebConnectionRequest? request = await context.Internal.ReceiveRequest(
+        cancellationToken
+      );
 
-      if (
-        request
-        == null
-      )
+      if (request == null)
       {
         break;
       }
 
-      _ =
-        Task.Run(
-          () =>
-            HandleRequest(
-              context,
-              request,
-              cancellationToken
-            ),
-          cancellationToken
-        );
+      _ = Task.Run(
+        () => HandleRequest(context, request, cancellationToken),
+        cancellationToken
+      );
     }
   }
 
@@ -264,72 +174,50 @@ public sealed partial class Connection(
     ExceptionDispatchInfo? exception
   )
   {
-    foreach (
-      (
-        _,
-        ConnectionByteStream stream
-      ) in context.FileStreams
-    )
+    foreach ((_, ConnectionByteStream stream) in context.FileStreams)
     {
       stream.Queue.Dispose();
     }
 
     context.FileStreams.Clear();
 
-    await StopServices(
-      context.Internal
-    );
+    await StopServices(context.Internal);
   }
 }
 
 public abstract class ConnectionException(
-  string? message =
-    null,
-  Exception? inner =
-    null
-)
-  : Exception(
-    message,
-    inner
-  );
+  string? message = null,
+  Exception? inner = null
+) : Exception(message, inner);
 
 public sealed class ConnectionResponseException(
   ResponseCode code,
   ConnectionResponseExceptionData data
-)
-  : ConnectionException(
-    $"Server returned error response: {code}"
-  )
+) : ConnectionException($"Server returned error response: {code}")
 {
-  public readonly ResponseCode Code =
-    code;
-  public new readonly ConnectionResponseExceptionData Data =
-    data;
+  public readonly ResponseCode Code = code;
+  public new readonly ConnectionResponseExceptionData Data = data;
 }
 
 public abstract record class ConnectionResponseExceptionData
 {
-  private ConnectionResponseExceptionData()
-  { }
+  private ConnectionResponseExceptionData() { }
 
   public sealed record class AuthenticationRequired
     : ConnectionResponseExceptionData { }
 
-  public sealed record class RequiredRoles
-    : ConnectionResponseExceptionData
+  public sealed record class RequiredRoles : ConnectionResponseExceptionData
   {
     public required UserRole[]? IncludeRoles;
     public required UserRole[]? ExcludeRoles;
   }
 
-  public sealed record class ResourceNotFound
-    : ConnectionResponseExceptionData
+  public sealed record class ResourceNotFound : ConnectionResponseExceptionData
   {
     public required string ResourceName;
   }
 
-  public sealed record class Forbidden
-    : ConnectionResponseExceptionData
+  public sealed record class Forbidden : ConnectionResponseExceptionData
   {
     public required ObjectId FileId;
   }

@@ -1,191 +1,101 @@
-<script
-  lang="ts"
->
+<script lang="ts">
   import {
     useDashboardContext,
     type BackgroundTask,
     type BackgroundTaskState
-  } from '$lib/client/contexts/dashboard';
-  import Button from '$lib/client/ui/button.svelte';
-  import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte';
-  import { type Snippet } from 'svelte';
-  import Overlay from '../overlay.svelte';
-  import { fly } from 'svelte/transition';
-  import Separator from '$lib/client/ui/separator.svelte';
+  } from '$lib/client/contexts/dashboard'
+  import Button from '$lib/client/ui/button.svelte'
+  import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
+  import { type Snippet } from 'svelte'
+  import Overlay from '../overlay.svelte'
+  import { fly } from 'svelte/transition'
+  import Separator from '$lib/client/ui/separator.svelte'
   import {
     derived,
     get,
     writable,
     type Readable,
     type Writable
-  } from 'svelte/store';
-  import Icon from '$lib/client/ui/icon.svelte';
+  } from 'svelte/store'
+  import Icon from '$lib/client/ui/icon.svelte'
 
   const {
     tasks
   }: {
-    tasks: Readable<
-      BackgroundTask[]
-    >;
-  } =
-    $props();
-  const {
-    pushDesktopSide
-  } =
-    useDashboardContext();
+    tasks: Readable<BackgroundTask[]>
+  } = $props()
+  const { pushDesktopSide } = useDashboardContext()
 
-  $effect(
-    () =>
-      pushDesktopSide(
-        desktop
-      )
-  );
+  $effect(() => pushDesktopSide(desktop))
 
   interface FlattenedBackgroundTask {
-    id: number;
+    id: number
 
-    task: BackgroundTask;
-    state: BackgroundTaskState;
+    task: BackgroundTask
+    state: BackgroundTaskState
   }
 
-  let showOverlay: boolean =
-    $state(
-      false
-    );
-  const flattenedTasks: Writable<
-    FlattenedBackgroundTask[]
-  > =
-    writable(
-      []
-    );
+  let showOverlay: boolean = $state(false)
+  const flattenedTasks: Writable<FlattenedBackgroundTask[]> = writable([])
 
-  const {
-    executeBackgroundTask
-  } =
-    useDashboardContext();
+  const { executeBackgroundTask } = useDashboardContext()
 
-  const activeTasks: Readable<
-    FlattenedBackgroundTask[]
-  > =
-    derived(
-      flattenedTasks,
-      (
-        flattenedArray
-      ) =>
-        flattenedArray.filter(
-          (
-            flattenedEntry
-          ) =>
-            flattenedEntry
-              .state
-              .status[0] ===
-            'pending'
-        )
-    );
+  const activeTasks: Readable<FlattenedBackgroundTask[]> = derived(
+    flattenedTasks,
+    (flattenedArray) =>
+      flattenedArray.filter(
+        (flattenedEntry) => flattenedEntry.state.status[0] === 'pending'
+      )
+  )
 
-  executeBackgroundTask(
-    async (
-      context
-    ) => {
-      for (
-        let i = 0;
-        i <
-        100;
-        i++
-      ) {
-        context.setProgress(
-          [
-            i,
-            100
-          ]
-        );
+  executeBackgroundTask(async (context) => {
+    for (let i = 0; i < 100; i++) {
+      context.setProgress([i, 100])
 
-        await new Promise<void>(
-          (
-            resolve
-          ) =>
-            setTimeout(
-              resolve,
-              10
-            )
-        );
-      }
+      await new Promise<void>((resolve) => setTimeout(resolve, 10))
     }
-  );
+  })
 
   {
-    const onDestroy: (() => void)[] =
-      [];
+    const onDestroy: (() => void)[] = []
     function update() {
       for (const destroy of onDestroy) {
-        destroy();
+        destroy()
       }
 
-      onDestroy.splice(
-        0
-      );
+      onDestroy.splice(0)
 
-      const flattenedArray: FlattenedBackgroundTask[] =
-        [];
+      const flattenedArray: FlattenedBackgroundTask[] = []
 
-      for (const task of get(
-        tasks
-      )) {
-        const flattenedEntry: FlattenedBackgroundTask =
-          {
-            id: task.id,
-            task,
-            state:
-              get(
-                task.state
-              )
-          };
+      for (const task of get(tasks)) {
+        const flattenedEntry: FlattenedBackgroundTask = {
+          id: task.id,
+          task,
+          state: get(task.state)
+        }
 
-        flattenedArray.push(
-          flattenedEntry
-        );
+        flattenedArray.push(flattenedEntry)
 
         onDestroy.push(
-          task.state.subscribe(
-            (
-              state
-            ) => {
-              flattenedEntry.state =
-                state;
+          task.state.subscribe((state) => {
+            flattenedEntry.state = state
 
-              flattenedTasks.set(
-                flattenedArray
-              );
-            }
-          )
-        );
+            flattenedTasks.set(flattenedArray)
+          })
+        )
       }
 
-      flattenedTasks.set(
-        flattenedArray
-      );
+      flattenedTasks.set(flattenedArray)
     }
 
-    $effect(
-      () =>
-        tasks.subscribe(
-          () =>
-            update()
-        )
-    );
+    $effect(() => tasks.subscribe(() => update()))
   }
 </script>
 
 {#snippet desktop()}
-  <div
-    class="progress"
-  >
-    {#snippet foreground(
-      view: Snippet
-    )}
-      <div
-        class="foreground"
-      >
+  <div class="progress">
+    {#snippet foreground(view: Snippet)}
+      <div class="foreground">
         {@render view()}
       </div>
     {/snippet}
@@ -193,19 +103,14 @@
     {#if $flattenedTasks.length > 0}
       <Button
         onclick={() => {
-          showOverlay = true;
+          showOverlay = true
         }}
         {foreground}
       >
         {#if $activeTasks.length > 0}
-          <LoadingSpinner
-            size="2rem"
-          />
+          <LoadingSpinner size="2rem" />
         {:else}
-          <Icon
-            icon="circle-check"
-            size="2rem"
-          />
+          <Icon icon="circle-check" size="2rem" />
         {/if}
       </Button>
     {/if}
@@ -215,85 +120,54 @@
 {#if showOverlay}
   <Overlay
     ondismiss={() => {
-      showOverlay = false;
+      showOverlay = false
     }}
     x={0}
     y={0}
     notransition
   >
-    {#snippet children(
-      windowButtons: Snippet
-    )}
+    {#snippet children(windowButtons: Snippet)}
       <div
         class="overlay"
         transition:fly|global={{
           x: -16
         }}
       >
-        <div
-          class="header"
-        >
-          <h2
-          >
-            Operations
-          </h2>
+        <div class="header">
+          <h2>Operations</h2>
 
           {@render windowButtons()}
         </div>
 
-        <Separator
-          horizontal
-        />
+        <Separator horizontal />
 
-        <div
-          class="main"
-        ></div>
+        <div class="main"></div>
       </div>
     {/snippet}
   </Overlay>
 {/if}
 
-<style
-  lang="scss"
->
-  @use '../../global.scss'
-    as *;
+<style lang="scss">
+  @use '../../global.scss' as *;
 
   div.progress {
     flex-direction: row;
 
-    justify-content: safe
-      center;
-    padding: 16px
-      0;
+    justify-content: safe center;
+    padding: 16px 0;
 
     div.foreground {
       padding: 8px;
 
-      color: var(
-        --color-1
-      );
+      color: var(--color-1);
     }
   }
 
   div.overlay {
-    background-color: var(
-      --color-9
-    );
-    color: var(
-      --color-1
-    );
+    background-color: var(--color-9);
+    color: var(--color-1);
 
-    @include force-size(
-      min(
-        calc(
-          100dvw -
-            64px
-        ),
-        360px
-      ),
-      100dvh
-    );
+    @include force-size(min(calc(100dvw - 64px), 360px), 100dvh);
 
     > div.header {
       flex-direction: row;

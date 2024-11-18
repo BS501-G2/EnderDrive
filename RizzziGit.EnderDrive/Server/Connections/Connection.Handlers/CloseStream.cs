@@ -8,25 +8,16 @@ public sealed partial class Connection
 {
   private sealed record class CloseStreamRequest
   {
-    [BsonElement(
-      "streamId"
-    )]
+    [BsonElement("streamId")]
     public required ObjectId StreamId;
   }
 
   private sealed record class CloseStreamResponse { }
 
-  private RequestHandler<
-    CloseStreamRequest,
-    CloseStreamResponse
-  > CloseStream =>
-    async (
-      request,
-      cancellationToken
-    ) =>
+  private RequestHandler<CloseStreamRequest, CloseStreamResponse> CloseStream =>
+    async (request, cancellationToken) =>
     {
-      ConnectionContext context =
-        GetContext();
+      ConnectionContext context = GetContext();
 
       if (
         !context.FileStreams.TryGetValue(
@@ -35,16 +26,11 @@ public sealed partial class Connection
         )
       )
       {
-        throw new InvalidOperationException(
-          "File stream not found."
-        );
+        throw new InvalidOperationException("File stream not found.");
       }
 
-      await stream.Close(
-        cancellationToken
-      );
+      await stream.Close(cancellationToken);
 
-      return new()
-      { };
+      return new() { };
     };
 }

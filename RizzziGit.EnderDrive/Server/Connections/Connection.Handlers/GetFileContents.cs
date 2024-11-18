@@ -10,20 +10,15 @@ using Utilities;
 
 public sealed partial class Connection
 {
-  private sealed record class GetFileContentsRequest
-    : BaseFileRequest
+  private sealed record class GetFileContentsRequest : BaseFileRequest
   {
-    [BsonElement(
-      "pagination"
-    )]
+    [BsonElement("pagination")]
     public required PaginationOptions? Pagination;
   }
 
   private sealed record class GetFileContentsResponse
   {
-    [BsonElement(
-      "fileContents"
-    )]
+    [BsonElement("fileContents")]
     public required string[] FileContents;
   }
 
@@ -41,35 +36,17 @@ public sealed partial class Connection
       fileAccessResult
     ) =>
     {
-      FileContent[] fileContents =
-        await Resources
-          .GetFileContents(
-            transaction,
-            file
-          )
-          .ApplyPagination(
-            request.Pagination
-          )
-          .ToAsyncEnumerable()
-          .ToArrayAsync(
-            transaction.CancellationToken
-          );
+      FileContent[] fileContents = await Resources
+        .GetFileContents(transaction, file)
+        .ApplyPagination(request.Pagination)
+        .ToAsyncEnumerable()
+        .ToArrayAsync(transaction.CancellationToken);
 
       return new()
       {
-        FileContents =
-          fileContents
-            .Select(
-              (
-                fileContent
-              ) =>
-                JToken
-                  .FromObject(
-                    fileContent
-                  )
-                  .ToString()
-            )
-            .ToArray(),
+        FileContents = fileContents
+          .Select((fileContent) => JToken.FromObject(fileContent).ToString())
+          .ToArray(),
       };
     };
 }

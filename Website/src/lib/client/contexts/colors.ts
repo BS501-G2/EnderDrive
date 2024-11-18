@@ -1,43 +1,21 @@
-import {
-  getContext,
-  setContext
-} from 'svelte';
-import type { Readable } from 'svelte/store';
-import {
-  derived,
-  get,
-  type Writable
-} from 'svelte/store';
-import { persisted } from 'svelte-persisted-store';
+import { getContext, setContext } from 'svelte'
+import type { Readable } from 'svelte/store'
+import { derived, get, type Writable } from 'svelte/store'
+import { persisted } from 'svelte-persisted-store'
 
-import Green from '../../shared/colors/green';
-import {
-  rgbToCss,
-  type Color,
-  type Palette
-} from '$lib/shared/colors';
+import Green from '../../shared/colors/green'
+import { rgbToCss, type Color, type Palette } from '$lib/shared/colors'
 
-const colors: Palette[] =
-  [
-    Green
-  ];
+const colors: Palette[] = [Green]
 
-const colorContextName =
-  'Color Context';
+const colorContextName = 'Color Context'
 
 export interface ColorContext {
-  currentPalette: Readable<Palette>;
+  currentPalette: Readable<Palette>
 
-  setColorScheme: (
-    current: Palette
-  ) => boolean;
+  setColorScheme: (current: Palette) => boolean
 
-  useColor: Readable<
-    (
-      index: number,
-      alpha?: number
-    ) => Color
-  >;
+  useColor: Readable<(index: number, alpha?: number) => Color>
   useCssColor: Readable<
     (
       index: number,
@@ -45,185 +23,83 @@ export interface ColorContext {
     ) =>
       | `rgb(${number},${number},${number})`
       | `rgba(${number},${number},${number},${number})`
-  >;
+  >
 
-  useCssVarColor: Readable<
-    (
-      index: number
-    ) => `--${string}`
-  >;
+  useCssVarColor: Readable<(index: number) => `--${string}`>
 
-  printStyleHTML: Readable<
-    () => string
-  >;
+  printStyleHTML: Readable<() => string>
 }
 
 export function useColorContext() {
-  return getContext<ColorContext>(
-    colorContextName
-  );
+  return getContext<ColorContext>(colorContextName)
 }
 
 export function createColorContext() {
-  const currentPalette: Writable<Palette> =
-    persisted(
-      'color-scheme',
-      colors[0],
-      {
-        serializer:
-          {
-            stringify:
-              (
-                palette
-              ) =>
-                palette.name,
-            parse:
-              (
-                name
-              ) =>
-                colors.find(
-                  (
-                    palette
-                  ) =>
-                    palette.name ===
-                    name
-                ) ??
-                colors[0]
-          }
-      }
-    );
-
-  const context: ColorContext =
+  const currentPalette: Writable<Palette> = persisted(
+    'color-scheme',
+    colors[0],
     {
-      currentPalette:
-        derived(
-          currentPalette,
-          (
-            value
-          ) =>
-            value ??
-            colors[0]
-        ),
+      serializer: {
+        stringify: (palette) => palette.name,
+        parse: (name) =>
+          colors.find((palette) => palette.name === name) ?? colors[0]
+      }
+    }
+  )
 
-      setColorScheme:
-        (
-          palette: Palette
-        ) => {
-          if (
-            palette ==
-            get(
-              currentPalette
-            )
-          ) {
-            return false;
-          }
+  const context: ColorContext = {
+    currentPalette: derived(currentPalette, (value) => value ?? colors[0]),
 
-          currentPalette.set(
-            palette
-          );
-          return true;
-        },
+    setColorScheme: (palette: Palette) => {
+      if (palette == get(currentPalette)) {
+        return false
+      }
 
-      useColor:
-        derived(
-          currentPalette,
-          (
-            palette
-          ) =>
-            (
-              index: number,
-              alpha?: number
-            ) => {
-              const result =
-                palette
-                  .colors[
-                  index
-                ];
-              if (
-                result ==
-                null
-              ) {
-                throw new Error(
-                  'Invalid color index'
-                );
-              }
+      currentPalette.set(palette)
+      return true
+    },
 
-              const color: Color =
-                [
-                  ...result
-                ];
-              if (
-                alpha !=
-                null
-              ) {
-                color[3] =
-                  alpha;
-              }
+    useColor: derived(
+      currentPalette,
+      (palette) => (index: number, alpha?: number) => {
+        const result = palette.colors[index]
+        if (result == null) {
+          throw new Error('Invalid color index')
+        }
 
-              return color as Color;
-            }
-        ),
+        const color: Color = [...result]
+        if (alpha != null) {
+          color[3] = alpha
+        }
 
-      useCssColor:
-        derived(
-          currentPalette,
-          () =>
-            (
-              index: number,
-              alpha?: number
-            ) => {
-              const color =
-                get(
-                  context.useColor
-                )(
-                  index,
-                  alpha
-                );
+        return color as Color
+      }
+    ),
 
-              return rgbToCss(
-                color
-              ) as never;
-            }
-        ),
+    useCssColor: derived(
+      currentPalette,
+      () => (index: number, alpha?: number) => {
+        const color = get(context.useColor)(index, alpha)
 
-      useCssVarColor:
-        derived(
-          currentPalette,
-          () =>
-            (
-              index: number
-            ) =>
-              `--color-${index + 1}` as never
-        ),
+        return rgbToCss(color) as never
+      }
+    ),
 
-      printStyleHTML:
-        derived(
-          currentPalette,
-          (
-            palette
-          ) =>
-            () => {
-              let output: string =
-                '';
+    useCssVarColor: derived(
+      currentPalette,
+      () => (index: number) => `--color-${index + 1}` as never
+    ),
 
-              for (
-                let index = 0;
-                index <
-                palette
-                  .colors
-                  .length;
-                index++
-              ) {
-                output += `${get(context.useCssVarColor)(index)}: ${get(context.useCssColor)(index)};`;
-              }
+    printStyleHTML: derived(currentPalette, (palette) => () => {
+      let output: string = ''
 
-              return `<style>:root{${output}}</style>`;
-            }
-        )
-    };
+      for (let index = 0; index < palette.colors.length; index++) {
+        output += `${get(context.useCssVarColor)(index)}: ${get(context.useCssColor)(index)};`
+      }
 
-  return setContext(
-    colorContextName,
-    context
-  );
+      return `<style>:root{${output}}</style>`
+    })
+  }
+
+  return setContext(colorContextName, context)
 }

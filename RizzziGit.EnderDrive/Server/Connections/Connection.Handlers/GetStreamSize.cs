@@ -8,17 +8,13 @@ public sealed partial class Connection
 {
   private sealed record class GetStreamSizeRequest
   {
-    [BsonElement(
-      "streamId"
-    )]
+    [BsonElement("streamId")]
     public required ObjectId StreamId;
   }
 
   private sealed record class GetStreamSizeResponse
   {
-    [BsonElement(
-      "size"
-    )]
+    [BsonElement("size")]
     public required long Size;
   }
 
@@ -26,13 +22,9 @@ public sealed partial class Connection
     GetStreamSizeRequest,
     GetStreamSizeResponse
   > GetStreamSize =>
-    async (
-      request,
-      cancellationToken
-    ) =>
+    async (request, cancellationToken) =>
     {
-      ConnectionContext context =
-        GetContext();
+      ConnectionContext context = GetContext();
 
       if (
         !context.FileStreams.TryGetValue(
@@ -41,17 +33,9 @@ public sealed partial class Connection
         )
       )
       {
-        throw new InvalidOperationException(
-          "File stream not found."
-        );
+        throw new InvalidOperationException("File stream not found.");
       }
 
-      return new()
-      {
-        Size =
-          await stream.GetLength(
-            cancellationToken
-          ),
-      };
+      return new() { Size = await stream.GetLength(cancellationToken) };
     };
 }

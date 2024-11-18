@@ -8,25 +8,18 @@ using Resources;
 
 public sealed partial class Connection
 {
-  private sealed record class GetFileSizeRequest
-    : BaseFileRequest
+  private sealed record class GetFileSizeRequest : BaseFileRequest
   {
-    [BsonElement(
-      "fileContentId"
-    )]
+    [BsonElement("fileContentId")]
     public required ObjectId? FileContentId;
 
-    [BsonElement(
-      "fileSnapshotId"
-    )]
+    [BsonElement("fileSnapshotId")]
     public required ObjectId? FileSnapshotId;
   }
 
   private sealed record class GetFileSizeResponse
   {
-    [BsonElement(
-      "size"
-    )]
+    [BsonElement("size")]
     public required long Size;
   }
 
@@ -45,8 +38,7 @@ public sealed partial class Connection
     ) =>
     {
       FileContent fileContent =
-        request.FileContentId
-        != null
+        request.FileContentId != null
           ? await Internal_EnsureFirst(
             transaction,
             Resources.GetFileContents(
@@ -55,14 +47,10 @@ public sealed partial class Connection
               id: request.FileContentId
             )
           )
-          : await Resources.GetMainFileContent(
-            transaction,
-            file
-          );
+          : await Resources.GetMainFileContent(transaction, file);
 
       FileSnapshot? fileSnapshot =
-        request.FileSnapshotId
-        != null
+        request.FileSnapshotId != null
           ? await Resources
             .GetFileSnapshots(
               transaction,
@@ -71,9 +59,7 @@ public sealed partial class Connection
               request.FileSnapshotId
             )
             .ToAsyncEnumerable()
-            .FirstOrDefaultAsync(
-              transaction.CancellationToken
-            )
+            .FirstOrDefaultAsync(transaction.CancellationToken)
           : await Resources.GetLatestFileSnapshot(
             transaction,
             file,
@@ -83,12 +69,8 @@ public sealed partial class Connection
       return new()
       {
         Size =
-          fileSnapshot
-          != null
-            ? await Resources.GetFileSize(
-              transaction,
-              fileSnapshot
-            )
+          fileSnapshot != null
+            ? await Resources.GetFileSize(transaction, fileSnapshot)
             : 0,
       };
     };

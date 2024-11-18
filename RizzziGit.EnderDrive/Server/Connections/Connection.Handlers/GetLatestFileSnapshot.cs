@@ -8,20 +8,15 @@ using Utilities;
 
 public sealed partial class Connection
 {
-  private sealed record class GetLatestFileSnapshotRequest
-    : BaseFileRequest
+  private sealed record class GetLatestFileSnapshotRequest : BaseFileRequest
   {
-    [BsonElement(
-      "fileContentId"
-    )]
+    [BsonElement("fileContentId")]
     public required ObjectId? FileContentId;
   }
 
   private sealed record class GetLatestFileSnapshotResponse
   {
-    [BsonElement(
-      "fileSnapshot"
-    )]
+    [BsonElement("fileSnapshot")]
     public required string? FileSnapshot;
   }
 
@@ -40,8 +35,7 @@ public sealed partial class Connection
     ) =>
     {
       FileContent fileContent =
-        request.FileContentId
-        != null
+        request.FileContentId != null
           ? await Internal_EnsureFirst(
             transaction,
             Resources.GetFileContents(
@@ -50,22 +44,14 @@ public sealed partial class Connection
               id: request.FileContentId
             )
           )
-          : await Resources.GetMainFileContent(
-            transaction,
-            file
-          );
+          : await Resources.GetMainFileContent(transaction, file);
 
-      FileSnapshot? fileSnapshot =
-        await Resources.GetLatestFileSnapshot(
-          transaction,
-          file,
-          fileContent
-        );
+      FileSnapshot? fileSnapshot = await Resources.GetLatestFileSnapshot(
+        transaction,
+        file,
+        fileContent
+      );
 
-      return new()
-      {
-        FileSnapshot =
-          fileSnapshot?.ToJson(),
-      };
+      return new() { FileSnapshot = fileSnapshot?.ToJson() };
     };
 }

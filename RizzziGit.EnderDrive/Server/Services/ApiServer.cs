@@ -29,107 +29,59 @@ public sealed partial class ApiServer(
   Server server,
   int httpPort,
   int httpsPort
-)
-  : Service<ApiServerParams>(
-    "API",
-    server
-  )
+) : Service<ApiServerParams>("API", server)
 {
-  public Server Server =>
-    server;
+  public Server Server => server;
 
   protected override async Task<ApiServerParams> OnStart(
     CancellationToken startupCancellationToken,
     CancellationToken serviceCancellationToken
   )
   {
-    SocketIoBridge socketIoBridge =
-      new(
-        this
-      );
+    SocketIoBridge socketIoBridge = new(this);
 
-    WebApplicationBuilder builder =
-      WebApplication.CreateBuilder();
+    WebApplicationBuilder builder = WebApplication.CreateBuilder();
 
     builder.Logging.ClearProviders();
     builder.WebHost.ConfigureKestrel(
-      (
-        context,
-        options
-      ) =>
+      (context, options) =>
       {
         options.Listen(
           IPAddress.Any,
           httpPort,
-          (
-            options
-          ) =>
+          (options) =>
           {
-            options.Protocols =
-              HttpProtocols.Http1AndHttp2;
+            options.Protocols = HttpProtocols.Http1AndHttp2;
           }
         );
 
         options.Listen(
           IPAddress.Any,
           httpsPort,
-          (
-            options
-          ) =>
+          (options) =>
           {
-            options.Protocols =
-              HttpProtocols.Http1AndHttp2AndHttp3;
+            options.Protocols = HttpProtocols.Http1AndHttp2AndHttp3;
             options.UseHttps();
           }
         );
       }
     );
 
-    builder
-      .Services.AddRazorComponents()
-      .AddInteractiveServerComponents();
+    builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 
-    WebApplication app =
-      builder.Build();
+    WebApplication app = builder.Build();
 
-    app.UseWebSockets(
-      new()
-      {
-        KeepAliveInterval =
-          TimeSpan.FromMinutes(
-            2
-          ),
-      }
-    );
+    app.UseWebSockets(new() { KeepAliveInterval = TimeSpan.FromMinutes(2) });
 
-    await StartServices(
-      [
-        socketIoBridge,
-      ],
-      startupCancellationToken
-    );
+    await StartServices([socketIoBridge], startupCancellationToken);
     app.Use(
-      (
-        HttpContext context,
-        Func<Task> _
-      ) =>
-        Handle(
-          context,
-          serviceCancellationToken
-        )
+      (HttpContext context, Func<Task> _) =>
+        Handle(context, serviceCancellationToken)
     );
 
-    await app.StartAsync(
-      startupCancellationToken
-    );
+    await app.StartAsync(startupCancellationToken);
 
-    return new()
-    {
-      WebApplication =
-        app,
-      SocketIoBridge =
-        socketIoBridge,
-    };
+    return new() { WebApplication = app, SocketIoBridge = socketIoBridge };
   }
 
   protected override async Task OnRun(
@@ -137,21 +89,11 @@ public sealed partial class ApiServer(
     CancellationToken cancellationToken
   )
   {
-    var context =
-      GetContext();
+    var context = GetContext();
 
-    Task[] tasks =
+    Task[] tasks = [WatchService(context.SocketIoBridge, cancellationToken)];
 
-      [
-        WatchService(
-          context.SocketIoBridge,
-          cancellationToken
-        ),
-      ];
-
-    await await Task.WhenAny(
-      tasks
-    );
+    await await Task.WhenAny(tasks);
   }
 
   protected override async Task OnStop(
@@ -159,15 +101,10 @@ public sealed partial class ApiServer(
     ExceptionDispatchInfo? exception
   )
   {
-    var context =
-      GetContext();
-    await context.WebApplication.StopAsync(
-      CancellationToken.None
-    );
+    var context = GetContext();
+    await context.WebApplication.StopAsync(CancellationToken.None);
 
-    await StopServices(
-      context.SocketIoBridge
-    );
+    await StopServices(context.SocketIoBridge);
   }
 
   private async Task Handle(
@@ -175,16 +112,9 @@ public sealed partial class ApiServer(
     CancellationToken cancellationToken
   )
   {
-    if (
-      !context
-        .WebSockets
-        .IsWebSocketRequest
-    )
+    if (!context.WebSockets.IsWebSocketRequest)
     {
-      context
-        .Response
-        .StatusCode =
-        400;
+      context.Response.StatusCode = 400;
       await context.Response.CompleteAsync();
       return;
     }

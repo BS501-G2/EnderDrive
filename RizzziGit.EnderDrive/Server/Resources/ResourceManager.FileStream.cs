@@ -21,12 +21,7 @@ public sealed partial class ResourceManager
     FileSnapshot snapshot
   )
   {
-    FileStreamKey key =
-      new(
-        file.Id,
-        content.Id,
-        snapshot.Id
-      );
+    FileStreamKey key = new(file.Id, content.Id, snapshot.Id);
     FileStream stream =
       new(
         this,
@@ -34,10 +29,7 @@ public sealed partial class ResourceManager
         file,
         content,
         snapshot,
-        await GetFileSize(
-          transaction,
-          snapshot
-        ),
+        await GetFileSize(transaction, snapshot),
         null
       );
 
@@ -53,12 +45,7 @@ public sealed partial class ResourceManager
     bool createNewSnapshot
   )
   {
-    FileStreamKey key =
-      new(
-        file.Id,
-        content.Id,
-        snapshot.Id
-      );
+    FileStreamKey key = new(file.Id, content.Id, snapshot.Id);
 
     FileStream stream =
       new(
@@ -75,10 +62,7 @@ public sealed partial class ResourceManager
             snapshot
           )
           : snapshot,
-        await GetFileSize(
-          transaction,
-          snapshot
-        ),
+        await GetFileSize(transaction, snapshot),
         userAuthentication
       );
 
@@ -93,54 +77,34 @@ public sealed partial class ResourceManager
     FileSnapshot snapshot,
     long size,
     UnlockedUserAuthentication? userAuthentication
-  )
-    : Stream
+  ) : Stream
   {
-    public readonly UnlockedFile File =
-      file;
-    public readonly FileContent FileContent =
-      content;
-    public readonly FileSnapshot FileSnapshot =
-      snapshot;
+    public readonly UnlockedFile File = file;
+    public readonly FileContent FileContent = content;
+    public readonly FileSnapshot FileSnapshot = snapshot;
 
-    public override bool CanRead =>
-      true;
-    public override bool CanSeek =>
-      true;
-    public override bool CanWrite =>
-      userAuthentication
-      != null;
+    public override bool CanRead => true;
+    public override bool CanSeek => true;
+    public override bool CanWrite => userAuthentication != null;
 
-    public override long Length =>
-      size;
+    public override long Length => size;
 
-    private long size =
-      size;
-    private long position =
-      0;
+    private long size = size;
+    private long position = 0;
 
     public override long Position
     {
-      get =>
-        position;
+      get => position;
       set
       {
-        if (
-          value
-            >= 0
-          && value
-            <= size
-        )
+        if (value >= 0 && value <= size)
         {
-          position =
-            value;
+          position = value;
         }
         else
         {
           throw new ArgumentOutOfRangeException(
-            nameof(
-              value
-            ),
+            nameof(value),
             value,
             $"Must must range from 0 to {size}"
           );
@@ -152,85 +116,57 @@ public sealed partial class ResourceManager
 
     public override async ValueTask<int> ReadAsync(
       Memory<byte> buffer,
-      CancellationToken cancellationToken =
-        default
+      CancellationToken cancellationToken = default
     ) =>
       await Task.Run(
         async () =>
         {
-          var cancellationTokenSource =
-            cancellationToken.Link(
-              transaction?.CancellationToken
-            );
+          var cancellationTokenSource = cancellationToken.Link(
+            transaction?.CancellationToken
+          );
 
-          CompositeBuffer fileRead =
-            await manager.Transact(
-              transaction,
-              (
-                transaction
-              ) =>
-                manager
-                  .ReadFile(
-                    transaction,
-                    File,
-                    FileContent,
-                    FileSnapshot,
-                    Position,
-                    long.Min(
-                      buffer
-                        .Span
-                        .Length,
-                      Length
-                        - Position
-                    )
-                  )
-                  .WaitAsync(
-                    cancellationTokenSource.Token
-                  ),
-              cancellationTokenSource.Token
-            );
+          CompositeBuffer fileRead = await manager.Transact(
+            transaction,
+            (transaction) =>
+              manager
+                .ReadFile(
+                  transaction,
+                  File,
+                  FileContent,
+                  FileSnapshot,
+                  Position,
+                  long.Min(buffer.Span.Length, Length - Position)
+                )
+                .WaitAsync(cancellationTokenSource.Token),
+            cancellationTokenSource.Token
+          );
 
-          fileRead
-            .ToByteArray()
-            .CopyTo(
-              buffer.Span
-            );
-          position +=
-            fileRead.Length;
-          return (int)
-            fileRead.Length;
+          fileRead.ToByteArray().CopyTo(buffer.Span);
+          position += fileRead.Length;
+          return (int)fileRead.Length;
         },
         default
       );
 
     public override async ValueTask WriteAsync(
       ReadOnlyMemory<byte> buffer,
-      CancellationToken cancellationToken =
-        default
+      CancellationToken cancellationToken = default
     ) =>
       await Task.Run(
         async () =>
         {
-          if (
-            userAuthentication
-            is null
-          )
+          if (userAuthentication is null)
           {
-            throw new InvalidOperationException(
-              "Not authenticated."
-            );
+            throw new InvalidOperationException("Not authenticated.");
           }
 
-          var cancellationTokenSource =
-            cancellationToken.Link(
-              transaction?.CancellationToken
-            );
+          var cancellationTokenSource = cancellationToken.Link(
+            transaction?.CancellationToken
+          );
 
           await manager.Transact(
             transaction,
-            (
-              transaction
-            ) =>
+            (transaction) =>
               manager
                 .WriteFile(
                   transaction,
@@ -241,88 +177,39 @@ public sealed partial class ResourceManager
                   position,
                   buffer.ToArray()
                 )
-                .WaitAsync(
-                  cancellationTokenSource.Token
-                ),
+                .WaitAsync(cancellationTokenSource.Token),
             cancellationTokenSource.Token
           );
 
-          position +=
-            buffer.Length;
-          size =
-            long.Max(
-              position,
-              size
-            );
+          position += buffer.Length;
+          size = long.Max(position, size);
         },
         default
       );
 
-    public override void SetLength(
-      long value
-    ) { }
+    public override void SetLength(long value) { }
 
-    public override long Seek(
-      long offset,
-      SeekOrigin origin
-    ) =>
+    public override long Seek(long offset, SeekOrigin origin) =>
       origin switch
       {
-        SeekOrigin.Begin =>
-          Position =
-            offset,
-        SeekOrigin.Current =>
-          Position +=
-            offset,
-        SeekOrigin.End =>
-          Position =
-            Length
-            - offset,
-        _ =>
-          throw new InvalidOperationException(
-            "Invalid offset."
-          ),
+        SeekOrigin.Begin => Position = offset,
+        SeekOrigin.Current => Position += offset,
+        SeekOrigin.End => Position = Length - offset,
+        _ => throw new InvalidOperationException("Invalid offset."),
       };
 
-    public override void Write(
-      byte[] buffer,
-      int offset,
-      int count
-    ) =>
-      WriteAsync(
-          buffer,
-          0,
-          0,
-          CancellationToken.None
-        )
-        .GetAwaiter()
-        .GetResult();
+    public override void Write(byte[] buffer, int offset, int count) =>
+      WriteAsync(buffer, 0, 0, CancellationToken.None).GetAwaiter().GetResult();
 
     public override async Task WriteAsync(
       byte[] buffer,
       int offset,
       int count,
       CancellationToken cancellationToken
-    ) =>
-      await WriteAsync(
-        buffer.AsMemory(
-          offset,
-          count
-        ),
-        cancellationToken
-      );
+    ) => await WriteAsync(buffer.AsMemory(offset, count), cancellationToken);
 
-    public override int Read(
-      byte[] buffer,
-      int offset,
-      int count
-    ) =>
-      ReadAsync(
-          buffer,
-          offset,
-          count,
-          CancellationToken.None
-        )
+    public override int Read(byte[] buffer, int offset, int count) =>
+      ReadAsync(buffer, offset, count, CancellationToken.None)
         .GetAwaiter()
         .GetResult();
 
@@ -331,13 +218,6 @@ public sealed partial class ResourceManager
       int offset,
       int count,
       CancellationToken cancellationToken
-    ) =>
-      await ReadAsync(
-        buffer.AsMemory(
-          offset,
-          count
-        ),
-        cancellationToken
-      );
+    ) => await ReadAsync(buffer.AsMemory(offset, count), cancellationToken);
   }
 }

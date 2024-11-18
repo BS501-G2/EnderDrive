@@ -1,50 +1,30 @@
-<script
-  lang="ts"
->
-  import { useServerContext } from '$lib/client/client';
-  import { useNavigationContext } from '$lib/client/contexts/navigation';
-  import Separator from '$lib/client/ui/separator.svelte';
-  import { loremIpsum } from 'lorem-ipsum';
-  import { onMount } from 'svelte';
+<script lang="ts">
+  import { useServerContext } from '$lib/client/client'
+  import { useNavigationContext } from '$lib/client/contexts/navigation'
+  import Separator from '$lib/client/ui/separator.svelte'
+  import { loremIpsum } from 'lorem-ipsum'
+  import { onMount } from 'svelte'
 
-  const {} =
-    $props();
-  const {
-    me
-  } =
-    useServerContext();
+  const {} = $props()
+  const { me } = useServerContext()
 </script>
 
 {#await me() then user}
-  <div
-    class="page"
-  >
-    <div
-      class="welcome"
-    >
-      <h2
-      >
+  <div class="page">
+    <div class="welcome">
+      <h2>
         Welcome,
-        {user!
-          .firstName}!
+        {user!.firstName}!
       </h2>
     </div>
 
-    <Separator
-      horizontal
-    />
+    <Separator horizontal />
 
-    {loremIpsum(
-      {
-        count: 100
-      }
-    )}
+    <div class="recent"></div>
   </div>
 {/await}
 
-<style
-  lang="scss"
->
+<style lang="scss">
   div.page {
     margin: 64px;
     gap: 8px;

@@ -1,87 +1,47 @@
-<script
-  lang="ts"
->
-  import { goto } from '$app/navigation';
-  import { useAppContext } from '$lib/client/contexts/app';
-  import Button from '$lib/client/ui/button.svelte';
-  import Icon, {
-    type IconOptions
-  } from '$lib/client/ui/icon.svelte';
-  import {
-    onMount,
-    type Snippet
-  } from 'svelte';
+<script lang="ts">
+  import { goto } from '$app/navigation'
+  import { useAppContext } from '$lib/client/contexts/app'
+  import Button from '$lib/client/ui/button.svelte'
+  import Icon, { type IconOptions } from '$lib/client/ui/icon.svelte'
+  import { onMount, type Snippet } from 'svelte'
 
-  const {
-    isDesktop
-  } =
-    useAppContext();
+  const { isDesktop } = useAppContext()
 
-  onMount(
-    () =>
-      isDesktop.subscribe(
-        async (
-          isDesktop
-        ) => {
-          if (
-            isDesktop
-          ) {
-            await goto(
-              '/app/files',
-              {
-                replaceState: true
-              }
-            );
-          }
-        }
-      )
-  );
+  onMount(() =>
+    isDesktop.subscribe(async (isDesktop) => {
+      if (isDesktop) {
+        await goto('/app/files', {
+          replaceState: true
+        })
+      }
+    })
+  )
 </script>
 
-{#snippet buttons(
-  icon: IconOptions,
-  label: string,
-  path: string
-)}
-  {#snippet buttonForeground(
-    view: Snippet
-  )}
-    <div
-      class="foreground"
-    >
+{#snippet buttons(icon: IconOptions, label: string, path: string)}
+  {#snippet buttonForeground(view: Snippet)}
+    <div class="foreground">
       {@render view()}
     </div>
   {/snippet}
 
-  <div
-    class="background"
-  >
+  <div class="background">
     <Button
       foreground={buttonForeground}
       onclick={() => {
-        goto(
-          path
-        );
+        goto(path)
       }}
     >
-      <Icon
-        {...icon}
-      />
-      <p
-        class="label"
-      >
+      <Icon {...icon} />
+      <p class="label">
         {label}
       </p>
     </Button>
   </div>
 {/snippet}
 
-<div
-  class="buttons-container"
->
-  <div
-    class="buttons"
-  >
+<div class="buttons-container">
+  <div class="buttons">
     {@render buttons(
       {
         icon: 'folder',
@@ -117,11 +77,8 @@
   </div>
 </div>
 
-<style
-  lang="scss"
->
-  @use '../../../global.scss'
-    as *;
+<style lang="scss">
+  @use '../../../global.scss' as *;
 
   div.buttons-container {
     flex-grow: 1;
@@ -140,21 +97,13 @@
   }
 
   div.background {
-    @include force-size(
-      calc(
-        50% -
-          16px
-      ),
-      &
-    );
+    @include force-size(calc(50% - 16px), &);
 
     box-sizing: border-box;
 
     flex-shrink: 0;
 
-    > :global(
-        button
-      ) {
+    > :global(button) {
       flex-grow: 1;
     }
   }
@@ -166,12 +115,7 @@
     align-items: center;
 
     border-radius: 16px;
-    box-shadow: 2px
-      2px
-      4px
-      var(
-        --color-10
-      );
+    box-shadow: 2px 2px 4px var(--color-10);
 
     padding: 16px;
     margin: 8px;

@@ -4,8 +4,7 @@ using MongoDB.Bson;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
-public record class MimeDetectionReport
-  : ResourceData
+public record class MimeDetectionReport : ResourceData
 {
   public required ObjectId FileId;
   public required ObjectId FileContentId;
@@ -26,24 +25,14 @@ public sealed partial class ResourceManager
     MimeDetectionReport report =
       new()
       {
-        Id =
-          ObjectId.GenerateNewId(),
-        FileId =
-          file.Id,
-        FileContentId =
-          fileContent.Id,
-        FileSnapshotId =
-          fileSnapshot.Id,
-        Mime =
-          mime,
+        Id = ObjectId.GenerateNewId(),
+        FileId = file.Id,
+        FileContentId = fileContent.Id,
+        FileSnapshotId = fileSnapshot.Id,
+        Mime = mime,
       };
 
-    await Insert(
-      transaction,
-      [
-        report,
-      ]
-    );
+    await InsertOld(transaction, [report]);
 
     return report;
   }
@@ -54,28 +43,14 @@ public sealed partial class ResourceManager
     FileContent fileContent,
     FileSnapshot fileSnapshot
   ) =>
-    Query<MimeDetectionReport>(
-        transaction
-      )
+    QueryOld<MimeDetectionReport>(transaction)
       .Where(
-        (
-          item
-        ) =>
-          item.FileId
-            == file.Id
-          && item.FileContentId
-            == fileContent.Id
-          && item.FileSnapshotId
-            == fileSnapshot.Id
+        (item) =>
+          item.FileId == file.Id
+          && item.FileContentId == fileContent.Id
+          && item.FileSnapshotId == fileSnapshot.Id
       )
-      .OrderByDescending(
-        (
-          item
-        ) =>
-          item.Id
-      )
+      .OrderByDescending((item) => item.Id)
       .ToAsyncEnumerable()
-      .FirstOrDefaultAsync(
-        GetCancellationToken()
-      );
+      .FirstOrDefaultAsync(GetCancellationToken());
 }

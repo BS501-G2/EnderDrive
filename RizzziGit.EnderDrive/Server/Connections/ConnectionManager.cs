@@ -22,55 +22,37 @@ public sealed class ConnectionManagerContext
 
 public abstract record ConnectionManagerFeed
 {
-  private ConnectionManagerFeed()
-  { }
+  private ConnectionManagerFeed() { }
 
   public sealed record NewConnection(
     TaskCompletionSource TaskCompletionSource,
     WebSocket WebSocket,
     CancellationToken CancellationToken
-  )
-    : ConnectionManagerFeed();
+  ) : ConnectionManagerFeed();
 
-  public sealed record Error(
-    ExceptionDispatchInfo Exception
-  )
+  public sealed record Error(ExceptionDispatchInfo Exception)
     : ConnectionManagerFeed();
 }
 
-public sealed partial class ConnectionManager(
-  Server server
-)
-  : Service<ConnectionManagerContext>(
-    "Connections",
-    server
-  )
+public sealed partial class ConnectionManager(Server server)
+  : Service<ConnectionManagerContext>("Connections", server)
 {
-  public Server Server =>
-    server;
+  public Server Server => server;
 
   protected override Task<ConnectionManagerContext> OnStart(
     CancellationToken startupCancellationToken,
     CancellationToken serviceCancellationToken
   )
   {
-    List<Connection> connection =
-
-      [];
-    WaitQueue<ConnectionManagerFeed> connectionWaitQueue =
-      new(
-        1000
-      );
+    List<Connection> connection = [];
+    WaitQueue<ConnectionManagerFeed> connectionWaitQueue = new(1000);
 
     return Task.FromResult<ConnectionManagerContext>(
       new()
       {
-        Connections =
-          connection,
-        Feed =
-          connectionWaitQueue,
-        NextConnectionId =
-          0,
+        Connections = connection,
+        Feed = connectionWaitQueue,
+        NextConnectionId = 0,
       }
     );
   }
@@ -82,14 +64,10 @@ public sealed partial class ConnectionManager(
   {
     await foreach (
       ConnectionManagerFeed feed in GetContext()
-        .Feed.WithCancellation(
-          serviceCancellationToken
-        )
+        .Feed.WithCancellation(serviceCancellationToken)
     )
     {
-      switch (
-        feed
-      )
+      switch (feed)
       {
         case ConnectionManagerFeed.NewConnection(
           TaskCompletionSource taskCompletionSource,
@@ -108,9 +86,7 @@ public sealed partial class ConnectionManager(
           break;
         }
 
-        case ConnectionManagerFeed.Error(
-          ExceptionDispatchInfo exception
-        ):
+        case ConnectionManagerFeed.Error(ExceptionDispatchInfo exception):
           exception.Throw();
           break;
       }
@@ -122,10 +98,8 @@ public sealed partial class ConnectionManager(
     CancellationToken cancellationToken
   )
   {
-    var context =
-      GetContext();
-    TaskCompletionSource source =
-      new();
+    var context = GetContext();
+    TaskCompletionSource source = new();
 
     await context.Feed.Enqueue(
       new ConnectionManagerFeed.NewConnection(
@@ -147,19 +121,11 @@ public sealed partial class ConnectionManager(
     CancellationToken serviceCancellationToken
   )
   {
-    var context =
-      GetContext();
+    var context = GetContext();
     using CancellationTokenSource linkedCancellationTokenSource =
-      serviceCancellationToken.Link(
-        cancellationToken
-      );
+      serviceCancellationToken.Link(cancellationToken);
 
-    Connection connection =
-      new(
-        this,
-        connectionId,
-        webSocket
-      );
+    Connection connection = new(this, connectionId, webSocket);
 
     await connection.Start();
 
@@ -167,17 +133,13 @@ public sealed partial class ConnectionManager(
     {
       try
       {
-        await connection.Watch(
-          cancellationToken
-        );
+        await connection.Watch(cancellationToken);
       }
       catch (Exception exception)
       {
         await context.Feed.Enqueue(
           new ConnectionManagerFeed.Error(
-            ExceptionDispatchInfo.Capture(
-              exception
-            )
+            ExceptionDispatchInfo.Capture(exception)
           ),
           serviceCancellationToken
         );
@@ -185,9 +147,7 @@ public sealed partial class ConnectionManager(
     }
     catch (Exception exception)
     {
-      taskCompletionSource.SetException(
-        exception
-      );
+      taskCompletionSource.SetException(exception);
     }
     finally
     {

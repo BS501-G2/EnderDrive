@@ -7,142 +7,67 @@ using Newtonsoft.Json;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
-public record class FileContent
-  : ResourceData
+public record class FileContent : ResourceData
 {
-  [JsonProperty(
-    "fileId"
-  )]
+  [JsonProperty("fileId")]
   public required ObjectId FileId;
 
-  [JsonProperty(
-    "main"
-  )]
+  [JsonProperty("main")]
   public required bool Main;
 
-  [JsonProperty(
-    "name"
-  )]
+  [JsonProperty("name")]
   public required string Name;
 }
 
 public sealed partial class ResourceManager
 {
-  public async Task<FileContent> GetMainFileContent(
+  public async Task<Resource<FileContent>> GetMainFileContent(
     ResourceTransaction transaction,
     File file
   )
   {
-    FileContent? content =
-      await Query<FileContent>(
-          transaction,
-          (
-            query
-          ) =>
-            query.Where(
-              (
-                item
-              ) =>
-                item.FileId
-                  == file.Id
-                && item.Main
-            )
-        )
-        .ToAsyncEnumerable()
-        .FirstOrDefaultAsync(
-          transaction.CancellationToken
-        );
+    Resource<FileContent>? content = await Query<FileContent>(
+        transaction,
+        (query) => query.Where((item) => item.FileId == file.Id && item.Main)
+      )
+      .FirstOrDefaultAsync(transaction.CancellationToken);
 
-    if (
-      content
-      != null
-    )
+    if (content == null)
     {
-      return content;
-    }
-
-    await Insert(
-      transaction,
-      content =
+      content = ToResource<FileContent>(
+        transaction,
         new()
         {
-          Id =
-            ObjectId.GenerateNewId(),
-
-          FileId =
-            file.Id,
-          Main =
-            true,
-          Name =
-            "Main Content",
+          Id = ObjectId.GenerateNewId(),
+          FileId = file.Id,
+          Main = true,
+          Name = "Main Content",
         }
-    );
+      );
+      await content.Save(transaction);
+    }
 
     return content;
   }
 
-  public async Task<FileContent> CreateFileContent(
+  public async Task<Resource<FileContent>> CreateFileContent(
     ResourceTransaction transaction,
     UnlockedFile file,
     string name
   )
   {
-    FileContent content =
+    Resource<FileContent> content = ToResource<FileContent>(
+      transaction,
       new()
       {
-        Id =
-          ObjectId.GenerateNewId(),
-        FileId =
-          file.Id,
-        Main =
-          false,
-        Name =
-          name,
-      };
-
-    await Insert(
-      transaction,
-      content
+        Id = ObjectId.GenerateNewId(),
+        FileId = file.File.Id,
+        Main = false,
+        Name = name,
+      }
     );
 
+    await content.Save(transaction);
     return content;
   }
-
-  public IQueryable<FileContent> GetFileContents(
-    ResourceTransaction transaction,
-    File file,
-    string? name =
-      null,
-    ObjectId? id =
-      null
-  ) =>
-    Query<FileContent>(
-      transaction,
-      (
-        query
-      ) =>
-        query.Where(
-          (
-            item
-          ) =>
-            item.FileId
-              == file.Id
-            && (
-              name
-                == null
-              || file.Name.Contains(
-                name,
-                System
-                  .StringComparison
-                  .CurrentCultureIgnoreCase
-              )
-            )
-            && (
-              id
-                == null
-              || item.Id
-                == id
-            )
-        )
-    );
 }

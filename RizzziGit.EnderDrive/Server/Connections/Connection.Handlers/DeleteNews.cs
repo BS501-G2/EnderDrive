@@ -10,9 +10,7 @@ public sealed partial class Connection
 {
   private sealed record class DeleteNewsRequest
   {
-    [BsonElement(
-      "newsId"
-    )]
+    [BsonElement("newsId")]
     public required ObjectId NewsId;
   }
 
@@ -22,28 +20,15 @@ public sealed partial class Connection
     DeleteNewsRequest,
     DeleteNewsResponse
   > DeleteNews =>
-    async (
-      transaction,
-      request,
-      userAuthentication,
-      me,
-      myAdminAccess
-    ) =>
+    async (transaction, request, userAuthentication, me, myAdminAccess) =>
     {
-      News news =
-        await Internal_EnsureFirst(
-          transaction,
-          Resources.GetNews(
-            transaction
-          )
-        );
-
-      await Resources.DeleteNews(
+      News news = await Internal_EnsureFirst(
         transaction,
-        news
+        Resources.GetNews(transaction)
       );
 
-      return new()
-      { };
+      await Resources.DeleteNews(transaction, news);
+
+      return new() { };
     };
 }

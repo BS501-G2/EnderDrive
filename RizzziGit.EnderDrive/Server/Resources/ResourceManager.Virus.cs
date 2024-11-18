@@ -7,32 +7,21 @@ using Newtonsoft.Json;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
-public record class VirusReport
-  : ResourceData
+public record class VirusReport : ResourceData
 {
-  [JsonProperty(
-    "fileId"
-  )]
+  [JsonProperty("fileId")]
   public required ObjectId FileId;
 
-  [JsonProperty(
-    "fileContentId"
-  )]
+  [JsonProperty("fileContentId")]
   public required ObjectId FileContentId;
 
-  [JsonProperty(
-    "fileSnapshotId"
-  )]
+  [JsonProperty("fileSnapshotId")]
   public required ObjectId FileSnapshotId;
 
-  [JsonProperty(
-    "status"
-  )]
+  [JsonProperty("status")]
   public required VirusReportStatus Status;
 
-  [JsonProperty(
-    "viruses"
-  )]
+  [JsonProperty("viruses")]
   public required string[] Viruses;
 }
 
@@ -56,28 +45,17 @@ public sealed partial class ResourceManager
     VirusReport report =
       new()
       {
-        Id =
-          ObjectId.GenerateNewId(),
+        Id = ObjectId.GenerateNewId(),
 
-        FileId =
-          file.Id,
-        FileContentId =
-          fileContent.Id,
-        FileSnapshotId =
-          fileSnapshot.Id,
+        FileId = file.Id,
+        FileContentId = fileContent.Id,
+        FileSnapshotId = fileSnapshot.Id,
 
-        Status =
-          status,
-        Viruses =
-          viruses,
+        Status = status,
+        Viruses = viruses,
       };
 
-    await Insert(
-      transaction,
-      [
-        report,
-      ]
-    );
+    await InsertOld(transaction, [report]);
 
     return report;
   }
@@ -88,31 +66,17 @@ public sealed partial class ResourceManager
     FileContent fileContent,
     FileSnapshot fileSnapshot
   ) =>
-    Query<VirusReport>(
+    QueryOld<VirusReport>(
         transaction,
-        (
-          query
-        ) =>
+        (query) =>
           query.Where(
-            (
-              item
-            ) =>
-              item.FileId
-                == file.Id
-              && item.FileContentId
-                == fileContent.Id
-              && item.FileSnapshotId
-                == fileSnapshot.Id
+            (item) =>
+              item.FileId == file.Id
+              && item.FileContentId == fileContent.Id
+              && item.FileSnapshotId == fileSnapshot.Id
           )
       )
-      .OrderByDescending(
-        (
-          item
-        ) =>
-          item.Id
-      )
+      .OrderByDescending((item) => item.Id)
       .ToAsyncEnumerable()
-      .FirstOrDefaultAsync(
-        GetCancellationToken()
-      );
+      .FirstOrDefaultAsync(GetCancellationToken());
 }

@@ -9,30 +9,19 @@ public sealed partial class Connection
 {
   private sealed record class WriteStreamRequest
   {
-    [BsonElement(
-      "streamId"
-    )]
+    [BsonElement("streamId")]
     public required ObjectId StreamId;
 
-    [BsonElement(
-      "data"
-    )]
+    [BsonElement("data")]
     public required byte[] Data;
   }
 
   private sealed record class WriteStreamResponse { }
 
-  private RequestHandler<
-    WriteStreamRequest,
-    WriteStreamResponse
-  > WriteStream =>
-    async (
-      request,
-      cancellationToken
-    ) =>
+  private RequestHandler<WriteStreamRequest, WriteStreamResponse> WriteStream =>
+    async (request, cancellationToken) =>
     {
-      ConnectionContext context =
-        GetContext();
+      ConnectionContext context = GetContext();
 
       if (
         !context.FileStreams.TryGetValue(
@@ -41,15 +30,10 @@ public sealed partial class Connection
         )
       )
       {
-        throw new InvalidOperationException(
-          "File stream not found."
-        );
+        throw new InvalidOperationException("File stream not found.");
       }
 
-      await stream.Write(
-        request.Data,
-        cancellationToken
-      );
+      await stream.Write(request.Data, cancellationToken);
 
       return new();
     };

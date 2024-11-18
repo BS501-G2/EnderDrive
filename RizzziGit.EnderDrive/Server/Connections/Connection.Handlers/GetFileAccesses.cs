@@ -13,37 +13,25 @@ public sealed partial class Connection
 {
   private sealed record class GetFileAccessesRequest
   {
-    [BsonElement(
-      "targetUserId"
-    )]
+    [BsonElement("targetUserId")]
     public required ObjectId? TargetUserId;
 
-    [BsonElement(
-      "targetFileId"
-    )]
+    [BsonElement("targetFileId")]
     public required ObjectId? TargetFileId;
 
-    [BsonElement(
-      "authorUserId"
-    )]
+    [BsonElement("authorUserId")]
     public required ObjectId? AuthorUserId;
 
-    [BsonElement(
-      "level"
-    )]
+    [BsonElement("level")]
     public required FileAccessLevel? Level;
 
-    [BsonElement(
-      "pagination"
-    )]
+    [BsonElement("pagination")]
     public required PaginationOptions? Pagination;
   };
 
   private sealed record class GetFileAccessesResponse
   {
-    [BsonElement(
-      "fileAccesses"
-    )]
+    [BsonElement("fileAccesses")]
     public required string[] FileAccesses;
   };
 
@@ -51,21 +39,10 @@ public sealed partial class Connection
     GetFileAccessesRequest,
     GetFileAccessesResponse
   > GetFileAccesses =>
-    async (
-      transaction,
-      request,
-      userAuthentication,
-      me,
-      myAdminAccess
-    ) =>
+    async (transaction, request, userAuthentication, me, myAdminAccess) =>
     {
       User? targetUser;
-      if (
-        request.TargetUserId
-          != me.Id
-        && myAdminAccess
-          == null
-      )
+      if (request.TargetUserId != me.Id && myAdminAccess == null)
       {
         throw new InvalidOperationException(
           "Target user must be set to self when not an admin."
@@ -73,66 +50,38 @@ public sealed partial class Connection
       }
 
       targetUser =
-        request.TargetUserId
-        != null
+        request.TargetUserId != null
           ? await Internal_EnsureFirst(
             transaction,
-            Resources.GetUsers(
-              transaction,
-              id: request.TargetFileId
-            )
+            Resources.GetUsers(transaction, id: request.TargetFileId)
           )
           : null;
 
       File? targetFile =
-        request.TargetFileId
-        != null
-          ? await Internal_GetFile(
-            transaction,
-            me,
-            request.TargetFileId
-          )
+        request.TargetFileId != null
+          ? await Internal_GetFile(transaction, me, request.TargetFileId)
           : null;
 
-      User? authorUser =
-        null;
+      User? authorUser = null;
 
-      if (
-        request.TargetUserId
-        != null
-      )
+      if (request.TargetUserId != null)
       {
-        targetUser =
-          Internal_EnsureExists(
-            await Resources
-              .GetUsers(
-                transaction,
-                id: request.TargetUserId
-              )
-              .ToAsyncEnumerable()
-              .FirstOrDefaultAsync(
-                transaction.CancellationToken
-              )
-          );
+        targetUser = Internal_EnsureExists(
+          await Resources
+            .GetUsers(transaction, id: request.TargetUserId)
+            .ToAsyncEnumerable()
+            .FirstOrDefaultAsync(transaction.CancellationToken)
+        );
       }
 
-      if (
-        request.AuthorUserId
-        != null
-      )
+      if (request.AuthorUserId != null)
       {
         if (
-          targetUser
-            == null
+          targetUser == null
           && !await Resources
-            .GetAdminAccesses(
-              transaction,
-              userId: me.Id
-            )
+            .GetAdminAccesses(transaction, userId: me.Id)
             .ToAsyncEnumerable()
-            .AnyAsync(
-              transaction.CancellationToken
-            )
+            .AnyAsync(transaction.CancellationToken)
         )
         {
           throw new InvalidOperationException(
@@ -140,77 +89,51 @@ public sealed partial class Connection
           );
         }
 
-        authorUser =
-          Internal_EnsureExists(
-            await Resources
-              .GetUsers(
-                transaction,
-                id: request.AuthorUserId
-              )
-              .ToAsyncEnumerable()
-              .FirstOrDefaultAsync(
-                transaction.CancellationToken
-              )
-          );
+        authorUser = Internal_EnsureExists(
+          await Resources
+            .GetUsers(transaction, id: request.AuthorUserId)
+            .ToAsyncEnumerable()
+            .FirstOrDefaultAsync(transaction.CancellationToken)
+        );
       }
 
-      FileAccess[] fileAccesses =
-        await Resources
-          .GetFileAccesses(
-            transaction,
-            targetUser,
-            targetFile: targetFile,
-            authorUser: authorUser,
-            level: request.Level
-          )
-          .ApplyPagination(
-            request.Pagination
-          )
-          .ToAsyncEnumerable()
-          .WhereAwait(
-            async (
-              fileAccess
-            ) =>
-            {
-              File file =
-                await Internal_GetFile(
-                  transaction,
-                  me,
-                  fileAccess.FileId
-                );
+      FileAccess[] fileAccesses = await Resources
+        .GetFileAccesses(
+          transaction,
+          targetUser,
+          targetFile: targetFile,
+          authorUser: authorUser,
+          level: request.Level
+        )
+        .ApplyPagination(request.Pagination)
+        .ToAsyncEnumerable()
+        .WhereAwait(
+          async (fileAccess) =>
+          {
+            File file = await Internal_GetFile(
+              transaction,
+              me,
+              fileAccess.FileId
+            );
 
-              FileAccessResult? fileAccessResult =
-                await Resources.FindFileAccess(
-                  transaction,
-                  file,
-                  me,
-                  userAuthentication,
-                  FileAccessLevel.Read
-                );
+            FileAccessResult? fileAccessResult = await Resources.FindFileAccess(
+              transaction,
+              file,
+              me,
+              userAuthentication,
+              FileAccessLevel.Read
+            );
 
-              return fileAccessResult
-                != null;
-            }
-          )
-          .ToArrayAsync(
-            transaction.CancellationToken
-          );
+            return fileAccessResult != null;
+          }
+        )
+        .ToArrayAsync(transaction.CancellationToken);
 
       return new()
       {
-        FileAccesses =
-          fileAccesses
-            .Select(
-              (
-                fileAccess
-              ) =>
-                JToken
-                  .FromObject(
-                    fileAccess
-                  )
-                  .ToString()
-            )
-            .ToArray(),
+        FileAccesses = fileAccesses
+          .Select((fileAccess) => JToken.FromObject(fileAccess).ToString())
+          .ToArray(),
       };
     };
 }

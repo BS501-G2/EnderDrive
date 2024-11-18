@@ -8,30 +8,19 @@ public sealed partial class Connection
 {
   private sealed record class SetPositionRequest
   {
-    [BsonElement(
-      "streamId"
-    )]
+    [BsonElement("streamId")]
     public required ObjectId StreamId;
 
-    [BsonElement(
-      "newPosition"
-    )]
+    [BsonElement("newPosition")]
     public required long NewPosition;
   }
 
   private sealed record class SetPositionResponse { }
 
-  private RequestHandler<
-    SetPositionRequest,
-    SetPositionResponse
-  > SetPosition =>
-    async (
-      request,
-      cancellationToken
-    ) =>
+  private RequestHandler<SetPositionRequest, SetPositionResponse> SetPosition =>
+    async (request, cancellationToken) =>
     {
-      ConnectionContext context =
-        GetContext();
+      ConnectionContext context = GetContext();
 
       if (
         !context.FileStreams.TryGetValue(
@@ -40,15 +29,10 @@ public sealed partial class Connection
         )
       )
       {
-        throw new InvalidOperationException(
-          "File stream not found."
-        );
+        throw new InvalidOperationException("File stream not found.");
       }
 
-      await stream.SetPosition(
-        request.NewPosition,
-        cancellationToken
-      );
+      await stream.SetPosition(request.NewPosition, cancellationToken);
 
       return new();
     };

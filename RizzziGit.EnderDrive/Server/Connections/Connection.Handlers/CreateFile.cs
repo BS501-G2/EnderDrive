@@ -16,22 +16,16 @@ public sealed partial class Connection
 {
   private sealed record class CreateFileRequest
   {
-    [BsonElement(
-      "parentFolderId"
-    )]
+    [BsonElement("parentFolderId")]
     public required ObjectId ParentFolderId;
 
-    [BsonElement(
-      "name"
-    )]
+    [BsonElement("name")]
     public required string Name;
   }
 
   private sealed record class CreateFileResponse
   {
-    [BsonElement(
-      "streamId"
-    )]
+    [BsonElement("streamId")]
     public required ObjectId StreamId;
   }
 
@@ -39,56 +33,44 @@ public sealed partial class Connection
     CreateFileRequest,
     CreateFileResponse
   > CreateFile =>
-    async (
-      transaction,
-      request,
-      userAuthentication,
-      me,
-      myAdminaccecss
-    ) =>
+    async (transaction, request, userAuthentication, me, myAdminaccecss) =>
     {
-      File parentFolder =
-        await Internal_GetFile(
-          transaction,
-          me,
-          request.ParentFolderId
-        );
+      File parentFolder = await Internal_GetFile(
+        transaction,
+        me,
+        request.ParentFolderId
+      );
 
-      FileAccessResult access =
-        await Internal_UnlockFile(
-          transaction,
-          parentFolder,
-          me,
-          userAuthentication,
-          FileAccessLevel.ReadWrite
-        );
+      FileAccessResult access = await Internal_UnlockFile(
+        transaction,
+        parentFolder,
+        me,
+        userAuthentication,
+        FileAccessLevel.ReadWrite
+      );
 
-      UnlockedFile unlockedFile =
-        await Resources.CreateFile(
-          transaction,
-          me,
-          access.File,
-          FileType.File,
-          request.Name
-        );
+      UnlockedFile unlockedFile = await Resources.CreateFile(
+        transaction,
+        me,
+        access.File,
+        FileType.File,
+        request.Name
+      );
 
-      FileContent fileContent =
-        await Resources.GetMainFileContent(
-          transaction,
-          unlockedFile
-        );
+      FileContent fileContent = await Resources.GetMainFileContent(
+        transaction,
+        unlockedFile
+      );
 
-      FileSnapshot fileSnapshot =
-        await Resources.CreateFileSnapshot(
-          transaction,
-          unlockedFile,
-          fileContent,
-          userAuthentication,
-          null
-        );
+      FileSnapshot fileSnapshot = await Resources.CreateFileSnapshot(
+        transaction,
+        unlockedFile,
+        fileContent,
+        userAuthentication,
+        null
+      );
 
-      TaskCompletionSource<ObjectId> source =
-        new();
+      TaskCompletionSource<ObjectId> source = new();
 
       RunStream(
         unlockedFile,
@@ -98,10 +80,6 @@ public sealed partial class Connection
         source
       );
 
-      return new()
-      {
-        StreamId =
-          await source.Task,
-      };
+      return new() { StreamId = await source.Task };
     };
 }

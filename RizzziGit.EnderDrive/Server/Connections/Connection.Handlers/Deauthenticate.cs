@@ -12,18 +12,9 @@ public sealed partial class Connection
     DeauthenticateRequest,
     DeauthenticateResponse
   > Deauthenticate =>
-    (
-      _,
-      _,
-      _,
-      _,
-      _
-    ) =>
+    (_, _, _, _, _) =>
     {
-      GetContext().CurrentUser =
-        null;
-      return Task.FromResult<DeauthenticateResponse>(
-        new()
-      );
+      GetContext().CurrentUser = null;
+      return Task.FromResult<DeauthenticateResponse>(new());
     };
 }

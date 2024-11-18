@@ -13,60 +13,40 @@ public sealed record ConnectionByteStream(
   WaitQueue<ConnectionByteStream.Feed> Queue
 )
 {
-  public abstract record Feed(
-    CancellationToken CancellationToken
-  )
+  public abstract record Feed(CancellationToken CancellationToken)
   {
     public sealed record Read(
       TaskCompletionSource<CompositeBuffer> Source,
       long Count,
       CancellationToken CancellationToken
-    )
-      : Feed(
-        CancellationToken
-      );
+    ) : Feed(CancellationToken);
 
     public sealed record Write(
       TaskCompletionSource Source,
       CompositeBuffer Buffer,
       CancellationToken CancellationToken
-    )
-      : Feed(
-        CancellationToken
-      );
+    ) : Feed(CancellationToken);
 
     public sealed record SetPosition(
       TaskCompletionSource Source,
       long Offset,
       CancellationToken CancellationToken
-    )
-      : Feed(
-        CancellationToken
-      );
+    ) : Feed(CancellationToken);
 
     public sealed record GetPosition(
       TaskCompletionSource<long> Source,
       CancellationToken CancellationToken
-    )
-      : Feed(
-        CancellationToken
-      );
+    ) : Feed(CancellationToken);
 
     public sealed record GetLength(
       TaskCompletionSource<long> Source,
       CancellationToken CancellationToken
-    )
-      : Feed(
-        CancellationToken
-      );
+    ) : Feed(CancellationToken);
 
     public sealed record Close(
       TaskCompletionSource Source,
       CancellationToken CancellationToken
-    )
-      : Feed(
-        CancellationToken
-      );
+    ) : Feed(CancellationToken);
   }
 
   public async Task<CompositeBuffer> Read(
@@ -74,15 +54,10 @@ public sealed record ConnectionByteStream(
     CancellationToken cancellationToken
   )
   {
-    TaskCompletionSource<CompositeBuffer> source =
-      new();
+    TaskCompletionSource<CompositeBuffer> source = new();
 
     await Queue.Enqueue(
-      new Feed.Read(
-        source,
-        length,
-        cancellationToken
-      ),
+      new Feed.Read(source, length, cancellationToken),
       cancellationToken
     );
     return await source.Task;
@@ -93,15 +68,10 @@ public sealed record ConnectionByteStream(
     CancellationToken cancellationToken
   )
   {
-    TaskCompletionSource source =
-      new();
+    TaskCompletionSource source = new();
 
     await Queue.Enqueue(
-      new Feed.Write(
-        source,
-        bytes,
-        cancellationToken
-      ),
+      new Feed.Write(source, bytes, cancellationToken),
       cancellationToken
     );
     await source.Task;
@@ -112,66 +82,43 @@ public sealed record ConnectionByteStream(
     CancellationToken cancellationToken
   )
   {
-    TaskCompletionSource source =
-      new();
+    TaskCompletionSource source = new();
 
     await Queue.Enqueue(
-      new Feed.SetPosition(
-        source,
-        offset,
-        cancellationToken
-      ),
+      new Feed.SetPosition(source, offset, cancellationToken),
       cancellationToken
     );
     await source.Task;
   }
 
-  public async Task<long> GetPosition(
-    CancellationToken cancellationToken
-  )
+  public async Task<long> GetPosition(CancellationToken cancellationToken)
   {
-    TaskCompletionSource<long> source =
-      new();
+    TaskCompletionSource<long> source = new();
 
     await Queue.Enqueue(
-      new Feed.GetPosition(
-        source,
-        cancellationToken
-      ),
+      new Feed.GetPosition(source, cancellationToken),
       cancellationToken
     );
     return await source.Task;
   }
 
-  public async Task<long> GetLength(
-    CancellationToken cancellationToken
-  )
+  public async Task<long> GetLength(CancellationToken cancellationToken)
   {
-    TaskCompletionSource<long> source =
-      new();
+    TaskCompletionSource<long> source = new();
 
     await Queue.Enqueue(
-      new Feed.GetLength(
-        source,
-        cancellationToken
-      ),
+      new Feed.GetLength(source, cancellationToken),
       cancellationToken
     );
     return await source.Task;
   }
 
-  public async Task Close(
-    CancellationToken cancellationToken
-  )
+  public async Task Close(CancellationToken cancellationToken)
   {
-    TaskCompletionSource source =
-      new();
+    TaskCompletionSource source = new();
 
     await Queue.Enqueue(
-      new Feed.Close(
-        source,
-        cancellationToken
-      ),
+      new Feed.Close(source, cancellationToken),
       cancellationToken
     );
   }

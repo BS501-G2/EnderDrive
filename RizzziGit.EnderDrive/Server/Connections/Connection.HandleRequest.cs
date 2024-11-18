@@ -8,9 +8,7 @@ namespace RizzziGit.EnderDrive.Server.Connections;
 using Commons.Net.WebConnection;
 using Resources;
 
-public delegate Task<
-  ConnectionPacket<ResponseCode>
-> RawRequestHandler(
+public delegate Task<ConnectionPacket<ResponseCode>> RawRequestHandler(
   ConnectionPacket<ServerSideRequestCode> request,
   CancellationToken cancellationToken
 );
@@ -30,35 +28,24 @@ public sealed partial class Connection
           webConnectionRequest.Data
         );
 
-      ConnectionPacket<ResponseCode> response =
-        !context.Handlers.TryGetValue(
-          request.Code,
-          out RawRequestHandler? handler
+      ConnectionPacket<ResponseCode> response = !context.Handlers.TryGetValue(
+        request.Code,
+        out RawRequestHandler? handler
+      )
+        ? ConnectionPacket<ResponseCode>.Create(
+          ResponseCode.NoHandlerFound,
+          new { }
         )
-          ? ConnectionPacket<ResponseCode>.Create(
-            ResponseCode.NoHandlerFound,
-            new
-            {
-            }
-          )
-          : await handler(
-            request,
-            cancellationToken
-          );
+        : await handler(request, cancellationToken);
 
-      webConnectionRequest.SendResponse(
-        response.Serialize()
-      );
+      webConnectionRequest.SendResponse(response.Serialize());
     }
     catch (Exception exception)
     {
-      Error(
-        exception
-      );
+      Error(exception);
 
       if (
-        exception
-          is OperationCanceledException operationCanceledException
+        exception is OperationCanceledException operationCanceledException
         && operationCanceledException.CancellationToken
           == webConnectionRequest.CancellationToken
       )
@@ -66,8 +53,7 @@ public sealed partial class Connection
         webConnectionRequest.SendCancelResponse();
       }
       else if (
-        exception
-        is ConnectionResponseException connectionResponseException
+        exception is ConnectionResponseException connectionResponseException
       )
       {
         ConnectionPacket<ResponseCode> payload =
@@ -76,15 +62,11 @@ public sealed partial class Connection
             connectionResponseException.Data
           );
 
-        webConnectionRequest.SendResponse(
-          payload.Serialize()
-        );
+        webConnectionRequest.SendResponse(payload.Serialize());
       }
       else
       {
-        webConnectionRequest.SendErrorResponse(
-          exception.Message
-        );
+        webConnectionRequest.SendErrorResponse(exception.Message);
       }
 
       return;

@@ -10,14 +10,10 @@ public sealed partial class Connection
 {
   private sealed record class SetFileStarRequest
   {
-    [BsonElement(
-      "fileId"
-    )]
+    [BsonElement("fileId")]
     public required ObjectId FileId;
 
-    [BsonElement(
-      "starred"
-    )]
+    [BsonElement("starred")]
     public required bool Starred;
   }
 
@@ -27,31 +23,20 @@ public sealed partial class Connection
     SetFileStarRequest,
     SetFileStarResponse
   > SetFileStar =>
-    async (
-      transaction,
-      request,
-      userAuthentication,
-      me,
-      _
-    ) =>
+    async (transaction, request, userAuthentication, me, _) =>
     {
-      File file =
-        await Internal_EnsureFirst(
-          transaction,
-          Resources.GetFiles(
-            transaction: transaction,
-            id: request.FileId
-          )
-        );
+      File file = await Internal_EnsureFirst(
+        transaction,
+        Resources.GetFiles(transaction: transaction, id: request.FileId)
+      );
 
-      FileAccessResult fileAccessResult =
-        await Internal_UnlockFile(
-          transaction,
-          file,
-          me,
-          userAuthentication,
-          FileAccessLevel.Read
-        );
+      FileAccessResult fileAccessResult = await Internal_UnlockFile(
+        transaction,
+        file,
+        me,
+        userAuthentication,
+        FileAccessLevel.Read
+      );
 
       await Resources.SetFileStar(
         transaction,
@@ -59,7 +44,6 @@ public sealed partial class Connection
         me,
         request.Starred
       );
-      return new()
-      { };
+      return new() { };
     };
 }
