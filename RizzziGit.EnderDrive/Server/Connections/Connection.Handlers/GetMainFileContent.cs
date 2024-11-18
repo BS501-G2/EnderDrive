@@ -20,19 +20,11 @@ public sealed partial class Connection
     GetMainFileContentRequest,
     GetMainFileContentResonse
   > GetMainFileContent =>
-    async (
-      transaction,
-      request,
-      userAuthentication,
-      me,
-      myAdminAccess,
-      file,
-      fileAccessResult
-    ) =>
+    async (transaction, request, userAuthentication, me, myAdminAccess, fileAccessResult) =>
     {
-      FileContent fileContent = await Resources.GetMainFileContent(
+      Resource<FileContent> fileContent = await Resources.GetMainFileContent(
         transaction,
-        fileAccessResult.File
+        fileAccessResult.UnlockedFile.File
       );
       return new() { FileContent = fileContent.ToJson() };
     };

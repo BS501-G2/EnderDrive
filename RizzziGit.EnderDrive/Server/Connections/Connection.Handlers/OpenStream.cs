@@ -3,6 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
+using System.Linq;
 using System.Threading.Tasks;
 using Resources;
 
@@ -26,17 +27,17 @@ public sealed partial class Connection
     public required ObjectId StreamId;
   }
 
-  private AuthenticatedRequestHandler<
-    OpenStreamRequest,
-    OpenStreamResponse
-  > OpenStream =>
+  private AuthenticatedRequestHandler<OpenStreamRequest, OpenStreamResponse> OpenStream =>
     async (transaction, request, userAuthentication, me, _) =>
     {
       ConnectionContext context = GetContext();
 
-      File file = await Internal_EnsureFirst(
+      Resource<File> file = await Internal_EnsureFirst(
         transaction,
-        Resources.GetFiles(transaction, id: request.FileId)
+        Resources.Query<File>(
+          transaction,
+          (query) => query.Where((item) => item.Id == request.FileId)
+        )
       );
 
       FileAccessResult fileAccessResult = await Internal_UnlockFile(
@@ -46,15 +47,21 @@ public sealed partial class Connection
         userAuthentication
       );
 
-      FileContent fileContent = await Resources.GetMainFileContent(
-        transaction,
-        file
-      );
-      FileSnapshot fileSnapshot =
-        await Resources.GetLatestFileSnapshot(transaction, file, fileContent)
+      Resource<FileContent> fileContent = await Resources.GetMainFileContent(transaction, file);
+
+      Resource<FileSnapshot> fileSnapshot =
+        await Resources
+          .Query<FileSnapshot>(
+            transaction,
+            (query) =>
+              query
+                .Where((item) => item.Id == request.FileSnapshotId)
+                .OrderByDescending((item) => item.CreateTime)
+          )
+          .FirstOrDefaultAsync(transaction.CancellationToken)
         ?? await Resources.CreateFileSnapshot(
           transaction,
-          fileAccessResult.File,
+          fileAccessResult.UnlockedFile,
           fileContent,
           userAuthentication,
           null
@@ -63,7 +70,7 @@ public sealed partial class Connection
       TaskCompletionSource<ObjectId> source = new();
 
       RunStream(
-        fileAccessResult.File,
+        fileAccessResult.UnlockedFile,
         fileContent,
         fileSnapshot,
         userAuthentication,

@@ -34,42 +34,26 @@ public sealed partial class Connection
 
   private sealed record class CreateAdminResponse() { };
 
-  private TransactedRequestHandler<
-    CreateAdminRequest,
-    CreateAdminResponse
-  > CreateAdmin =>
+  private TransactedRequestHandler<CreateAdminRequest, CreateAdminResponse> CreateAdmin =>
     async (transaction, request) =>
     {
-      if (
-        await Resources
-          .GetAdminAccesses(transaction)
-          .ToAsyncEnumerable()
-          .AnyAsync(transaction.CancellationToken)
-      )
+      if (await Resources.Query<AdminAccess>(transaction).AnyAsync(transaction.CancellationToken))
       {
         throw new InvalidOperationException("Admin user already exists.");
       }
 
-      UsernameValidation usernameValidation = Resources.ValidateUsername(
-        request.Username
-      );
+      UsernameValidation usernameValidation = Resources.ValidateUsername(request.Username);
 
       if (usernameValidation != UsernameValidation.OK)
       {
-        throw new InvalidOperationException(
-          $"Invalid Username: {usernameValidation}"
-        );
+        throw new InvalidOperationException($"Invalid Username: {usernameValidation}");
       }
 
-      PasswordVerification passwordVerification = Resources.VerifyPassword(
-        request.Password
-      );
+      PasswordVerification passwordVerification = Resources.VerifyPassword(request.Password);
 
       if (passwordVerification != PasswordVerification.OK)
       {
-        throw new InvalidOperationException(
-          $"Invalid Password: {passwordVerification}"
-        );
+        throw new InvalidOperationException($"Invalid Password: {passwordVerification}");
       }
 
       await Resources.CreateUser(

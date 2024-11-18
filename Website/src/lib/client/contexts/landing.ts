@@ -3,11 +3,7 @@ import { writable, type Writable } from 'svelte/store'
 import type { IconOptions } from '../ui/icon.svelte'
 
 export interface LandingContext {
-  pushLandingEntry: (
-    name: string,
-    content: Snippet,
-    showButton: boolean
-  ) => () => void
+  pushLandingEntry: (name: string, content: Snippet, showButton: boolean) => () => void
   pushButton: (
     content: Snippet,
     icon: IconOptions,
@@ -71,10 +67,7 @@ export function createLandingContext() {
         }
       ])
 
-      return () =>
-        pages.update((pageButtons) =>
-          pageButtons.filter((entry) => entry.id !== id)
-        )
+      return () => pages.update((pageButtons) => pageButtons.filter((entry) => entry.id !== id))
     },
 
     pushButton: (content, icon, isSecondary, onclick) => () => {
@@ -91,8 +84,7 @@ export function createLandingContext() {
         }
       ])
 
-      return () =>
-        buttons.update((buttons) => buttons.filter((entry) => entry.id !== id))
+      return () => buttons.update((buttons) => buttons.filter((entry) => entry.id !== id))
     },
 
     pushFooter: (name, content) => {
@@ -107,8 +99,7 @@ export function createLandingContext() {
         }
       ])
 
-      return () =>
-        footer.update((footer) => footer.filter((entry) => entry.id !== id))
+      return () => footer.update((footer) => footer.filter((entry) => entry.id !== id))
     },
 
     openLogin: () => {

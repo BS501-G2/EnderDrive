@@ -3,10 +3,7 @@
 <script lang="ts" module>
   import { get, writable, type Writable } from 'svelte/store'
 
-  let spinner: Writable<[degrees: number, time: number | null]> = writable([
-    0,
-    null
-  ])
+  let spinner: Writable<[degrees: number, time: number | null]> = writable([0, null])
   let activeCount: number = 0
 
   let degreesIncrement = 1000 / 360
@@ -31,10 +28,7 @@
             v[0] = 0
           }
 
-          return [
-            v[0] + (Date.now() - (v[1] ?? Date.now())) / degreesIncrement,
-            Date.now()
-          ]
+          return [v[0] + (Date.now() - (v[1] ?? Date.now())) / degreesIncrement, Date.now()]
         })
 
         requestAnimationFrame(update)

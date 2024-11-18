@@ -18,56 +18,41 @@ public record class FileStar : ResourceData
   [JsonProperty("createTime")]
   [BsonRepresentation(BsonType.DateTime)]
   public required DateTimeOffset CreateTime;
+
+  public required bool Starred;
 }
 
 public sealed partial class ResourceManager
 {
-  public async Task<FileStar?> SetFileStar(
+  public async Task<Resource<FileStar>> GetFileStar(
     ResourceTransaction transaction,
-    File file,
-    User user,
-    bool starred
+    Resource<File> file,
+    Resource<User> user
   )
   {
-    FileStar? star = await QueryOld<FileStar>(
+    Resource<FileStar>? star = await Query<FileStar>(
         transaction,
         (query) => query.Where((item) => item.FileId == file.Id)
       )
-      .ToAsyncEnumerable()
       .FirstOrDefaultAsync(transaction.CancellationToken);
 
-    if (starred && star == null)
+    if (star == null)
     {
-      star = new()
-      {
-        Id = ObjectId.GenerateNewId(),
-        FileId = file.Id,
-        UserId = user.Id,
-        CreateTime = DateTimeOffset.Now,
-      };
+      star = ToResource<FileStar>(
+        transaction,
+        new()
+        {
+          Id = ObjectId.GenerateNewId(),
+          FileId = file.Id,
+          UserId = user.Id,
+          CreateTime = DateTimeOffset.Now,
+          Starred = false,
+        }
+      );
 
-      await InsertOld(transaction, star);
-    }
-    else if (!starred && star != null)
-    {
-      await DeleteOld(transaction, star);
+      await star.Save(transaction);
     }
 
     return star;
   }
-
-  public IQueryable<FileStar> GetFileStars(
-    ResourceTransaction transaction,
-    File? file = null,
-    User? user = null
-  ) =>
-    QueryOld<FileStar>(
-      transaction,
-      (query) =>
-        query.Where(
-          (item) =>
-            (file == null || file.Id == item.FileId)
-            && (user == null || user.Id == item.UserId)
-        )
-    );
 }

@@ -21,10 +21,7 @@
   onMount(() => {
     const obj: [number, Readable<number>, Readable<number>] = [
       id,
-      derived(
-        button,
-        (button) => button.offsetLeft - button.parentElement!.offsetLeft
-      ),
+      derived(button, (button) => button.offsetLeft - button.parentElement!.offsetLeft),
       derived(button, (button) => button.clientWidth)
     ]
 

@@ -20,9 +20,7 @@
     maxFileCount
   }: {
     maxFileCount: number
-    resolve: Readable<
-      Exclude<FileBrowserResolve, [FileBrowserResolveType.Trash]>
-    >
+    resolve: Readable<Exclude<FileBrowserResolve, [FileBrowserResolveType.Trash]>>
     selectMode: FileBrowserOptions['selectMode']
     selectedFiles: Writable<string[]>
     fileBrowserContext: ReturnType<typeof createFileBrowserContext>
@@ -79,8 +77,7 @@
         onfiles(event, $selectedFiles.slice(0, maxFileCount))
       }}
       {foreground}
-      disabled={$selectedFiles.length === 0 ||
-        $selectedFiles.length > maxFileCount}
+      disabled={$selectedFiles.length === 0 || $selectedFiles.length > maxFileCount}
     >
       <p>Select</p>
     </Button>

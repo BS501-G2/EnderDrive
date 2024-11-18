@@ -1,3 +1,4 @@
+using System.Linq;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
@@ -22,69 +23,61 @@ public sealed partial class Connection
     public required string FileMimeType;
   }
 
-  private FileRequestHandler<
-    GetFileMimeRequest,
-    GetFileMimeResponse
-  > GetFileMime =>
-    async (
-      transaction,
-      request,
-      userAuthentication,
-      me,
-      _,
-      file,
-      fileAccessResult
-    ) =>
+  private FileRequestHandler<GetFileMimeRequest, GetFileMimeResponse> GetFileMime =>
+    async (transaction, request, userAuthentication, me, _, fileAccessResult) =>
     {
       ConnectionContext context = GetContext();
 
-      FileContent fileContent =
+      Resource<FileContent> fileContent =
         request.FileContentId != null
           ? await Internal_EnsureFirst(
             transaction,
-            Resources.GetFileContents(
+            Resources.Query<FileContent>(
               transaction,
-              file,
-              id: request.FileContentId
+              (query) => query.Where((item) => item.Id == request.FileContentId)
             )
           )
-          : await Resources.GetMainFileContent(transaction, file);
+          : await Resources.GetMainFileContent(transaction, fileAccessResult.UnlockedFile.File);
 
-      FileSnapshot fileSnapshot =
+      Resource<FileSnapshot> fileSnapshot =
         request.FileSnapshotId != null
           ? await Internal_EnsureFirst(
             transaction,
-            Resources.GetFileSnapshots(
+            Resources.Query<FileSnapshot>(
               transaction,
-              file,
-              fileContent,
-              request.FileSnapshotId
+              (query) =>
+                query.Where(
+                  (item) =>
+                    item.FileId == fileAccessResult.UnlockedFile.File.Id
+                    && item.FileContentId == fileContent.Id
+                    && item.Id == request.FileSnapshotId
+                )
             )
           )
-          : await Resources.GetLatestFileSnapshot(
-            transaction,
-            file,
-            fileContent
-          )
+          : await Resources
+            .Query<FileSnapshot>(
+              transaction,
+              (query) =>
+                query
+                  .Where((item) => item.FileId == fileAccessResult.UnlockedFile.File.Id)
+                  .OrderByDescending((item) => item.CreateTime)
+            )
+            .FirstOrDefaultAsync(transaction.CancellationToken)
             ?? await Resources.CreateFileSnapshot(
               transaction,
-              fileAccessResult.File,
+              fileAccessResult.UnlockedFile,
               fileContent,
               userAuthentication,
               null
             );
 
-      MimeDetective.Storage.Definition? definition =
-        await Server.MimeDetector.Inspect(
-          transaction,
-          fileAccessResult.File,
-          fileContent,
-          fileSnapshot
-        );
+      MimeDetective.Storage.Definition? definition = await Server.MimeDetector.Inspect(
+        transaction,
+        fileAccessResult.UnlockedFile,
+        fileContent,
+        fileSnapshot
+      );
 
-      return new()
-      {
-        FileMimeType = definition?.File.MimeType ?? "application/octet-stream",
-      };
+      return new() { FileMimeType = definition?.File.MimeType ?? "application/octet-stream" };
     };
 }

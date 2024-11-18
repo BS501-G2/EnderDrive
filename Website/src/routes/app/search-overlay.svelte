@@ -38,11 +38,7 @@
         </div>
       {/snippet}
 
-      <Button
-        onclick={() => seeMore()}
-        background={buttonBackground}
-        foreground={buttonForeground}
-      >
+      <Button onclick={() => seeMore()} background={buttonBackground} foreground={buttonForeground}>
         <!-- <Icon icon="ellipsis" thickness="solid" /> -->
 
         See More
@@ -65,12 +61,7 @@
 
   <div class="body">
     <div class="search-field">
-      <Input
-        id="search"
-        type="text"
-        name="Search String"
-        bind:value={searchString}
-      />
+      <Input id="search" type="text" name="Search String" bind:value={searchString} />
     </div>
 
     {#if searchString.length}

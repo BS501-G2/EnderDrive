@@ -16,18 +16,18 @@ public sealed partial class Connection
 
   private sealed record class DeleteNewsResponse { }
 
-  private AuthenticatedRequestHandler<
-    DeleteNewsRequest,
-    DeleteNewsResponse
-  > DeleteNews =>
+  private AuthenticatedRequestHandler<DeleteNewsRequest, DeleteNewsResponse> DeleteNews =>
     async (transaction, request, userAuthentication, me, myAdminAccess) =>
     {
-      News news = await Internal_EnsureFirst(
+      Resource<News> news = await Internal_EnsureFirst(
         transaction,
-        Resources.GetNews(transaction)
+        Resources.Query<News>(
+          transaction,
+          (query) => query.Where((item) => item.Id == request.NewsId)
+        )
       );
 
-      await Resources.DeleteNews(transaction, news);
+      await Resources.Delete(transaction, news);
 
       return new() { };
     };

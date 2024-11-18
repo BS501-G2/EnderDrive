@@ -21,9 +21,9 @@ public record class FileContent : ResourceData
 
 public sealed partial class ResourceManager
 {
-  public async Task<Resource<FileContent>> GetMainFileContent(
+  public async ValueTask<Resource<FileContent>> GetMainFileContent(
     ResourceTransaction transaction,
-    File file
+    Resource<File> file
   )
   {
     Resource<FileContent>? content = await Query<FileContent>(
@@ -50,7 +50,7 @@ public sealed partial class ResourceManager
     return content;
   }
 
-  public async Task<Resource<FileContent>> CreateFileContent(
+  public async ValueTask<Resource<FileContent>> CreateFileContent(
     ResourceTransaction transaction,
     UnlockedFile file,
     string name

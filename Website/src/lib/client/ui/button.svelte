@@ -94,11 +94,7 @@
   }}
 >
   {#snippet backgroundContent()}
-    <div
-      class="background"
-      class:error={error != null}
-      class:busy={promise != null}
-    >
+    <div class="background" class:error={error != null} class:busy={promise != null}>
       {#snippet foregroundContent()}
         {#if error != null}
           {error.message}

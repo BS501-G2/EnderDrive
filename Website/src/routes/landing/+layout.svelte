@@ -4,10 +4,7 @@
   import { tweened } from 'svelte/motion'
   import LandingPages from './landing-pages.svelte'
   import { useAppContext } from '$lib/client/contexts/app'
-  import {
-    createLandingContext,
-    type LoginContext
-  } from '$lib/client/contexts/landing'
+  import { createLandingContext, type LoginContext } from '$lib/client/contexts/landing'
   import SiteLogo from './site-logo.svelte'
   import { useColorContext } from '$lib/client/contexts/colors'
   import LandingPagesExpando from './landing-pages-expando.svelte'

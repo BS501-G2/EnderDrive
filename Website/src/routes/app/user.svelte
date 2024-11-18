@@ -64,11 +64,9 @@
     x={-(
       1 +
       window.innerWidth -
-      (buttonElement.getBoundingClientRect().x +
-        buttonElement.getBoundingClientRect().width)
+      (buttonElement.getBoundingClientRect().x + buttonElement.getBoundingClientRect().width)
     )}
-    y={buttonElement.getBoundingClientRect().y +
-      buttonElement.getBoundingClientRect().height}
+    y={buttonElement.getBoundingClientRect().y + buttonElement.getBoundingClientRect().height}
   >
     <div
       class="user-menu"

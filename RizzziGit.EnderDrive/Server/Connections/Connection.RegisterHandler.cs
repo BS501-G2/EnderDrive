@@ -6,10 +6,7 @@ namespace RizzziGit.EnderDrive.Server.Connections;
 
 public sealed partial class Connection
 {
-  private delegate Task<R> RequestHandler<S, R>(
-    S request,
-    CancellationToken cancellationToken
-  );
+  private delegate Task<R> RequestHandler<S, R>(S request, CancellationToken cancellationToken);
 
   private static void RegisterHandler<S, R>(
     ConnectionContext context,
@@ -27,17 +24,11 @@ public sealed partial class Connection
             S request = requestBuffer.DeserializeData<S>();
             R response = await handler(request, cancellationToken);
 
-            return ConnectionPacket<ResponseCode>.Create(
-              ResponseCode.OK,
-              response
-            );
+            return ConnectionPacket<ResponseCode>.Create(ResponseCode.OK, response);
           }
           catch (ConnectionResponseException exception)
           {
-            return ConnectionPacket<ResponseCode>.Create(
-              exception.Code,
-              exception.Data
-            );
+            return ConnectionPacket<ResponseCode>.Create(exception.Code, exception.Data);
           }
         }
       )

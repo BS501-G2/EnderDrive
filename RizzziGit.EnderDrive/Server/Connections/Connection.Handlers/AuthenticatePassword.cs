@@ -39,45 +39,40 @@ public sealed partial class Connection
         throw new InvalidOperationException("Already signed in.");
       }
 
-      User user =
+      Resource<User> user =
         await Resources
-          .GetUsers(transaction, id: request.UserId)
-          .ToAsyncEnumerable()
+          .Query<User>(transaction, (query) => query.Where((item) => item.Id == request.UserId))
           .FirstOrDefaultAsync(transaction.CancellationToken)
         ?? throw new InvalidOperationException("Invalid username or password.");
 
-      UserAuthentication userAuthentication =
+      Resource<UserAuthentication> userAuthentication =
         await Resources
-          .GetUserAuthentications(
+          .Query<UserAuthentication>(
             transaction,
-            user,
-            UserAuthenticationType.Password
+            (query) =>
+              query.Where(
+                (item) =>
+                  item.UserId == request.UserId && item.Type == UserAuthenticationType.Password
+              )
           )
-          .ToAsyncEnumerable()
           .FirstOrDefaultAsync(transaction.CancellationToken)
-        ?? throw new InvalidOperationException(
-          "Password is unavailable for this account."
-        );
+        ?? throw new InvalidOperationException("Password is unavailable for this account.");
 
       UnlockedUserAuthentication unlockedUserAuthentication;
       try
       {
-        unlockedUserAuthentication = userAuthentication.Unlock(
+        unlockedUserAuthentication = UnlockedUserAuthentication.Unlock(
+          userAuthentication,
           request.Password
         );
       }
       catch (Exception exception)
       {
-        throw new InvalidOperationException(
-          "Invalid username or password.",
-          exception
-        );
+        throw new InvalidOperationException("Invalid username or password.", exception);
       }
 
       await Resources.TruncateLatestToken(transaction, user, 10);
-      CompositeBuffer tokenPayload = CompositeBuffer.From(
-        CompositeBuffer.Random(16).ToHexString()
-      );
+      CompositeBuffer tokenPayload = CompositeBuffer.From(CompositeBuffer.Random(16).ToHexString());
 
       GetContext().CurrentUser = await Resources.AddUserAuthentication(
         transaction,

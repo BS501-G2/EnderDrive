@@ -1,9 +1,6 @@
 <script lang="ts">
   import { useAppContext } from '$lib/client/contexts/app'
-  import {
-    useLandingContext,
-    type LandingPageButton
-  } from '$lib/client/contexts/landing'
+  import { useLandingContext, type LandingPageButton } from '$lib/client/contexts/landing'
   import Button from '$lib/client/ui/button.svelte'
   import Icon from '$lib/client/ui/icon.svelte'
   import { type Snippet } from 'svelte'
@@ -21,10 +18,7 @@
   const { openLogin, closeLogin } = useLandingContext()
 </script>
 
-{#snippet action(
-  { id, icon, content, isSecondary, onclick }: LandingPageButton,
-  index: number
-)}
+{#snippet action({ id, icon, content, isSecondary, onclick }: LandingPageButton, index: number)}
   {#snippet container(view: Snippet)}
     <div class="action" class:secondary={isSecondary}>
       {@render view()}

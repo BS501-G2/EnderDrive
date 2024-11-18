@@ -52,10 +52,7 @@ public sealed partial class MimeDetector(Server server)
     ContentInspector contentInspector = new ContentInspectorBuilder()
     {
       Definitions = definitions,
-      StringSegmentOptions = new()
-      {
-        OptimizeFor = StringSegmentResourceOptimization.HighSpeed,
-      },
+      StringSegmentOptions = new() { OptimizeFor = StringSegmentResourceOptimization.HighSpeed },
     }.Build();
 
     Info("Initialization done!");
@@ -85,9 +82,7 @@ public sealed partial class MimeDetector(Server server)
       _ = Task.Run(
         async () =>
         {
-          using CancellationTokenSource linked = serviceCancellationToken.Link(
-            cancellationToken
-          );
+          using CancellationTokenSource linked = serviceCancellationToken.Link(cancellationToken);
 
           DefinitionMatch? match = await context
             .ContentInspector.Inspect(stream)
@@ -102,38 +97,31 @@ public sealed partial class MimeDetector(Server server)
     }
   }
 
-  public async Task<Definition?> Inspect(
-    Stream stream,
-    CancellationToken cancellationToken
-  )
+  public async Task<Definition?> Inspect(Stream stream, CancellationToken cancellationToken)
   {
     MimeDetectorContext context = GetContext();
     TaskCompletionSource<Definition?> output = new();
 
-    await context.WaitQueue.Enqueue(
-      new(output, stream, cancellationToken),
-      cancellationToken
-    );
+    await context.WaitQueue.Enqueue(new(output, stream, cancellationToken), cancellationToken);
     return await output.Task;
   }
 
   public async Task<Definition?> Inspect(
     ResourceTransaction transaction,
     UnlockedFile file,
-    FileContent fileContent,
-    FileSnapshot fileSnapshot
+    Resource<FileContent> fileContent,
+    Resource<FileSnapshot> fileSnapshot
   )
   {
     MimeDetectorContext context = GetContext();
-    MimeDetectionReport? mimeDetectionReport =
-      await Resources.GetMimeDetectionReport(
-        transaction,
-        file,
-        fileContent,
-        fileSnapshot
-      );
+    Resource<MimeDetectionReport> mimeDetectionReport = await Resources.GetMimeDetectionReport(
+      transaction,
+      file.File,
+      fileContent,
+      fileSnapshot
+    );
 
-    if (mimeDetectionReport == null)
+    if (mimeDetectionReport.Data.Mime == null)
     {
       using Stream stream = await server.ResourceManager.CreateReadStream(
         transaction,
@@ -142,35 +130,22 @@ public sealed partial class MimeDetector(Server server)
         fileSnapshot
       );
 
-      Definition? definition = await Inspect(
-        stream,
-        transaction.CancellationToken
-      );
+      Definition? definition = await Inspect(stream, transaction.CancellationToken);
 
-      mimeDetectionReport = await Resources.SetMimeDetectionReport(
-        transaction,
-        file,
-        fileContent,
-        fileSnapshot,
-        definition?.File.MimeType
-      );
+      mimeDetectionReport.Data.Mime = definition?.File.MimeType;
+      await mimeDetectionReport.Save(transaction);
 
       return definition;
     }
     else
     {
       return context
-        .Definitions.Where(
-          (item) => item.File.MimeType == mimeDetectionReport.Mime
-        )
+        .Definitions.Where((item) => item.File.MimeType == mimeDetectionReport.Data.Mime)
         .FirstOrDefault();
     }
   }
 
-  protected override Task OnStop(
-    MimeDetectorContext context,
-    ExceptionDispatchInfo? exception
-  )
+  protected override Task OnStop(MimeDetectorContext context, ExceptionDispatchInfo? exception)
   {
     return base.OnStop(context, exception);
   }

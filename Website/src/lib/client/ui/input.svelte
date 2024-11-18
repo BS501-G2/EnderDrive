@@ -2,11 +2,7 @@
   import { writable, type Writable } from 'svelte/store'
   import type { IconOptions } from './icon.svelte'
 
-  export type InputClass =
-    | 'primary'
-    | 'primary-container'
-    | 'background'
-    | 'transparent'
+  export type InputClass = 'primary' | 'primary-container' | 'background' | 'transparent'
 
   export type InputType = 'text' | 'password' | 'number'
 
@@ -108,12 +104,7 @@
           />
         {:else if options.type === 'number'}
           {@const { placeholder } = options}
-          <input
-            bind:this={$inputElement}
-            type="number"
-            {placeholder}
-            bind:value
-          />
+          <input bind:this={$inputElement} type="number" {placeholder} bind:value />
         {/if}
       </form>
     </div>

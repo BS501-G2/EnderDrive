@@ -11,11 +11,9 @@ public sealed partial class ResourceManager
 {
   private delegate ILogger CreateLogger(string categoryName);
 
-  private sealed class LoggerProvider(CreateLogger createLogger)
-    : ILoggerProvider
+  private sealed class LoggerProvider(CreateLogger createLogger) : ILoggerProvider
   {
-    public ILogger CreateLogger(string categoryName) =>
-      createLogger(categoryName);
+    public ILogger CreateLogger(string categoryName) => createLogger(categoryName);
 
     public void Dispose() { }
   }

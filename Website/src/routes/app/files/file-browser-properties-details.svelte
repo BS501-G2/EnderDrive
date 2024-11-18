@@ -1,11 +1,13 @@
 <script lang="ts">
-  import type { FileProperties } from '$lib/client/contexts/file-browser'
+  import { useFileBrowserContext, type FileProperties } from '$lib/client/contexts/file-browser'
   import Button from '$lib/client/ui/button.svelte'
   import Icon, { type IconOptions } from '$lib/client/ui/icon.svelte'
   import Separator from '$lib/client/ui/separator.svelte'
   import { onMount, type Snippet } from 'svelte'
   import { writable, type Writable } from 'svelte/store'
   import { useAppContext } from '$lib/client/contexts/app'
+  import { useFileBrowserListContext } from '$lib/client/contexts/file-browser-list'
+  import FileBrowserPropertiesDetailsFile from './file-browser-properties-details-file.svelte'
 
   const {
     files
@@ -72,13 +74,21 @@
       logs
     )
   )
+
+  const { current } = useFileBrowserContext()
 </script>
+
+{#if $current.type === 'file'}
+  <FileBrowserPropertiesDetailsFile {pushTab} />
+{/if}
 
 {#snippet details()}
   <div class="overview">
     {#snippet field(name: string, value: Snippet | string)}
       <div class="row">
-        <p class="label">{name}</p>
+        <p class="label">
+          {name}
+        </p>
         <p class="value">
           {#if typeof value === 'string'}
             {value}

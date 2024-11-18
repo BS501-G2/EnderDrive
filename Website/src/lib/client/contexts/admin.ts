@@ -67,8 +67,7 @@ export function createAdminContext() {
         }
       ])
 
-      return () =>
-        sidePanel.update((value) => value.filter((value) => value.id !== id))
+      return () => sidePanel.update((value) => value.filter((value) => value.id !== id))
     },
 
     pushTitle: (title: string) => {
@@ -82,8 +81,7 @@ export function createAdminContext() {
         }
       ])
 
-      return () =>
-        titleStack.update((value) => value.filter((value) => value.id !== id))
+      return () => titleStack.update((value) => value.filter((value) => value.id !== id))
     }
   })
 

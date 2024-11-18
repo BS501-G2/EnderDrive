@@ -23,55 +23,51 @@ public sealed partial class Connection
     public required long Size;
   }
 
-  private FileRequestHandler<
-    GetFileSizeRequest,
-    GetFileSizeResponse
-  > GetFileSize =>
-    async (
-      transaction,
-      request,
-      userAuthentication,
-      me,
-      _,
-      file,
-      fileAccessResult
-    ) =>
+  private FileRequestHandler<GetFileSizeRequest, GetFileSizeResponse> GetFileSize =>
+    async (transaction, request, userAuthentication, me, _, fileAccessResult) =>
     {
-      FileContent fileContent =
+      Resource<FileContent> fileContent =
         request.FileContentId != null
           ? await Internal_EnsureFirst(
             transaction,
-            Resources.GetFileContents(
+            Resources.Query<FileContent>(
               transaction,
-              file,
-              id: request.FileContentId
+              (query) =>
+                query.Where(
+                  (item) =>
+                    item.FileId == fileAccessResult.UnlockedFile.File.Id
+                    && item.Id == request.FileContentId
+                )
             )
           )
-          : await Resources.GetMainFileContent(transaction, file);
+          : await Resources.GetMainFileContent(transaction, fileAccessResult.UnlockedFile.File);
 
-      FileSnapshot? fileSnapshot =
+      Resource<FileSnapshot>? fileSnapshot =
         request.FileSnapshotId != null
           ? await Resources
-            .GetFileSnapshots(
+            .Query<FileSnapshot>(
               transaction,
-              file,
-              fileContent,
-              request.FileSnapshotId
+              (query) =>
+                query.Where(
+                  (item) =>
+                    item.FileId == fileAccessResult.UnlockedFile.File.Id
+                    && item.FileContentId == fileContent.Id
+                    && item.Id == request.FileSnapshotId
+                )
             )
-            .ToAsyncEnumerable()
             .FirstOrDefaultAsync(transaction.CancellationToken)
-          : await Resources.GetLatestFileSnapshot(
-            transaction,
-            file,
-            fileContent
-          );
+          : await Resources
+            .Query<FileSnapshot>(
+              transaction,
+              (query) =>
+                query.Where(
+                  (item) =>
+                    item.FileId == fileContent.Data.FileId && item.FileContentId == fileContent.Id
+                )
+            )
+            .OrderByDescending((item) => item.Data.CreateTime)
+            .FirstOrDefaultAsync(transaction.CancellationToken);
 
-      return new()
-      {
-        Size =
-          fileSnapshot != null
-            ? await Resources.GetFileSize(transaction, fileSnapshot)
-            : 0,
-      };
+      return new() { Size = fileSnapshot?.Data.Size ?? 0 };
     };
 }

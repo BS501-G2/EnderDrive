@@ -12,12 +12,9 @@ public sealed partial class Connection
     public required bool Agreed;
   }
 
-  private AuthenticatedRequestHandler<
-    GetAgreementRequest,
-    GetAgreementResponse
-  > GetAgreement =>
+  private AuthenticatedRequestHandler<GetAgreementRequest, GetAgreementResponse> GetAgreement =>
     async (transaction, request, userAuthentication, me, myAdminAccess) =>
     {
-      return new() { Agreed = me.PrivacyPolicyAgreement };
+      return new() { Agreed = me.Data.PrivacyPolicyAgreement };
     };
 }

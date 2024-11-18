@@ -25,34 +25,37 @@ public sealed partial class Connection
     GetOldestFileSnapshotRequest,
     GetOldestFileSnapshotResponse
   > GetOldestFileSnapshot =>
-    async (
-      transaction,
-      request,
-      userAuthentication,
-      me,
-      myAdminAccess,
-      file,
-      fileAccess
-    ) =>
+    async (transaction, request, userAuthentication, me, myAdminAccess, fileAccessResult) =>
     {
-      FileContent fileContent =
+      Resource<FileContent> fileContent =
         request.FileContentId != null
           ? await Internal_EnsureFirst(
             transaction,
-            Resources.GetFileContents(
+            Resources.Query<FileContent>(
               transaction,
-              file,
-              id: request.FileContentId
+              (query) =>
+                query.Where(
+                  (item) =>
+                    item.Id == request.FileContentId
+                    && (request.FileContentId == null || item.Id == request.FileContentId)
+                )
             )
           )
-          : await Resources.GetMainFileContent(transaction, file);
+          : await Resources.GetMainFileContent(transaction, fileAccessResult.UnlockedFile.File);
 
-      FileSnapshot? fileSnapshot = await Internal_GetFirst(
-        transaction,
-        Resources
-          .GetFileSnapshots(transaction, file, fileContent)
-          .OrderBy((item) => item.Id)
-      );
+      Resource<FileSnapshot>? fileSnapshot = await Resources
+        .Query<FileSnapshot>(
+          transaction,
+          (query) =>
+            query
+              .Where(
+                (item) =>
+                  item.FileContentId == fileContent.Id
+                  && item.FileId == fileAccessResult.UnlockedFile.File.Id
+              )
+              .OrderBy((item) => item.CreateTime)
+        )
+        .FirstOrDefaultAsync(transaction.CancellationToken);
 
       return new() { FileSnapshot = fileSnapshot?.ToJson() };
     };

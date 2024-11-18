@@ -27,11 +27,7 @@
 
 <LandingEntry name="Home" hideHeader>
   <div class="img" class:mobile={$isMobile} bind:offsetHeight={imageHeight}>
-    <img
-      src="/school-building.jpg"
-      alt="School Building"
-      style:min-height="{imageHeight}px"
-    />
+    <img src="/school-building.jpg" alt="School Building" style:min-height="{imageHeight}px" />
   </div>
 
   <div class="header-container" class:mobile={$isMobile}>
@@ -50,8 +46,8 @@
 <LandingEntry name="About" contain>//</LandingEntry>
 
 <LandingEntry name="Why EnderDrive?" contain
-  >The employees of Melchora Aquino Elementary School have been using
-  traditional methods of storing digital data.</LandingEntry
+  >The employees of Melchora Aquino Elementary School have been using traditional methods of storing
+  digital data.</LandingEntry
 >
 
 <LandingEntry name="Contact" contain>//</LandingEntry>

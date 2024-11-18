@@ -29,34 +29,36 @@ public sealed partial class Connection
     public required string[] FileStars;
   };
 
-  private AuthenticatedRequestHandler<
-    GetFileStarsRequest,
-    GetFileStarsResponse
-  > GetFileStars =>
+  private AuthenticatedRequestHandler<GetFileStarsRequest, GetFileStarsResponse> GetFileStars =>
     async (transaction, request, userAuthentication, me, myAdminAccess) =>
     {
-      User? user = null;
+      Resource<User>? user = null;
 
       if (request.UserId != me.Id && myAdminAccess == null)
       {
-        throw new InvalidOperationException(
-          "User must be set to self when not an admin."
-        );
+        throw new InvalidOperationException("User must be set to self when not an admin.");
       }
 
       user =
         request.UserId != null
           ? await Internal_EnsureFirst(
             transaction,
-            Resources.GetUsers(transaction, id: request.UserId)
+            Resources.Query<User>(
+              transaction,
+              (query) => query.Where((item) => item.Id == request.UserId)
+            )
           )
           : null;
 
-      File? file =
+      Resource<File>? file =
         request.FileId != null
           ? await Internal_EnsureFirst(
             transaction,
-            Resources.GetFiles(transaction, id: request.FileId)
+            Resources.Query<File>(
+              transaction,
+              (query) => query.Where((item) => item.Id == request.FileId)
+            )
+          // Resources.GetFiles(transaction, id: request.FileId)
           )
           : null;
 
@@ -71,14 +73,27 @@ public sealed partial class Connection
           )
           : null;
 
-      FileStar[] fileStars = await Resources
-        .GetFileStars(transaction, file, user)
-        .ApplyPagination(request.Pagination)
-        .ToAsyncEnumerable()
+      Resource<FileStar>[] fileStars = await Resources
+        .Query<FileStar>(
+          transaction,
+          (query) =>
+            query
+              .Where(
+                (item) =>
+                  (file == null || item.FileId == file.Id)
+                  && (user == null || item.UserId == user.Id)
+              )
+              .ApplyPagination(request.Pagination)
+        )
         .WhereAwait(
           async (fileStar) =>
           {
-            File file = await Internal_GetFile(transaction, me, request.FileId);
+            Resource<File> file = await Internal_GetFile(
+              transaction,
+              me,
+              userAuthentication,
+              request.FileId
+            );
 
             FileAccessResult? fileAccessResult = await Resources.FindFileAccess(
               transaction,
@@ -93,11 +108,6 @@ public sealed partial class Connection
         )
         .ToArrayAsync(transaction.CancellationToken);
 
-      return new()
-      {
-        FileStars = fileStars
-          .Select((fileStar) => JToken.FromObject(fileStar).ToString())
-          .ToArray(),
-      };
+      return new() { FileStars = [.. fileStars.ToJson()] };
     };
 }

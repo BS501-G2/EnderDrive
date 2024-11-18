@@ -25,11 +25,8 @@ public sealed partial class ApiServerParams
   public required SocketIoBridge SocketIoBridge;
 }
 
-public sealed partial class ApiServer(
-  Server server,
-  int httpPort,
-  int httpsPort
-) : Service<ApiServerParams>("API", server)
+public sealed partial class ApiServer(Server server, int httpPort, int httpsPort)
+  : Service<ApiServerParams>("API", server)
 {
   public Server Server => server;
 
@@ -74,20 +71,14 @@ public sealed partial class ApiServer(
     app.UseWebSockets(new() { KeepAliveInterval = TimeSpan.FromMinutes(2) });
 
     await StartServices([socketIoBridge], startupCancellationToken);
-    app.Use(
-      (HttpContext context, Func<Task> _) =>
-        Handle(context, serviceCancellationToken)
-    );
+    app.Use((HttpContext context, Func<Task> _) => Handle(context, serviceCancellationToken));
 
     await app.StartAsync(startupCancellationToken);
 
     return new() { WebApplication = app, SocketIoBridge = socketIoBridge };
   }
 
-  protected override async Task OnRun(
-    ApiServerParams data,
-    CancellationToken cancellationToken
-  )
+  protected override async Task OnRun(ApiServerParams data, CancellationToken cancellationToken)
   {
     var context = GetContext();
 
@@ -96,10 +87,7 @@ public sealed partial class ApiServer(
     await await Task.WhenAny(tasks);
   }
 
-  protected override async Task OnStop(
-    ApiServerParams data,
-    ExceptionDispatchInfo? exception
-  )
+  protected override async Task OnStop(ApiServerParams data, ExceptionDispatchInfo? exception)
   {
     var context = GetContext();
     await context.WebApplication.StopAsync(CancellationToken.None);
@@ -107,10 +95,7 @@ public sealed partial class ApiServer(
     await StopServices(context.SocketIoBridge);
   }
 
-  private async Task Handle(
-    HttpContext context,
-    CancellationToken cancellationToken
-  )
+  private async Task Handle(HttpContext context, CancellationToken cancellationToken)
   {
     if (!context.WebSockets.IsWebSocketRequest)
     {

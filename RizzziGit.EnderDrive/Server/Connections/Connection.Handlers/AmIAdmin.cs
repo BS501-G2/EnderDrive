@@ -15,24 +15,11 @@ public sealed partial class Connection
     public required bool isAdmin;
   }
 
-  private TransactedRequestHandler<
-    AmIAdminRequest,
-    AmIAdminResponse
-  > AmIAdmin =>
-    async (transaction, request) =>
+  private AuthenticatedRequestHandler<AmIAdminRequest, AmIAdminResponse> AmIAdmin =>
+    async (transaction, request, userAuthentication, me, myAdminAccess) =>
     {
       ConnectionContext context = GetContext();
 
-      UnlockedUserAuthentication userAuthentication =
-        Internal_EnsureAuthentication();
-      User me = await Internal_Me(transaction, userAuthentication);
-
-      return new()
-      {
-        isAdmin = await Resources
-          .GetAdminAccesses(transaction, me.Id)
-          .ToAsyncEnumerable()
-          .AnyAsync(transaction.CancellationToken),
-      };
+      return new() { isAdmin = myAdminAccess != null };
     };
 }

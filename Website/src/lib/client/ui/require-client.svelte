@@ -63,9 +63,7 @@
               {@render view()}
             </div>
           {/snippet}
-          <Button background={container} onclick={() => $clientState[2]()}
-            >Retry</Button
-          >
+          <Button background={container} onclick={() => $clientState[2]()}>Retry</Button>
         {/snippet}
       </Banner>
     </div>

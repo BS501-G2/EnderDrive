@@ -82,10 +82,7 @@ public sealed partial class ResourceManager
     return rfc2898DeriveBytes.GetBytes(32);
   }
 
-  public PasswordVerification VerifyPassword(
-    string password,
-    string? confirmPassword = null
-  )
+  public PasswordVerification VerifyPassword(string password, string? confirmPassword = null)
   {
     PasswordVerification verification = 0;
 
@@ -114,7 +111,7 @@ public sealed partial class ResourceManager
 
   private async Task<UnlockedUserAuthentication> AddInitialUserAuthentication(
     ResourceTransaction transaction,
-    User user,
+    Resource<User> user,
     UserAuthenticationType type,
     byte[] payload,
     byte[] rsaPublicKey,
@@ -135,22 +132,21 @@ public sealed partial class ResourceManager
 
     byte[] encryptedRsaPrivateKey = KeyManager.Encrypt(aesKey, rsaPrivateKey);
 
-    Resource<UserAuthentication> userAuthentication =
-      ToResource<UserAuthentication>(
-        transaction,
-        new()
-        {
-          Id = ObjectId.GenerateNewId(),
-          UserId = user.Id,
-          Type = type,
-          Iterations = iterations,
-          Salt = salt,
-          AesIv = iv,
-          UserPublicRsaKey = rsaPublicKey,
-          EncryptedUserPrivateRsaKey = encryptedRsaPrivateKey,
-          CreateTime = DateTimeOffset.UtcNow,
-        }
-      );
+    Resource<UserAuthentication> userAuthentication = ToResource<UserAuthentication>(
+      transaction,
+      new()
+      {
+        Id = ObjectId.GenerateNewId(),
+        UserId = user.Id,
+        Type = type,
+        Iterations = iterations,
+        Salt = salt,
+        AesIv = iv,
+        UserPublicRsaKey = rsaPublicKey,
+        EncryptedUserPrivateRsaKey = encryptedRsaPrivateKey,
+        CreateTime = DateTimeOffset.UtcNow,
+      }
+    );
 
     await userAuthentication.Save(transaction);
 
@@ -166,7 +162,7 @@ public sealed partial class ResourceManager
 
   public async Task<UnlockedUserAuthentication> AddUserAuthentication(
     ResourceTransaction transaction,
-    User user,
+    Resource<User> user,
     UnlockedUserAuthentication sourceUserAuthentication,
     UserAuthenticationType type,
     byte[] payload
@@ -189,25 +185,21 @@ public sealed partial class ResourceManager
       sourceUserAuthentication.UserRsaPrivateKey
     );
 
-    Resource<UserAuthentication> userAuthentication =
-      ToResource<UserAuthentication>(
-        transaction,
-        new()
-        {
-          Id = ObjectId.GenerateNewId(),
-          UserId = user.Id,
-          Type = type,
-          Iterations = iterations,
-          Salt = salt,
-          AesIv = iv,
-          UserPublicRsaKey = sourceUserAuthentication
-            .UserAuthentication
-            .Data
-            .UserPublicRsaKey,
-          EncryptedUserPrivateRsaKey = encryptedRsaPrivateKey,
-          CreateTime = DateTimeOffset.UtcNow,
-        }
-      );
+    Resource<UserAuthentication> userAuthentication = ToResource<UserAuthentication>(
+      transaction,
+      new()
+      {
+        Id = ObjectId.GenerateNewId(),
+        UserId = user.Id,
+        Type = type,
+        Iterations = iterations,
+        Salt = salt,
+        AesIv = iv,
+        UserPublicRsaKey = sourceUserAuthentication.UserAuthentication.Data.UserPublicRsaKey,
+        EncryptedUserPrivateRsaKey = encryptedRsaPrivateKey,
+        CreateTime = DateTimeOffset.UtcNow,
+      }
+    );
 
     await userAuthentication.Save(transaction);
     return new(userAuthentication)
@@ -220,7 +212,7 @@ public sealed partial class ResourceManager
 
   public async Task<UnlockedUserAuthentication> AddUserAuthentication(
     ResourceTransaction transaction,
-    User user,
+    Resource<User> user,
     UnlockedUserAdminBackdoor userBackdoor,
     UserAuthenticationType type,
     byte[] payload
@@ -238,27 +230,23 @@ public sealed partial class ResourceManager
 
     byte[] aesKey = HashPayload(salt, iterations, payload);
 
-    byte[] encryptedUserRsaPrivateKey = KeyManager.Encrypt(
-      aesKey,
-      userBackdoor.UserPrivateRsaKey
-    );
+    byte[] encryptedUserRsaPrivateKey = KeyManager.Encrypt(aesKey, userBackdoor.UserPrivateRsaKey);
 
-    Resource<UserAuthentication> userAuthentication =
-      ToResource<UserAuthentication>(
-        transaction,
-        new()
-        {
-          Id = ObjectId.GenerateNewId(),
-          UserId = user.Id,
-          Type = type,
-          Iterations = iterations,
-          Salt = salt,
-          AesIv = iv,
-          UserPublicRsaKey = user.RsaPublicKey,
-          EncryptedUserPrivateRsaKey = encryptedUserRsaPrivateKey,
-          CreateTime = DateTimeOffset.UtcNow,
-        }
-      );
+    Resource<UserAuthentication> userAuthentication = ToResource<UserAuthentication>(
+      transaction,
+      new()
+      {
+        Id = ObjectId.GenerateNewId(),
+        UserId = user.Id,
+        Type = type,
+        Iterations = iterations,
+        Salt = salt,
+        AesIv = iv,
+        UserPublicRsaKey = user.Data.RsaPublicKey,
+        EncryptedUserPrivateRsaKey = encryptedUserRsaPrivateKey,
+        CreateTime = DateTimeOffset.UtcNow,
+      }
+    );
 
     await userAuthentication.Save(transaction);
 
@@ -281,23 +269,19 @@ public sealed partial class ResourceManager
         .AsQueryable()
         .Where(
           (userAuthentication) =>
-            userAuthentication.UserId
-            == unlockedUserAuthentication.UserAuthentication.Data.UserId
+            userAuthentication.UserId == unlockedUserAuthentication.UserAuthentication.Data.UserId
         )
         .ToAsyncEnumerable()
         .CountAsync(transactionParams.CancellationToken) <= 1
       && !forceDelete
     )
     {
-      throw new InvalidOperationException(
-        "Removing the last user authentication is not allowed"
-      );
+      throw new InvalidOperationException("Removing the last user authentication is not allowed");
     }
 
     await UserAuthentications.DeleteManyAsync(
       (userAuthentication) =>
-        userAuthentication.Id
-        == unlockedUserAuthentication.UserAuthentication.Id,
+        userAuthentication.Id == unlockedUserAuthentication.UserAuthentication.Id,
       null,
       transactionParams.CancellationToken
     );
@@ -306,16 +290,11 @@ public sealed partial class ResourceManager
   public Task RemoveUserAuthentication(
     ResourceTransaction transactionParams,
     UnlockedUserAuthentication unlockedUserAuthentication
-  ) =>
-    RemoveUserAuthentication(
-      transactionParams,
-      unlockedUserAuthentication,
-      false
-    );
+  ) => RemoveUserAuthentication(transactionParams, unlockedUserAuthentication, false);
 
   public async Task TruncateLatestToken(
     ResourceTransaction transaction,
-    User user,
+    Resource<User> user,
     int count
   )
   {
@@ -325,13 +304,9 @@ public sealed partial class ResourceManager
         (query) =>
           query
             .Where(
-              (item) =>
-                item.UserId == user.Id
-                && item.Type == UserAuthenticationType.Token
+              (item) => item.UserId == user.Data.Id && item.Type == UserAuthenticationType.Token
             )
-            .OrderByDescending(
-              (userAuthentication) => userAuthentication.CreateTime
-            )
+            .OrderByDescending((userAuthentication) => userAuthentication.CreateTime)
             .Skip(count)
       )
     )

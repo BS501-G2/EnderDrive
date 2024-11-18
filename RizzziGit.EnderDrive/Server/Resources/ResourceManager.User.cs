@@ -106,7 +106,7 @@ public sealed partial class ResourceManager
   }
 
   public async Task<(
-    User User,
+    Resource<User> User,
     UnlockedUserAuthentication UnlockedUserAuthentication
   )> CreateUser(
     ResourceTransaction transaction,
@@ -120,19 +120,15 @@ public sealed partial class ResourceManager
   {
     transaction.CancellationToken.ThrowIfCancellationRequested();
 
-    ResourceManagerContext context = GetContext();
-
-    RSA rsaKey = await KeyManager.GenerateAsymmetricKey(
-      transaction.CancellationToken
-    );
+    RSA rsaKey = await KeyManager.GenerateAsymmetricKey(transaction.CancellationToken);
 
     byte[] rsaPublicKey = KeyManager.SerializeAsymmetricKey(rsaKey, false);
     byte[] rsaPrivateKey = KeyManager.SerializeAsymmetricKey(rsaKey, true);
 
-    User user =
+    Resource<User> user = ToResource<User>(
+      transaction,
       new()
       {
-        Id = ObjectId.GenerateNewId(),
         Username = username,
         FirstName = firstName,
         MiddleName = middleName,
@@ -142,10 +138,7 @@ public sealed partial class ResourceManager
         Roles = [],
 
         RsaPublicKey = rsaPublicKey,
-        AdminEncryptedRsaPrivateKey = KeyManager.Encrypt(
-          AdminManager.AdminKey,
-          rsaPrivateKey
-        ),
+        AdminEncryptedRsaPrivateKey = KeyManager.Encrypt(AdminManager.AdminKey, rsaPrivateKey),
 
         TrashFileId = null,
         RootFileId = null,
@@ -153,28 +146,24 @@ public sealed partial class ResourceManager
         LatestNewsId = null,
 
         PrivacyPolicyAgreement = false,
-      };
+      }
+    );
 
-    await InsertOld(transaction, [user]);
+    await user.Save(transaction);
 
-    if (
-      !await GetAdminAccesses(transaction)
-        .ToAsyncEnumerable()
-        .AnyAsync(transaction.CancellationToken)
-    )
+    if (!await Query<AdminAccess>(transaction).AnyAsync(transaction))
     {
       await AddAdminAccess(transaction, Server.AdminManager.AdminKey, user);
     }
 
-    UnlockedUserAuthentication userAuthentication =
-      await AddInitialUserAuthentication(
-        transaction,
-        user,
-        UserAuthenticationType.Password,
-        Encoding.UTF8.GetBytes(password),
-        rsaPublicKey,
-        rsaPrivateKey
-      );
+    UnlockedUserAuthentication userAuthentication = await AddInitialUserAuthentication(
+      transaction,
+      user,
+      UserAuthenticationType.Password,
+      Encoding.UTF8.GetBytes(password),
+      rsaPublicKey,
+      rsaPrivateKey
+    );
 
     await CreateUserAdminBackdoor(
       transaction,
@@ -186,134 +175,48 @@ public sealed partial class ResourceManager
     return (user, userAuthentication);
   }
 
-  public async Task SetUserProfilePictureId(
-    ResourceTransaction transaction,
-    User user,
-    UnlockedFile? file
-  )
-  {
-    await UpdateOld(
-      transaction,
-      user,
-      Builders<User>.Update.Set((item) => item.ProfilePictureId, file?.Id)
-    );
-
-    user.ProfilePictureId = file?.Id;
-  }
-
-  public async Task SetUserLatestNewsId(
-    ResourceTransaction transaction,
-    User user,
-    News? news
-  )
-  {
-    await UpdateOld(
-      transaction,
-      user,
-      Builders<User>.Update.Set((item) => item.LatestNewsId, news?.Id)
-    );
-
-    user.LatestNewsId = news?.Id;
-  }
-
-  public async Task DeleteUser(
-    ResourceTransaction transaction,
-    User user,
-    UnlockedUserAuthentication userAuthentication
-  )
+  public async Task Delete(ResourceTransaction transaction, Resource<User> user)
   {
     await foreach (
-      UserAuthentication toDelete in QueryOld<UserAuthentication>(
-          transaction,
-          (query) =>
-            query.Where(
-              (userAuthentication) => userAuthentication.UserId == user.Id
-            )
-        )
-        .ToAsyncEnumerable()
-    )
-    {
-      await RemoveUserAuthentication(
+      Resource<UserAuthentication> userAuthentication in Query<UserAuthentication>(
         transaction,
-        userAuthentication.Id != toDelete.Id
-          ? toDelete.Unlock(userAuthentication)
-          : userAuthentication,
-        true
-      );
+        (query) => query.Where((userAuthentication) => userAuthentication.UserId == user.Id)
+      )
+    )
+    {
+      await Delete(transaction, userAuthentication);
     }
 
     await foreach (
-      File file in QueryOld<File>(
-          transaction,
-          (query) => query.Where((file) => file.OwnerUserId == user.Id)
-        )
-        .ToAsyncEnumerable()
+      Resource<File> file in Query<File>(
+        transaction,
+        (query) => query.Where((file) => file.OwnerUserId == user.Id && file.ParentId == null)
+      )
     )
     {
-      await DeleteFile(transaction, file.Unlock(userAuthentication));
+      await Delete(transaction, file);
     }
 
     await foreach (
-      UserAdminBackdoor userAdminBackdoor in GetUserAdminBackdoors(
-          transaction,
-          user.Id
-        )
-        .ToAsyncEnumerable()
+      Resource<UserAdminBackdoor> userAdminBackdoor in Query<UserAdminBackdoor>(
+        transaction,
+        (query) => query.Where((item) => item.UserId == user.Id)
+      )
     )
     {
-      await DeleteOld(transaction, userAdminBackdoor);
+      await Delete(transaction, userAdminBackdoor);
     }
 
-    await DeleteOld(transaction, user);
-  }
+    await foreach (
+      Resource<FileStar> fileStar in Query<FileStar>(
+        transaction,
+        (query) => query.Where((item) => item.UserId == user.Id)
+      )
+    )
+    {
+      await Delete(transaction, fileStar);
+    }
 
-  public ValueTask SetUserRole(
-    ResourceTransaction transaction,
-    User user,
-    UserRole role
-  ) =>
-    UpdateOld(
-      transaction,
-      user,
-      Builders<User>.Update.Set((item) => item.Roles, [role])
-    );
-
-  public IQueryable<User> GetUsers(
-    ResourceTransaction transaction,
-    string? searchString = null,
-    UserRole[]? includeRole = null,
-    UserRole[]? excludeRole = null,
-    string? username = null,
-    ObjectId? id = null
-  )
-  {
-    return QueryOld<User>(transaction)
-      .Where(
-        (user) =>
-          (
-            searchString == null
-            || (
-              user.FirstName.Contains(
-                searchString,
-                StringComparison.CurrentCultureIgnoreCase
-              )
-              || (
-                user.MiddleName != null
-                && user.MiddleName.Contains(
-                  searchString,
-                  StringComparison.CurrentCultureIgnoreCase
-                )
-              )
-              || user.LastName.Contains(
-                searchString,
-                StringComparison.CurrentCultureIgnoreCase
-              )
-            )
-          )
-          && (includeRole == null || user.Roles.Intersect(includeRole).Any())
-          && (excludeRole == null || (!user.Roles.Intersect(excludeRole).Any()))
-          && (username == null || user.Username == username)
-          && (id == null || user.Id == id)
-      );
+    await Delete<User>(transaction, user);
   }
 }

@@ -3,6 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
+using System.Linq;
 using Resources;
 using Utilities;
 
@@ -24,33 +25,37 @@ public sealed partial class Connection
     GetLatestFileSnapshotRequest,
     GetLatestFileSnapshotResponse
   > GetLatestFileSnapshot =>
-    async (
-      transaction,
-      request,
-      userAuthentication,
-      me,
-      myAdminAccess,
-      file,
-      fileAccessResult
-    ) =>
+    async (transaction, request, userAuthentication, me, myAdminAccess, fileAccessResult) =>
     {
-      FileContent fileContent =
+      Resource<FileContent> fileContent =
         request.FileContentId != null
           ? await Internal_EnsureFirst(
             transaction,
-            Resources.GetFileContents(
+            Resources.Query<FileContent>(
               transaction,
-              file,
-              id: request.FileContentId
+              (query) =>
+                query.Where(
+                  (item) =>
+                    item.Id == request.FileContentId
+                    && (request.FileContentId == null || item.Id == request.FileContentId)
+                )
             )
           )
-          : await Resources.GetMainFileContent(transaction, file);
+          : await Resources.GetMainFileContent(transaction, fileAccessResult.UnlockedFile.File);
 
-      FileSnapshot? fileSnapshot = await Resources.GetLatestFileSnapshot(
-        transaction,
-        file,
-        fileContent
-      );
+      Resource<FileSnapshot>? fileSnapshot = await Resources
+        .Query<FileSnapshot>(
+          transaction,
+          (query) =>
+            query
+              .Where(
+                (item) =>
+                  item.FileContentId == fileContent.Id
+                  && item.FileId == fileAccessResult.UnlockedFile.File.Id
+              )
+              .OrderByDescending((item) => item.CreateTime)
+        )
+        .FirstOrDefaultAsync(transaction.CancellationToken);
 
       return new() { FileSnapshot = fileSnapshot?.ToJson() };
     };

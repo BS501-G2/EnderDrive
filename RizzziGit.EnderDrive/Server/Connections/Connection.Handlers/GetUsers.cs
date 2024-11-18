@@ -37,30 +37,66 @@ public sealed partial class Connection
     public required string[] Users;
   }
 
-  private AuthenticatedRequestHandler<
-    GetUsersRequest,
-    GetUsersResponse
-  > GetUsers =>
+  private AuthenticatedRequestHandler<GetUsersRequest, GetUsersResponse> GetUsers =>
     async (transaction, request, _, _, _) =>
     {
-      User[] users = await Resources
-        .GetUsers(
+      Resource<User>[] users = await Resources
+        .Query<User>(
           transaction,
-          request.SearchString,
-          request.IncludeRole,
-          request.ExcludeRole,
-          request.Username,
-          request.Id
+          (query) =>
+            query
+              .Where(
+                (user) =>
+                  (
+                    request.SearchString == null
+                    || (
+                      user.Username.Contains(
+                        request.SearchString,
+                        System.StringComparison.OrdinalIgnoreCase
+                      )
+                      || user.FirstName.Contains(
+                        request.SearchString,
+                        System.StringComparison.OrdinalIgnoreCase
+                      )
+                      || (
+                        user.MiddleName == null
+                        || user.MiddleName.Contains(
+                          request.SearchString,
+                          System.StringComparison.OrdinalIgnoreCase
+                        )
+                      )
+                      || user.LastName.Contains(
+                        request.SearchString,
+                        System.StringComparison.OrdinalIgnoreCase
+                      )
+                      || (
+                        user.DisplayName == null
+                        || user.DisplayName.Contains(
+                          request.SearchString,
+                          System.StringComparison.OrdinalIgnoreCase
+                        )
+                      )
+                    )
+                  )
+                  && (
+                    request.IncludeRole == null || request.IncludeRole.Intersect(user.Roles).Any()
+                  )
+                  && (
+                    request.ExcludeRole == null || !request.ExcludeRole.Intersect(user.Roles).Any()
+                  )
+                  && (
+                    request.Username == null
+                    || user.Username.Equals(
+                      request.Username,
+                      System.StringComparison.OrdinalIgnoreCase
+                    )
+                  )
+                  && (request.Id == null || user.Id == request.Id)
+              )
+              .ApplyPagination(request.Pagination)
         )
-        .ApplyPagination(request.Pagination)
-        .ToAsyncEnumerable()
         .ToArrayAsync(transaction.CancellationToken);
 
-      return new()
-      {
-        Users = users
-          .Select((user) => JToken.FromObject(user).ToString())
-          .ToArray(),
-      };
+      return new() { Users = [.. users.ToJson()] };
     };
 }

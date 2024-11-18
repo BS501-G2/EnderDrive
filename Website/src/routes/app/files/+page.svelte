@@ -7,9 +7,7 @@
 
   const resolve = derived(
     page,
-    ({
-      url: { searchParams }
-    }): [file: FileBrowserResolveType.File, fileId: string | null] => {
+    ({ url: { searchParams } }): [file: FileBrowserResolveType.File, fileId: string | null] => {
       return [FileBrowserResolveType.File, searchParams.get('fileId')]
     }
   )

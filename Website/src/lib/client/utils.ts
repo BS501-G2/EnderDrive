@@ -1,11 +1,4 @@
-const byteUnitDictionary = Object.freeze([
-  '',
-  'Ki',
-  'Mi',
-  'Gi',
-  'Ti',
-  'Pi'
-] as const)
+const byteUnitDictionary = Object.freeze(['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi'] as const)
 export function toReadableSize(bytes: number) {
   let count = 0
 

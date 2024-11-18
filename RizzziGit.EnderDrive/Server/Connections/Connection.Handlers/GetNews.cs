@@ -1,9 +1,9 @@
 using System.Linq;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
-using MongoDB.Bson;
 using Resources;
 using Utilities;
 
@@ -27,18 +27,25 @@ public sealed partial class Connection
     public required string[] NewsEntries;
   }
 
-  private AuthenticatedRequestHandler<
-    GetNewsRequest,
-    GetNewsResponse
-  > GetNews =>
+  private AuthenticatedRequestHandler<GetNewsRequest, GetNewsResponse> GetNews =>
     async (transaction, request, userAuthentication, me, myAdminAccess) =>
     {
-      News[] news = await Resources
-        .GetNews(transaction, request.Published, me.Id)
-        .ApplyPagination(request.Pagination)
-        .ToAsyncEnumerable()
+      Resource<News>[] news = await Resources
+        .Query<News>(
+          transaction,
+          (query) =>
+            query
+              .Where(
+                (item) =>
+                  request.Published == true
+                    ? item.PublishTime != null
+                    : request.Published != false || item.PublishTime == null
+              )
+              .Where((item) => item.Id > request.AfterId)
+              .ApplyPagination(request.Pagination)
+        )
         .ToArrayAsync(transaction.CancellationToken);
 
-      return new() { NewsEntries = news.ToJson() };
+      return new() { NewsEntries = [.. news.ToJson()] };
     };
 }

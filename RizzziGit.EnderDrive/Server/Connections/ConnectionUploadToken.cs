@@ -43,51 +43,31 @@ public sealed record ConnectionByteStream(
       CancellationToken CancellationToken
     ) : Feed(CancellationToken);
 
-    public sealed record Close(
-      TaskCompletionSource Source,
-      CancellationToken CancellationToken
-    ) : Feed(CancellationToken);
+    public sealed record Close(TaskCompletionSource Source, CancellationToken CancellationToken)
+      : Feed(CancellationToken);
   }
 
-  public async Task<CompositeBuffer> Read(
-    long length,
-    CancellationToken cancellationToken
-  )
+  public async Task<CompositeBuffer> Read(long length, CancellationToken cancellationToken)
   {
     TaskCompletionSource<CompositeBuffer> source = new();
 
-    await Queue.Enqueue(
-      new Feed.Read(source, length, cancellationToken),
-      cancellationToken
-    );
+    await Queue.Enqueue(new Feed.Read(source, length, cancellationToken), cancellationToken);
     return await source.Task;
   }
 
-  public async Task Write(
-    CompositeBuffer bytes,
-    CancellationToken cancellationToken
-  )
+  public async Task Write(CompositeBuffer bytes, CancellationToken cancellationToken)
   {
     TaskCompletionSource source = new();
 
-    await Queue.Enqueue(
-      new Feed.Write(source, bytes, cancellationToken),
-      cancellationToken
-    );
+    await Queue.Enqueue(new Feed.Write(source, bytes, cancellationToken), cancellationToken);
     await source.Task;
   }
 
-  public async Task SetPosition(
-    long offset,
-    CancellationToken cancellationToken
-  )
+  public async Task SetPosition(long offset, CancellationToken cancellationToken)
   {
     TaskCompletionSource source = new();
 
-    await Queue.Enqueue(
-      new Feed.SetPosition(source, offset, cancellationToken),
-      cancellationToken
-    );
+    await Queue.Enqueue(new Feed.SetPosition(source, offset, cancellationToken), cancellationToken);
     await source.Task;
   }
 
@@ -95,10 +75,7 @@ public sealed record ConnectionByteStream(
   {
     TaskCompletionSource<long> source = new();
 
-    await Queue.Enqueue(
-      new Feed.GetPosition(source, cancellationToken),
-      cancellationToken
-    );
+    await Queue.Enqueue(new Feed.GetPosition(source, cancellationToken), cancellationToken);
     return await source.Task;
   }
 
@@ -106,10 +83,7 @@ public sealed record ConnectionByteStream(
   {
     TaskCompletionSource<long> source = new();
 
-    await Queue.Enqueue(
-      new Feed.GetLength(source, cancellationToken),
-      cancellationToken
-    );
+    await Queue.Enqueue(new Feed.GetLength(source, cancellationToken), cancellationToken);
     return await source.Task;
   }
 
@@ -117,9 +91,6 @@ public sealed record ConnectionByteStream(
   {
     TaskCompletionSource source = new();
 
-    await Queue.Enqueue(
-      new Feed.Close(source, cancellationToken),
-      cancellationToken
-    );
+    await Queue.Enqueue(new Feed.Close(source, cancellationToken), cancellationToken);
   }
 }

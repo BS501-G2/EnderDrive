@@ -1,12 +1,6 @@
 import { getContext, setContext, type Snippet } from 'svelte'
 import { persisted } from 'svelte-persisted-store'
-import {
-  derived,
-  get,
-  writable,
-  type Readable,
-  type Writable
-} from 'svelte/store'
+import { derived, get, writable, type Readable, type Writable } from 'svelte/store'
 import type {
   FileResource,
   FileAccessResource,
@@ -51,9 +45,7 @@ export interface FileBrowserOptions {
   ) => Promise<void>
 }
 
-export type FileBrowserContext = ReturnType<
-  typeof createFileBrowserContext
->['context']
+export type FileBrowserContext = ReturnType<typeof createFileBrowserContext>['context']
 
 export function useFileBrowserContext() {
   return getContext<FileBrowserContext>(contextName)
@@ -103,8 +95,7 @@ export function createFileBrowserContext(
   })
   const refresh = writable<(() => void) | null>(null)
 
-  const fileListContext: Writable<FileBrowserListContext | null> =
-    writable(null)
+  const fileListContext: Writable<FileBrowserListContext | null> = writable(null)
 
   const context = setContext(contextName, {
     showDetails,
@@ -120,8 +111,7 @@ export function createFileBrowserContext(
         }
       ])
 
-      return () =>
-        top.update((value) => value.filter((value) => value.id !== id))
+      return () => top.update((value) => value.filter((value) => value.id !== id))
     },
 
     pushMiddle: (snippet: Snippet) => {
@@ -135,8 +125,7 @@ export function createFileBrowserContext(
         }
       ])
 
-      return () =>
-        middle.update((value) => value.filter((value) => value.id !== id))
+      return () => middle.update((value) => value.filter((value) => value.id !== id))
     },
 
     pushBottom: (snippet: Snippet) => {
@@ -150,8 +139,7 @@ export function createFileBrowserContext(
         }
       ])
 
-      return () =>
-        bottom.update((value) => value.filter((value) => value.id !== id))
+      return () => bottom.update((value) => value.filter((value) => value.id !== id))
     },
 
     pushAction: (
@@ -179,10 +167,7 @@ export function createFileBrowserContext(
         }
       ])
 
-      return () =>
-        actions.update((actions) =>
-          actions.filter((action) => action.id !== id)
-        )
+      return () => actions.update((actions) => actions.filter((action) => action.id !== id))
     },
 
     current: derived(current, (value) => value),

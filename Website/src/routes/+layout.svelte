@@ -5,11 +5,7 @@
   import { onMount, type Snippet } from 'svelte'
   import { get } from 'svelte/store'
   import { createColorContext } from '../lib/client/contexts/colors'
-  import {
-    createAppContext,
-    ViewMode,
-    WindowMode
-  } from '$lib/client/contexts/app'
+  import { createAppContext, ViewMode, WindowMode } from '$lib/client/contexts/app'
   import { createClientContext } from '$lib/client/client'
   import OverlayHost from './overlay-host.svelte'
 
@@ -81,10 +77,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link
     rel="manifest"
-    href="/manifest?theme-color={$useCssColor(
-      8,
-      0
-    )}&background-color={$useCssColor(8, 0)}"
+    href="/manifest?theme-color={$useCssColor(8, 0)}&background-color={$useCssColor(8, 0)}"
   />
   <title
     >{$titleStack

@@ -22,61 +22,56 @@ public record class VirusReport : ResourceData
   public required VirusReportStatus Status;
 
   [JsonProperty("viruses")]
-  public required string[] Viruses;
+  public required string[]? Viruses;
 }
 
 public enum VirusReportStatus
 {
+  Pending,
   Failed,
   Completed,
 }
 
 public sealed partial class ResourceManager
 {
-  public async Task<VirusReport> SetVirusReport(
+  public async ValueTask<Resource<VirusReport>> GetVirusReport(
     ResourceTransaction transaction,
-    File file,
-    FileContent fileContent,
-    FileSnapshot fileSnapshot,
-    VirusReportStatus status,
-    string[] viruses
+    Resource<File> file,
+    Resource<FileContent> fileContent,
+    Resource<FileSnapshot> fileSnapshot
   )
   {
-    VirusReport report =
-      new()
-      {
-        Id = ObjectId.GenerateNewId(),
-
-        FileId = file.Id,
-        FileContentId = fileContent.Id,
-        FileSnapshotId = fileSnapshot.Id,
-
-        Status = status,
-        Viruses = viruses,
-      };
-
-    await InsertOld(transaction, [report]);
-
-    return report;
-  }
-
-  public ValueTask<VirusReport?> GetVirusReport(
-    ResourceTransaction transaction,
-    File file,
-    FileContent fileContent,
-    FileSnapshot fileSnapshot
-  ) =>
-    QueryOld<VirusReport>(
+    Resource<VirusReport>? virusReport = await Query<VirusReport>(
         transaction,
         (query) =>
-          query.Where(
-            (item) =>
-              item.FileId == file.Id
-              && item.FileContentId == fileContent.Id
-              && item.FileSnapshotId == fileSnapshot.Id
-          )
+          query
+            .Where(
+              (virusReport) =>
+                virusReport.FileId == file.Id
+                && virusReport.FileContentId == fileContent.Id
+                && virusReport.FileSnapshotId == fileSnapshot.Id
+            )
+            .OrderByDescending((item) => item.Id)
       )
-      .OrderByDescending((item) => item.Id)
-      .ToAsyncEnumerable()
-      .FirstOrDefaultAsync(GetCancellationToken());
+      .FirstOrDefaultAsync(transaction);
+
+    if (virusReport == null)
+    {
+      virusReport = ToResource<VirusReport>(
+        transaction,
+        new()
+        {
+          FileId = file.Id,
+          FileContentId = fileContent.Id,
+          FileSnapshotId = fileSnapshot.Id,
+          Status = VirusReportStatus.Pending,
+          Viruses = null,
+        }
+      );
+
+      await virusReport.Save(transaction);
+    }
+
+    return virusReport;
+  }
 }

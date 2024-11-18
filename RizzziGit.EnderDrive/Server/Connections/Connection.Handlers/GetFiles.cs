@@ -13,17 +13,20 @@ public sealed partial class Connection
 {
   private sealed record class GetFilesRequest
   {
+    [BsonElement("searchString")]
+    public required string? SearchString;
+
     [BsonElement("parentFolderId")]
     public required ObjectId? ParentFolderId;
 
     [BsonElement("fileType")]
     public required FileType? FileType;
 
-    [BsonElement("name")]
-    public required string? Name;
-
     [BsonElement("ownerUserId")]
     public required ObjectId? OwnerUserId;
+
+    [BsonElement("name")]
+    public required string? Name;
 
     [BsonElement("id")]
     public required ObjectId? Id;
@@ -41,17 +44,16 @@ public sealed partial class Connection
     public required string[] Files;
   }
 
-  private AuthenticatedRequestHandler<
-    GetFilesRequest,
-    GetFilesResponse
-  > GetFiles =>
+  private AuthenticatedRequestHandler<GetFilesRequest, GetFilesResponse> GetFiles =>
     async (transaction, request, userAuthentication, me, _) =>
     {
-      File? parentFolder = await Internal_GetFile(
+      Resource<File>? parentFolder = await Internal_GetFile(
         transaction,
         me,
+        userAuthentication,
         request.ParentFolderId
       );
+
       FileAccessResult? parentFolderAccess =
         parentFolder != null
           ? await Internal_UnlockFile(
@@ -63,50 +65,62 @@ public sealed partial class Connection
           )
           : null;
 
-      User? ownerUser =
-        request.OwnerUserId != null
-          ? await Resources
-            .GetUsers(transaction, id: request.OwnerUserId)
-            .ToAsyncEnumerable()
-            .FirstOrDefaultAsync(transaction.CancellationToken)
-          : null;
-
       if (
-        ownerUser == null
-        || (
-          ownerUser.Id != me.Id
+        (
+          request.OwnerUserId != me.Id
           && !await Resources
-            .GetAdminAccesses(transaction, userId: me.Id)
-            .ToAsyncEnumerable()
+            .Query<AdminAccess>(transaction, (query) => query.Where((item) => item.UserId == me.Id))
             .AnyAsync(transaction.CancellationToken)
         )
       )
       {
-        throw new InvalidOperationException(
-          "Owner user is not required is required for non-admin users"
-        );
+        throw new InvalidOperationException("Owner user is required for non-admin users");
       }
 
-      File[] files = await Resources
-        .GetFiles(
+      Resource<User>? ownerUser =
+        request.OwnerUserId != null
+          ? await Resources
+            .Query<User>(
+              transaction,
+              (query) => query.Where((item) => item.Id == request.OwnerUserId)
+            )
+            .FirstOrDefaultAsync(transaction.CancellationToken)
+          : null;
+
+      Resource<File>[] files = await Resources
+        .Query<File>(
           transaction,
-          parentFolder,
-          request.FileType,
-          request.Name,
-          ownerUser,
-          request.Id,
-          request.TrashOptions ?? TrashOptions.NotIncluded
+          (query) =>
+            query
+              .Where(
+                (item) =>
+                  (
+                    request.SearchString == null
+                    || item.Name.Contains(request.SearchString, StringComparison.OrdinalIgnoreCase)
+                  )
+                  && (parentFolder == null || item.ParentId == parentFolder.Id)
+                  && (request.FileType == null || item.Type == request.FileType)
+                  && (ownerUser == null || item.OwnerUserId == ownerUser.Id)
+                  && (
+                    request.Name == null
+                    || item.Name.Equals(request.Name, StringComparison.OrdinalIgnoreCase)
+                  )
+                  && (request.Id == null || item.Id == request.Id)
+                  && (
+                    request.TrashOptions == null
+                    || (
+                      request.TrashOptions == TrashOptions.Exclusive
+                        ? item.TrashTime != null
+                        : request.TrashOptions != TrashOptions.NonInclusive
+                          || item.TrashTime == null
+                    )
+                  )
+              )
+              .OrderByDescending((file) => file.Type)
+              .ApplyPagination(request.Pagination)
         )
-        .OrderByDescending((file) => file.Type)
-        .ApplyPagination(request.Pagination)
-        .ToAsyncEnumerable()
         .ToArrayAsync(transaction.CancellationToken);
 
-      return new()
-      {
-        Files = files
-          .Select((file) => JToken.FromObject(file).ToString())
-          .ToArray(),
-      };
+      return new() { Files = [.. files.ToJson()] };
     };
 }

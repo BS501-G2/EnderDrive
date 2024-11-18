@@ -6,10 +6,8 @@ public sealed partial class Connection
 {
   private void RegisterHandlers(ConnectionContext context)
   {
-    void registerHandler<S, R>(
-      ServerSideRequestCode code,
-      RequestHandler<S, R> handler
-    ) => RegisterHandler<S, R>(context, code, handler);
+    void registerHandler<S, R>(ServerSideRequestCode code, RequestHandler<S, R> handler) =>
+      RegisterHandler<S, R>(context, code, handler);
 
     void registerTransactedHandler<S, R>(
       ServerSideRequestCode code,
@@ -40,49 +38,22 @@ public sealed partial class Connection
       RegisterFileHandler(context, code, handler, fileAccessLevel, fileType);
 
     registerHandler(ServerSideRequestCode.AmILoggedIn, AmILoggedIn);
-    registerTransactedHandler(
-      ServerSideRequestCode.SetupRequirements,
-      SetupRequirements
-    );
+    registerTransactedHandler(ServerSideRequestCode.SetupRequirements, SetupRequirements);
     registerTransactedHandler(ServerSideRequestCode.CreateAdmin, CreateAdmin);
-    registerTransactedHandler(
-      ServerSideRequestCode.ResolveUsername,
-      ResolveUsername
-    );
-    registerTransactedHandler(
-      ServerSideRequestCode.AuthenticatePassword,
-      AuthenticatePassword
-    );
-    registerTransactedHandler(
-      ServerSideRequestCode.AuthenticateGoogle,
-      AuthenticateGoogle
-    );
-    registerTransactedHandler(
-      ServerSideRequestCode.AuthenticateToken,
-      AuthenticateToken
-    );
-    registerTransactedHandler(ServerSideRequestCode.AmIAdmin, AmIAdmin);
+    registerTransactedHandler(ServerSideRequestCode.ResolveUsername, ResolveUsername);
+    registerTransactedHandler(ServerSideRequestCode.AuthenticatePassword, AuthenticatePassword);
+    registerTransactedHandler(ServerSideRequestCode.AuthenticateGoogle, AuthenticateGoogle);
+    registerTransactedHandler(ServerSideRequestCode.AuthenticateToken, AuthenticateToken);
+    registerAuthenticatedHandler(ServerSideRequestCode.AmIAdmin, AmIAdmin);
     registerAuthenticatedHandler(ServerSideRequestCode.Me, Me);
-    registerAuthenticatedHandler(
-      ServerSideRequestCode.Deauthenticate,
-      Deauthenticate
-    );
+    registerAuthenticatedHandler(ServerSideRequestCode.Deauthenticate, Deauthenticate);
     registerAuthenticatedHandler(ServerSideRequestCode.GetUser, GetUser);
     registerAuthenticatedHandler(ServerSideRequestCode.GetUsers, GetUsers);
     registerAuthenticatedHandler(ServerSideRequestCode.GetFiles, GetFiles);
-    registerAuthenticatedHandler(
-      ServerSideRequestCode.GetFileAccesses,
-      GetFileAccesses
-    );
-    registerAuthenticatedHandler(
-      ServerSideRequestCode.GetFileStars,
-      GetFileStars
-    );
-    registerAuthenticatedHandler(
-      ServerSideRequestCode.GetFileLogs,
-      GetFileLogs
-    );
-    registerAuthenticatedHandler(ServerSideRequestCode.CreateFile, CreateFile);
+    registerAuthenticatedHandler(ServerSideRequestCode.GetFileAccesses, GetFileAccesses);
+    registerAuthenticatedHandler(ServerSideRequestCode.GetFileStars, GetFileStars);
+    registerAuthenticatedHandler(ServerSideRequestCode.GetFileLogs, GetFileLogs);
+    registerFileHandler(ServerSideRequestCode.CreateFile, CreateFile);
     registerAuthenticatedHandler(ServerSideRequestCode.OpenStream, OpenStream);
     registerAuthenticatedHandler(
       ServerSideRequestCode.CreateNews,
@@ -95,62 +66,21 @@ public sealed partial class Connection
       [UserRole.NewsEditor]
     );
     registerAuthenticatedHandler(ServerSideRequestCode.GetNews, GetNews);
-    registerAuthenticatedHandler(
-      ServerSideRequestCode.SetFileStar,
-      SetFileStar
-    );
-    registerAuthenticatedHandler(
-      ServerSideRequestCode.GetFileStar,
-      GetFileStar
-    );
-    registerFileHandler(
-      ServerSideRequestCode.GetFilePath,
-      GetFilePath,
-      null,
-      FileAccessLevel.Read
-    );
-    registerFileHandler(
-      ServerSideRequestCode.GetFile,
-      GetFile,
-      null,
-      FileAccessLevel.Read
-    );
+    registerFileHandler(ServerSideRequestCode.SetFileStar, SetFileStar);
+    registerFileHandler(ServerSideRequestCode.GetFileStar, GetFileStar);
+    registerFileHandler(ServerSideRequestCode.GetFilePath, GetFilePath, null, FileAccessLevel.Read);
+    registerFileHandler(ServerSideRequestCode.GetFile, GetFile, null, FileAccessLevel.Read);
     registerFileHandler(
       ServerSideRequestCode.CreateFolder,
       CreateFolder,
       null,
       FileAccessLevel.ReadWrite
     );
-    registerFileHandler(
-      ServerSideRequestCode.GetFileMime,
-      GetFileMime,
-      null,
-      FileAccessLevel.Read
-    );
-    registerFileHandler(
-      ServerSideRequestCode.GetFileSize,
-      GetFileSize,
-      null,
-      FileAccessLevel.Read
-    );
-    registerFileHandler(
-      ServerSideRequestCode.GetFileContents,
-      GetFileContents,
-      null,
-      FileAccessLevel.Read
-    );
-    registerFileHandler(
-      ServerSideRequestCode.GetFileSnapshots,
-      GetFileSnapshots,
-      null,
-      FileAccessLevel.Read
-    );
-    registerFileHandler(
-      ServerSideRequestCode.ScanFile,
-      ScanFile,
-      null,
-      FileAccessLevel.Read
-    );
+    registerFileHandler(ServerSideRequestCode.GetFileMime, GetFileMime, null, FileAccessLevel.Read);
+    registerFileHandler(ServerSideRequestCode.GetFileSize, GetFileSize, null, FileAccessLevel.Read);
+    registerAuthenticatedHandler(ServerSideRequestCode.GetFileContents, GetFileContents, null);
+    registerAuthenticatedHandler(ServerSideRequestCode.GetFileSnapshots, GetFileSnapshots, null);
+    registerFileHandler(ServerSideRequestCode.ScanFile, ScanFile, null, FileAccessLevel.Read);
     registerFileHandler(
       ServerSideRequestCode.GetMainFileContent,
       GetMainFileContent,

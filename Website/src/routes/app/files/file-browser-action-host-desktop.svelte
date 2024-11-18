@@ -1,8 +1,5 @@
 <script lang="ts">
-  import {
-    useFileBrowserContext,
-    type FileBrowserAction
-  } from '$lib/client/contexts/file-browser'
+  import { useFileBrowserContext, type FileBrowserAction } from '$lib/client/contexts/file-browser'
   import Separator from '$lib/client/ui/separator.svelte'
   import { onMount, type Snippet } from 'svelte'
   import type { Readable } from 'svelte/store'
@@ -20,15 +17,11 @@
   const leftMain = derived(actions, (actions) =>
     actions.filter((entry) => entry.type === 'left-main')
   )
-  const left = derived(actions, (actions) =>
-    actions.filter((entry) => entry.type === 'left')
-  )
+  const left = derived(actions, (actions) => actions.filter((entry) => entry.type === 'left'))
   const rightMain = derived(actions, (actions) =>
     actions.filter((entry) => entry.type === 'right-main')
   )
-  const right = derived(actions, (actions) =>
-    actions.filter((entry) => entry.type === 'right')
-  )
+  const right = derived(actions, (actions) => actions.filter((entry) => entry.type === 'right'))
 </script>
 
 {#snippet desktopContent()}

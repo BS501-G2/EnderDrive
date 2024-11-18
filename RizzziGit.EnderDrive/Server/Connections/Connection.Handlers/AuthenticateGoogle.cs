@@ -37,17 +37,19 @@ public sealed partial class Connection
 
       UnlockedUserAuthentication? unlockedUserAuthentication = null;
       await foreach (
-        UserAuthentication userAuthentication in Resources
-          .GetUserAuthentications(
-            transaction,
-            type: UserAuthenticationType.Google
-          )
-          .ToAsyncEnumerable()
+        Resource<UserAuthentication> userAuthentication in Resources.Query<UserAuthentication>(
+          transaction,
+          (query) => query.Where((item) => item.Type == UserAuthenticationType.Google)
+        )
       )
       {
         try
         {
-          unlockedUserAuthentication = userAuthentication.Unlock(payload);
+          unlockedUserAuthentication = UnlockedUserAuthentication.Unlock(
+            userAuthentication,
+            payload
+          );
+
           break;
         }
         catch { }
@@ -60,15 +62,19 @@ public sealed partial class Connection
         );
       }
 
-      User user = await Resources
-        .GetUsers(transaction, id: unlockedUserAuthentication.UserId)
-        .ToAsyncEnumerable()
-        .FirstAsync(transaction.CancellationToken);
+      Resource<User> user = await Internal_EnsureFirst(
+        transaction,
+        Resources.Query<User>(
+          transaction,
+          (query) =>
+            query.Where(
+              (item) => item.Id == unlockedUserAuthentication.UserAuthentication.Data.UserId
+            )
+        )
+      );
 
       await Resources.TruncateLatestToken(transaction, user, 10);
-      CompositeBuffer tokenPayload = CompositeBuffer.From(
-        CompositeBuffer.Random(16).ToHexString()
-      );
+      CompositeBuffer tokenPayload = CompositeBuffer.From(CompositeBuffer.Random(16).ToHexString());
 
       GetContext().CurrentUser = await Resources.AddUserAuthentication(
         transaction,
@@ -78,10 +84,6 @@ public sealed partial class Connection
         tokenPayload.ToByteArray()
       );
 
-      return new()
-      {
-        UserId = user.Id.ToString(),
-        Token = tokenPayload.ToString(),
-      };
+      return new() { UserId = user.Id.ToString(), Token = tokenPayload.ToString() };
     };
 }

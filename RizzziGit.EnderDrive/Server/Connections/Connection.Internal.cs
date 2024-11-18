@@ -5,78 +5,61 @@ using MongoDB.Bson;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
+using System.Collections.Generic;
 using Resources;
 
 public sealed partial class Connection
 {
-  private UnlockedUserAuthentication Internal_EnsureAuthentication()
-  {
-    UnlockedUserAuthentication unlockedUserAuthentication =
-      GetContext().CurrentUser
-      ?? throw new ConnectionResponseException(
-        ResponseCode.AuthenticationRequired,
-        new ConnectionResponseExceptionData.AuthenticationRequired()
-      );
-
-    return unlockedUserAuthentication;
-  }
-
-  private async Task<User> Internal_Me(
+  private ValueTask<Resource<User>?> Internal_Me(
     ResourceTransaction transaction,
-    UserAuthentication userAuthentication
+    UnlockedUserAuthentication userAuthentication
   ) =>
-    await Resources
-      .GetUsers(transaction, id: userAuthentication.UserId)
-      .ToAsyncEnumerable()
-      .FirstAsync(transaction.CancellationToken);
+    Resources
+      .Query<User>(
+        transaction,
+        (query) =>
+          query.Where((item) => item.Id == userAuthentication.UserAuthentication.Data.UserId)
+      )
+      .FirstOrDefaultAsync();
 
-  private static async Task<T?> Internal_GetFirst<T>(
+  private static ValueTask<Resource<T>?> Internal_GetFirst<T>(
     ResourceTransaction transaction,
-    IQueryable<T> query
+    IAsyncEnumerable<Resource<T>> query
   )
-    where T : ResourceData =>
-    Internal_EnsureExists(
-      await query
-        .ToAsyncEnumerable()
-        .FirstOrDefaultAsync(transaction.CancellationToken)
-    );
+    where T : ResourceData => query.FirstOrDefaultAsync(transaction.CancellationToken);
 
-  private static async Task<T> Internal_EnsureFirst<T>(
+  private static async Task<Resource<T>> Internal_EnsureFirst<T>(
     ResourceTransaction transaction,
-    IQueryable<T> query
+    IAsyncEnumerable<Resource<T>> query
   )
-    where T : ResourceData =>
-    Internal_EnsureExists(await Internal_GetFirst(transaction, query));
+    where T : ResourceData => Internal_EnsureExists(await Internal_GetFirst(transaction, query));
 
-  private static T Internal_EnsureExists<T>(T? item)
+  private static Resource<T> Internal_EnsureExists<T>(Resource<T>? item)
     where T : ResourceData =>
     item
     ?? throw new ConnectionResponseException(
       ResponseCode.ResourceNotFound,
-      new ConnectionResponseExceptionData.ResourceNotFound()
-      {
-        ResourceName = typeof(T).Name,
-      }
+      new ConnectionResponseExceptionData.ResourceNotFound() { ResourceName = typeof(T).Name }
     );
 
-  private async Task<File> Internal_GetFile(
+  private async Task<Resource<File>> Internal_GetFile(
     ResourceTransaction transaction,
-    User me,
+    Resource<User> me,
+    UnlockedUserAuthentication userAuthentication,
     ObjectId? fileId
   ) =>
     Internal_EnsureExists(
       fileId != null
         ? await Resources
-          .GetFiles(transaction, id: fileId)
-          .ToAsyncEnumerable()
+          .Query<File>(transaction, (query) => query.Where((item) => item.Id == fileId))
           .FirstOrDefaultAsync(transaction.CancellationToken)
-        : await Resources.GetRootFolder(transaction, me)
+        : (await Resources.GetRootFolder(transaction, me, userAuthentication)).File
     );
 
   private async Task<FileAccessResult> Internal_UnlockFile(
     ResourceTransaction transaction,
-    File file,
-    User user,
+    Resource<File> file,
+    Resource<User> user,
     UnlockedUserAuthentication userAuthentication,
     FileAccessLevel? fileAccessLevel = null
   ) =>

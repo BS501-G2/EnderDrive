@@ -28,11 +28,7 @@
   }
 
   const actions: Writable<AlternativeAction[]> = writable([])
-  function pushAction(
-    name: string,
-    icon: IconOptions,
-    onclick: () => Promise<void>
-  ): () => void {
+  function pushAction(name: string, icon: IconOptions, onclick: () => Promise<void>): () => void {
     const id = Math.random()
 
     actions.update((actions) => [
@@ -45,14 +41,10 @@
       }
     ])
 
-    return () =>
-      actions.update((actions) => actions.filter((action) => action.id !== id))
+    return () => actions.update((actions) => actions.filter((action) => action.id !== id))
   }
 
-  const redirectPath = derived(
-    page,
-    (page) => page.url.searchParams.get('return') ?? null
-  )
+  const redirectPath = derived(page, (page) => page.url.searchParams.get('return') ?? null)
 
   async function redirect() {
     await goto($redirectPath ?? '/app')

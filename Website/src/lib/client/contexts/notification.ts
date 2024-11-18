@@ -6,9 +6,7 @@ export function useNotificationContext() {
   return getContext<NotificationContext>(contextName)
 }
 
-export type NotificationContext = ReturnType<
-  typeof createNotificationContext
->['context']
+export type NotificationContext = ReturnType<typeof createNotificationContext>['context']
 
 export function createNotificationContext(reload: () => void) {
   const context = setContext(contextName, {

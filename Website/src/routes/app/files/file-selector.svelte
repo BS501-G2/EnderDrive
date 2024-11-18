@@ -7,11 +7,7 @@
   } from '$lib/client/contexts/file-browser'
   import { derived, writable, type Writable } from 'svelte/store'
   import FileSelectorInner from './file-selector-inner.svelte'
-  import {
-    FileType,
-    useServerContext,
-    type FileResource
-  } from '$lib/client/client'
+  import { FileType, useServerContext, type FileResource } from '$lib/client/client'
 
   const {
     maxFileCount,
@@ -27,9 +23,10 @@
 
   const { getFile } = useServerContext()
 
-  const resolve: Writable<
-    Exclude<FileBrowserResolve, [FileBrowserResolveType.Trash]>
-  > = writable([FileBrowserResolveType.File, null])
+  const resolve: Writable<Exclude<FileBrowserResolve, [FileBrowserResolveType.Trash]>> = writable([
+    FileBrowserResolveType.File,
+    null
+  ])
 
   const selectMode: FileBrowserOptions['selectMode'] = {
     maxSelectionCount: maxFileCount,

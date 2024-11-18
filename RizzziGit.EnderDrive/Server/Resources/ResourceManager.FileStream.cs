@@ -17,21 +17,11 @@ public sealed partial class ResourceManager
   public async Task<Stream> CreateReadStream(
     ResourceTransaction transaction,
     UnlockedFile file,
-    FileContent content,
-    FileSnapshot snapshot
+    Resource<FileContent> content,
+    Resource<FileSnapshot> snapshot
   )
   {
-    FileStreamKey key = new(file.Id, content.Id, snapshot.Id);
-    FileStream stream =
-      new(
-        this,
-        transaction,
-        file,
-        content,
-        snapshot,
-        await GetFileSize(transaction, snapshot),
-        null
-      );
+    FileStream stream = new(this, transaction, file, content, snapshot, null);
 
     return stream;
   }
@@ -39,14 +29,12 @@ public sealed partial class ResourceManager
   public async Task<Stream> CreateWriteStream(
     ResourceTransaction transaction,
     UnlockedFile file,
-    FileContent content,
-    FileSnapshot snapshot,
+    Resource<FileContent> content,
+    Resource<FileSnapshot> snapshot,
     UnlockedUserAuthentication userAuthentication,
     bool createNewSnapshot
   )
   {
-    FileStreamKey key = new(file.Id, content.Id, snapshot.Id);
-
     FileStream stream =
       new(
         this,
@@ -54,15 +42,8 @@ public sealed partial class ResourceManager
         file,
         content,
         createNewSnapshot
-          ? await CreateFileSnapshot(
-            transaction,
-            file,
-            content,
-            userAuthentication,
-            snapshot
-          )
+          ? await CreateFileSnapshot(transaction, file, content, userAuthentication, snapshot)
           : snapshot,
-        await GetFileSize(transaction, snapshot),
         userAuthentication
       );
 
@@ -73,23 +54,21 @@ public sealed partial class ResourceManager
     ResourceManager manager,
     ResourceTransaction transaction,
     UnlockedFile file,
-    FileContent content,
-    FileSnapshot snapshot,
-    long size,
+    Resource<FileContent> content,
+    Resource<FileSnapshot> snapshot,
     UnlockedUserAuthentication? userAuthentication
   ) : Stream
   {
     public readonly UnlockedFile File = file;
-    public readonly FileContent FileContent = content;
-    public readonly FileSnapshot FileSnapshot = snapshot;
+    public readonly Resource<FileContent> FileContent = content;
+    public readonly Resource<FileSnapshot> FileSnapshot = snapshot;
 
     public override bool CanRead => true;
     public override bool CanSeek => true;
     public override bool CanWrite => userAuthentication != null;
 
-    public override long Length => size;
+    public override long Length => FileSnapshot.Data.Size;
 
-    private long size = size;
     private long position = 0;
 
     public override long Position
@@ -97,7 +76,7 @@ public sealed partial class ResourceManager
       get => position;
       set
       {
-        if (value >= 0 && value <= size)
+        if (value >= 0 && value <= FileSnapshot.Data.Size)
         {
           position = value;
         }
@@ -106,7 +85,7 @@ public sealed partial class ResourceManager
           throw new ArgumentOutOfRangeException(
             nameof(value),
             value,
-            $"Must must range from 0 to {size}"
+            $"Must must range from 0 to {FileSnapshot.Data.Size}"
           );
         }
       }
@@ -121,24 +100,13 @@ public sealed partial class ResourceManager
       await Task.Run(
         async () =>
         {
-          var cancellationTokenSource = cancellationToken.Link(
-            transaction?.CancellationToken
-          );
-
-          CompositeBuffer fileRead = await manager.Transact(
+          CompositeBuffer fileRead = await manager.ReadFile(
             transaction,
-            (transaction) =>
-              manager
-                .ReadFile(
-                  transaction,
-                  File,
-                  FileContent,
-                  FileSnapshot,
-                  Position,
-                  long.Min(buffer.Span.Length, Length - Position)
-                )
-                .WaitAsync(cancellationTokenSource.Token),
-            cancellationTokenSource.Token
+            File,
+            FileContent,
+            FileSnapshot,
+            Position,
+            long.Min(buffer.Span.Length, Length - Position)
           );
 
           fileRead.ToByteArray().CopyTo(buffer.Span);
@@ -160,29 +128,17 @@ public sealed partial class ResourceManager
             throw new InvalidOperationException("Not authenticated.");
           }
 
-          var cancellationTokenSource = cancellationToken.Link(
-            transaction?.CancellationToken
-          );
-
-          await manager.Transact(
+          await manager.WriteFile(
             transaction,
-            (transaction) =>
-              manager
-                .WriteFile(
-                  transaction,
-                  File,
-                  FileContent,
-                  FileSnapshot,
-                  userAuthentication,
-                  position,
-                  buffer.ToArray()
-                )
-                .WaitAsync(cancellationTokenSource.Token),
-            cancellationTokenSource.Token
+            File,
+            FileContent,
+            FileSnapshot,
+            userAuthentication,
+            position,
+            buffer.ToArray()
           );
 
           position += buffer.Length;
-          size = long.Max(position, size);
         },
         default
       );
@@ -209,9 +165,7 @@ public sealed partial class ResourceManager
     ) => await WriteAsync(buffer.AsMemory(offset, count), cancellationToken);
 
     public override int Read(byte[] buffer, int offset, int count) =>
-      ReadAsync(buffer, offset, count, CancellationToken.None)
-        .GetAwaiter()
-        .GetResult();
+      ReadAsync(buffer, offset, count, CancellationToken.None).GetAwaiter().GetResult();
 
     public override async Task<int> ReadAsync(
       byte[] buffer,

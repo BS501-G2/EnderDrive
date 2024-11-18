@@ -21,7 +21,7 @@ public sealed partial class ResourceManager
   public async Task<UnlockedAdminAccess> AddAdminAccess(
     ResourceTransaction transaction,
     UnlockedAdminKey adminKey,
-    User user
+    Resource<User> user
   )
   {
     Resource<AdminAccess> adminAccess = ToResource<AdminAccess>(
@@ -32,7 +32,7 @@ public sealed partial class ResourceManager
 
         UserId = user.Id,
 
-        EncryptedAesKey = KeyManager.Encrypt(user, adminKey.AesKey),
+        EncryptedAesKey = KeyManager.Encrypt(user.Data, adminKey.AesKey),
       }
     );
 

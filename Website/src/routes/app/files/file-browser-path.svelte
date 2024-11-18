@@ -1,9 +1,6 @@
 <script lang="ts">
   import { useServerContext } from '$lib/client/client'
-  import {
-    useFileBrowserContext,
-    type CurrentFile
-  } from '$lib/client/contexts/file-browser'
+  import { useFileBrowserContext, type CurrentFile } from '$lib/client/contexts/file-browser'
   import Button from '$lib/client/ui/button.svelte'
   import Icon from '$lib/client/ui/icon.svelte'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'

@@ -11,7 +11,7 @@ public sealed partial class Connection
     ResourceTransaction transaction,
     S request,
     UnlockedUserAuthentication userAuthentication,
-    User me,
+    Resource<User> me,
     UnlockedAdminAccess? myAdminAccess
   );
 
@@ -27,22 +27,28 @@ public sealed partial class Connection
       code,
       async (transaction, request) =>
       {
-        UnlockedUserAuthentication userAuthentication =
-          Internal_EnsureAuthentication();
-        User me = await Internal_Me(transaction, userAuthentication);
+        UnlockedUserAuthentication unlockedUserAuthentication =
+          GetContext().CurrentUser
+          ?? throw new ConnectionResponseException(
+            ResponseCode.AuthenticationRequired,
+            new ConnectionResponseExceptionData.AuthenticationRequired()
+          );
+
+        Resource<User>? me =
+          await Internal_Me(transaction, unlockedUserAuthentication)
+          ?? throw new ConnectionResponseException(
+            ResponseCode.AuthenticationRequired,
+            new ConnectionResponseExceptionData.AuthenticationRequired()
+          );
 
         if (
           (requiredIncludeRole != null || requiredExcludeRole != null)
           && !await Resources
-            .GetAdminAccesses(transaction, userId: me.Id)
-            .ToAsyncEnumerable()
+            .Query<AdminAccess>(transaction, (query) => query.Where((item) => item.UserId == me.Id))
             .AnyAsync(transaction.CancellationToken)
         )
         {
-          if (
-            requiredIncludeRole != null
-            && !me.Roles.Intersect(requiredIncludeRole).Any()
-          )
+          if (requiredIncludeRole != null && !me.Data.Roles.Intersect(requiredIncludeRole).Any())
           {
             throw new ConnectionResponseException(
               ResponseCode.InsufficientRole,
@@ -54,10 +60,7 @@ public sealed partial class Connection
             );
           }
 
-          if (
-            requiredExcludeRole != null
-            && me.Roles.Intersect(requiredExcludeRole).Any()
-          )
+          if (requiredExcludeRole != null && me.Data.Roles.Intersect(requiredExcludeRole).Any())
           {
             throw new ConnectionResponseException(
               ResponseCode.InsufficientRole,
@@ -70,19 +73,19 @@ public sealed partial class Connection
           }
         }
 
-        AdminAccess? adminAccess = await Resources
-          .GetAdminAccesses(transaction, userId: me.Id)
-          .ToAsyncEnumerable()
+        Resource<AdminAccess>? adminAccess = await Resources
+          .Query<AdminAccess>(transaction, (query) => query.Where((item) => item.UserId == me.Id))
           .FirstOrDefaultAsync(transaction.CancellationToken);
 
-        UnlockedAdminAccess? unlockedAdminAccess = adminAccess?.Unlock(
-          userAuthentication
-        );
+        UnlockedAdminAccess? unlockedAdminAccess =
+          adminAccess != null
+            ? UnlockedAdminAccess.Unlock(adminAccess, unlockedUserAuthentication)
+            : null;
 
         return await handler(
           transaction,
           request,
-          userAuthentication,
+          unlockedUserAuthentication,
           me,
           unlockedAdminAccess
         );

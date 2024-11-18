@@ -14,8 +14,8 @@ public sealed partial class Connection
 {
   private async void RunStream(
     UnlockedFile file,
-    FileContent fileContent,
-    FileSnapshot fileSnapshot,
+    Resource<FileContent> fileContent,
+    Resource<FileSnapshot> fileSnapshot,
     UnlockedUserAuthentication userAuthentication,
     TaskCompletionSource<ObjectId> source
   ) =>
@@ -30,9 +30,7 @@ public sealed partial class Connection
 
         if (!context.FileStreams.TryAdd(objectId, stream))
         {
-          source.SetException(
-            new InvalidOperationException("Failed to create a file stream.")
-          );
+          source.SetException(new InvalidOperationException("Failed to create a file stream."));
 
           return;
         }
@@ -114,12 +112,7 @@ public sealed partial class Connection
             {
               try
               {
-                long length = await Resources.GetFileSize(
-                  transaction,
-                  fileSnapshot
-                );
-
-                if (newOffset > length)
+                if (newOffset > fileSnapshot.Data.Size)
                 {
                   source.SetException(new ArgumentOutOfRangeException());
                 }
@@ -137,19 +130,11 @@ public sealed partial class Connection
               break;
             }
 
-            case ConnectionByteStream.Feed.GetPosition(
-              TaskCompletionSource<long> source,
-              _
-            ):
+            case ConnectionByteStream.Feed.GetPosition(TaskCompletionSource<long> source, _):
             {
               try
               {
-                long length = await Resources.GetFileSize(
-                  transaction,
-                  fileSnapshot
-                );
-
-                source.SetResult(length);
+                source.SetResult(offset);
               }
               catch (Exception exception)
               {
@@ -159,19 +144,11 @@ public sealed partial class Connection
               break;
             }
 
-            case ConnectionByteStream.Feed.GetLength(
-              TaskCompletionSource<long> source,
-              _
-            ):
+            case ConnectionByteStream.Feed.GetLength(TaskCompletionSource<long> source, _):
             {
               try
               {
-                long length = await Resources.GetFileSize(
-                  transaction,
-                  fileSnapshot
-                );
-
-                source.SetResult(length);
+                source.SetResult(fileSnapshot.Data.Size);
               }
               catch (Exception exception)
               {
@@ -181,10 +158,7 @@ public sealed partial class Connection
               break;
             }
 
-            case ConnectionByteStream.Feed.Close(
-              TaskCompletionSource source,
-              _
-            ):
+            case ConnectionByteStream.Feed.Close(TaskCompletionSource source, _):
             {
               source.SetResult();
               return false;
@@ -197,9 +171,7 @@ public sealed partial class Connection
         try
         {
           await foreach (
-            ConnectionByteStream.Feed feed in queue.WithCancellation(
-              transaction.CancellationToken
-            )
+            ConnectionByteStream.Feed feed in queue.WithCancellation(transaction.CancellationToken)
           )
           {
             using CancellationTokenSource linkedCancellationTokenSource =
@@ -213,7 +185,7 @@ public sealed partial class Connection
         }
         catch (Exception exception)
         {
-          await Resources.Delete(transaction, file);
+          await Resources.Delete(transaction, file.File);
 
           Error(exception);
           queue.Dispose(exception);

@@ -21,7 +21,7 @@ public abstract record class ResourceData
 {
   [BsonId]
   [JsonProperty("id")]
-  public required ObjectId Id;
+  public ObjectId Id;
 
   internal object ToJSON()
   {
@@ -57,10 +57,7 @@ public sealed partial class ResourceManager(Server server)
   )
   {
     ILoggerFactory loggerFactory = LoggerFactory.Create(
-      (options) =>
-        options.AddProvider(
-          new LoggerProvider((category) => new LoggerInstance(this))
-        )
+      (options) => options.AddProvider(new LoggerProvider((category) => new LoggerInstance(this)))
     );
 
     MongoClient client =
@@ -72,8 +69,7 @@ public sealed partial class ResourceManager(Server server)
         }
       );
 
-    RandomNumberGenerator randomNumberGenerator =
-      RandomNumberGenerator.Create();
+    RandomNumberGenerator randomNumberGenerator = RandomNumberGenerator.Create();
 
     if (Environment.GetCommandLineArgs().Contains("--delete-db"))
     {

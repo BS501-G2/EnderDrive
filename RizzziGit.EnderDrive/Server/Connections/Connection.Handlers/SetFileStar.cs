@@ -8,42 +8,26 @@ using Resources;
 
 public sealed partial class Connection
 {
-  private sealed record class SetFileStarRequest
+  private sealed record class SetFileStarRequest : BaseFileRequest
   {
-    [BsonElement("fileId")]
-    public required ObjectId FileId;
-
     [BsonElement("starred")]
     public required bool Starred;
   }
 
   private sealed record class SetFileStarResponse { }
 
-  private AuthenticatedRequestHandler<
-    SetFileStarRequest,
-    SetFileStarResponse
-  > SetFileStar =>
-    async (transaction, request, userAuthentication, me, _) =>
+  private FileRequestHandler<SetFileStarRequest, SetFileStarResponse> SetFileStar =>
+    async (transaction, request, userAuthentication, me, _, fileAccess) =>
     {
-      File file = await Internal_EnsureFirst(
+      Resource<FileStar> resource = await Resources.GetFileStar(
         transaction,
-        Resources.GetFiles(transaction: transaction, id: request.FileId)
+        fileAccess.UnlockedFile.File,
+        me
       );
 
-      FileAccessResult fileAccessResult = await Internal_UnlockFile(
-        transaction,
-        file,
-        me,
-        userAuthentication,
-        FileAccessLevel.Read
-      );
+      resource.Data.Starred = request.Starred;
 
-      await Resources.SetFileStar(
-        transaction,
-        fileAccessResult.File,
-        me,
-        request.Starred
-      );
+      await resource.Save(transaction);
       return new() { };
     };
 }

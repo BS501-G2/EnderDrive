@@ -14,12 +14,7 @@ export function fromRGBHex(color: number): Color {
 }
 
 export function fromRGBAHex(color: number): Color {
-  return [
-    (color >> 24) & 0xff,
-    (color >> 16) & 0xff,
-    (color >> 8) & 0xff,
-    (color >> 0) & 0xff
-  ]
+  return [(color >> 24) & 0xff, (color >> 16) & 0xff, (color >> 8) & 0xff, (color >> 0) & 0xff]
 }
 
 export function rgbToCss(color: Color) {

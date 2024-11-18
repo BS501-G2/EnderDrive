@@ -19,14 +19,8 @@ public sealed record class ResourceKey(Type Type, ObjectId ObjectId);
 public record class Resource<T>
   where T : ResourceData
 {
-  public delegate ValueTask OnSave(
-    ResourceTransaction transaction,
-    Resource<T> data
-  );
-  public delegate ValueTask OnDelete(
-    ResourceTransaction transaction,
-    Resource<T> data
-  );
+  public delegate ValueTask OnSave(ResourceTransaction transaction, Resource<T> data);
+  public delegate ValueTask OnDelete(ResourceTransaction transaction, Resource<T> data);
 
   public Resource(OnSave save)
   {
@@ -43,8 +37,7 @@ public record class Resource<T>
 
   private readonly OnSave save;
 
-  public ValueTask Save(ResourceTransaction transaction) =>
-    save(transaction, this);
+  public ValueTask Save(ResourceTransaction transaction) => save(transaction, this);
 
   public ValueTask Update(Func<T, T> callback, ResourceTransaction transaction)
   {
@@ -57,23 +50,21 @@ public record class Resource<T>
 
 public static class ResourceExtensions
 {
-  public static IEnumerable<string> ToJson<T>(
-    this IEnumerable<Resource<T>> resources
-  )
+  public static IEnumerable<string> ToJson<T>(this IEnumerable<Resource<T>> resources)
     where T : ResourceData => resources.Select(r => r.ToJson());
 
-  public static IEnumerable<string> ToJson<T>(
-    this IEnumerable<UnlockedResource<T>> resources
-  )
+  public static IEnumerable<string> ToJson<T>(this IEnumerable<UnlockedResource<T>> resources)
     where T : ResourceData => resources.Select(r => r.ToJson());
+
+  public static IQueryable<T> Apply<T>(
+    this IQueryable<T> query,
+    Func<IQueryable<T>, IQueryable<T>>? onQuery
+  ) => onQuery?.Invoke(query) ?? query;
 }
 
 public sealed partial class ResourceManager
 {
-  private async ValueTask Save<T>(
-    ResourceTransaction transaction,
-    Resource<T> document
-  )
+  private async ValueTask Save<T>(ResourceTransaction transaction, Resource<T> document)
     where T : ResourceData
   {
     IMongoCollection<T> collection = GetCollection<T>();
@@ -84,9 +75,7 @@ public sealed partial class ResourceManager
         : await collection
           .AsQueryable()
           .Where((item) => item.Id == document.Id)
-          .FirstOrDefaultAsync(
-            cancellationToken: transaction.CancellationToken
-          );
+          .FirstOrDefaultAsync(cancellationToken: transaction.CancellationToken);
 
     if (oldData == null)
     {
@@ -120,10 +109,7 @@ public sealed partial class ResourceManager
     );
   }
 
-  private async ValueTask Delete<T>(
-    ResourceTransaction transaction,
-    Resource<T> document
-  )
+  public async ValueTask Delete<T>(ResourceTransaction transaction, Resource<T> document)
     where T : ResourceData
   {
     ResourceManagerContext context = GetContext();
@@ -143,10 +129,7 @@ public sealed partial class ResourceManager
       {
         lock (context.Resources)
         {
-          context.Resources.Add(
-            new ResourceKey(typeof(T), document.Id),
-            document
-          );
+          context.Resources.Add(new ResourceKey(typeof(T), document.Id), document);
         }
       });
     }
@@ -166,6 +149,9 @@ public sealed partial class ResourceManager
       .ToAsyncEnumerable()
       .Select((item) => ToResource(transaction, item));
 
+  public IAsyncEnumerable<Resource<T>> Query<T>(ResourceTransaction transaction)
+    where T : ResourceData => Query<T>(transaction, (query) => query);
+
   private Resource<T> ToResource<T>(ResourceTransaction transaction, T data)
     where T : ResourceData
   {
@@ -173,9 +159,7 @@ public sealed partial class ResourceManager
 
     lock (context.Resources)
     {
-      if (
-        context.Resources.TryGetValue(new(typeof(T), data.Id), out object? raw)
-      )
+      if (context.Resources.TryGetValue(new(typeof(T), data.Id), out object? raw))
       {
         if (raw is Resource<T> resourceItem)
         {
@@ -189,10 +173,7 @@ public sealed partial class ResourceManager
         {
           lock (context.Resources)
           {
-            context.Resources.Add(
-              new ResourceKey(typeof(T), data.Id),
-              (Resource<T>)raw!
-            );
+            context.Resources.Add(new ResourceKey(typeof(T), data.Id), (Resource<T>)raw!);
           }
         });
       }

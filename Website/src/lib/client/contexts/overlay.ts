@@ -45,10 +45,7 @@ export function createOverlayContext() {
         }
       ])
 
-      return () =>
-        buttons.update((buttons) =>
-          buttons.filter((button) => button.id !== id)
-        )
+      return () => buttons.update((buttons) => buttons.filter((button) => button.id !== id))
     }
   })
 

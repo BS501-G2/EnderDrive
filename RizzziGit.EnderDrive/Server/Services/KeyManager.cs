@@ -19,8 +19,7 @@ public sealed class KeyGeneratorParams
   public required WaitQueue<Aes> SymmetricKeys;
 }
 
-public sealed class KeyManager(Server server)
-  : Service<KeyGeneratorParams>("Key Manager", server)
+public sealed class KeyManager(Server server) : Service<KeyGeneratorParams>("Key Manager", server)
 {
   private static async Task RunAsymmetricKeyGenerator(
     WaitQueue<RSA> queue,
@@ -69,22 +68,17 @@ public sealed class KeyManager(Server server)
     );
   }
 
-  protected override async Task OnRun(
-    KeyGeneratorParams data,
-    CancellationToken cancellationToken
-  )
+  protected override async Task OnRun(KeyGeneratorParams data, CancellationToken cancellationToken)
   {
     KeyGeneratorParams context = GetContext();
     Task[] tasks =
     [
       Task.Run(
-        () =>
-          RunAsymmetricKeyGenerator(context.AsymmetricKeys, cancellationToken),
+        () => RunAsymmetricKeyGenerator(context.AsymmetricKeys, cancellationToken),
         CancellationToken.None
       ),
       Task.Run(
-        () =>
-          RunSymmetricKeyGenerator(context.SymmetricKeys, cancellationToken),
+        () => RunSymmetricKeyGenerator(context.SymmetricKeys, cancellationToken),
         CancellationToken.None
       ),
     ];
@@ -93,9 +87,8 @@ public sealed class KeyManager(Server server)
     WaitTasksBeforeStopping.AddRange(tasks);
   }
 
-  public Task<RSA> GenerateAsymmetricKey(
-    CancellationToken cancellationToken = default
-  ) => GetContext().AsymmetricKeys.Dequeue(cancellationToken);
+  public Task<RSA> GenerateAsymmetricKey(CancellationToken cancellationToken = default) =>
+    GetContext().AsymmetricKeys.Dequeue(cancellationToken);
 
   public static byte[] SerializeAsymmetricKey(RSA key, bool includePrivate)
   {
@@ -114,9 +107,7 @@ public sealed class KeyManager(Server server)
     using MemoryStream stream = new(bytes);
     using BsonReader bsonReader = new BsonBinaryReader(stream);
 
-    RSAParameters keyParameters = BsonSerializer.Deserialize<RSAParameters>(
-      bsonReader
-    );
+    RSAParameters keyParameters = BsonSerializer.Deserialize<RSAParameters>(bsonReader);
     return RSA.Create(keyParameters);
   }
 

@@ -20,8 +20,8 @@ public enum FileType
 
 public enum TrashOptions
 {
-  NotIncluded,
-  Included,
+  NonInclusive,
+  Inclusive,
   Exclusive,
 }
 
@@ -64,17 +64,27 @@ public sealed partial class ResourceManager
 
   public async Task<UnlockedFile> GetRootFolder(
     ResourceTransaction transaction,
-    Resource<User> user
+    Resource<User> user,
+    UnlockedUserAuthentication userAuthentication
   )
   {
+    Resource<File>? file = await Query<File>(
+        transaction,
+        (query) =>
+          query.Where((item) => item.OwnerUserId == user.Id && item.Id == user.Data.RootFileId)
+      )
+      .FirstOrDefaultAsync(transaction);
+
+    if (file != null)
+    {
+      return UnlockedFile.Unlock(file, userAuthentication);
+    }
+
     byte[] aesKey = RandomNumberGenerator.GetBytes(32);
     byte[] encryptedAesKey = KeyManager.Encrypt(user.Data, aesKey);
-    byte[] adminEcnryptedAesKey = KeyManager.Encrypt(
-      AdminManager.AdminKey,
-      aesKey
-    );
+    byte[] adminEcnryptedAesKey = KeyManager.Encrypt(AdminManager.AdminKey, aesKey);
 
-    Resource<File> file = ToResource<File>(
+    file = ToResource<File>(
       transaction,
       new()
       {
@@ -103,17 +113,27 @@ public sealed partial class ResourceManager
 
   public async Task<UnlockedFile> GetTrashFolder(
     ResourceTransaction transaction,
-    Resource<User> user
+    Resource<User> user,
+    UnlockedUserAuthentication userAuthentication
   )
   {
+    Resource<File>? file = await Query<File>(
+        transaction,
+        (query) =>
+          query.Where((item) => item.OwnerUserId == user.Id && item.Id == user.Data.TrashFileId)
+      )
+      .FirstOrDefaultAsync(transaction);
+
+    if (file != null)
+    {
+      return UnlockedFile.Unlock(file, userAuthentication);
+    }
+
     byte[] aesKey = RandomNumberGenerator.GetBytes(32);
     byte[] encryptedAesKey = KeyManager.Encrypt(user.Data, aesKey);
-    byte[] adminEcnryptedAesKey = KeyManager.Encrypt(
-      AdminManager.AdminKey,
-      aesKey
-    );
+    byte[] adminEcnryptedAesKey = KeyManager.Encrypt(AdminManager.AdminKey, aesKey);
 
-    Resource<File> file = ToResource<File>(
+    file = ToResource<File>(
       transaction,
       new()
       {
@@ -150,10 +170,7 @@ public sealed partial class ResourceManager
   {
     byte[] aesKey = RandomNumberGenerator.GetBytes(32);
     byte[] encryptedAesKey = KeyManager.Encrypt(parent, aesKey);
-    byte[] adminEcnryptedAesKey = KeyManager.Encrypt(
-      AdminManager.AdminKey,
-      aesKey
-    );
+    byte[] adminEcnryptedAesKey = KeyManager.Encrypt(AdminManager.AdminKey, aesKey);
 
     Resource<File> file = ToResource<File>(
       transaction,
@@ -175,6 +192,8 @@ public sealed partial class ResourceManager
       }
     );
 
+    await file.Save(transaction);
+
     return new(file) { AesKey = aesKey };
   }
 
@@ -185,10 +204,7 @@ public sealed partial class ResourceManager
   )
   {
     byte[] fileAesKey = file.AesKey;
-    byte[] encryptedFileAesKey = KeyManager.Encrypt(
-      destinationFolder,
-      fileAesKey
-    );
+    byte[] encryptedFileAesKey = KeyManager.Encrypt(destinationFolder, fileAesKey);
 
     await file.File.Update(
       (file) =>
@@ -201,10 +217,7 @@ public sealed partial class ResourceManager
     );
   }
 
-  public async Task Delete(
-    ResourceTransaction transaction,
-    Resource<File> file
-  )
+  public async Task Delete(ResourceTransaction transaction, Resource<File> file)
   {
     await foreach (
       Resource<FileContent> content in Query<FileContent>(
@@ -246,46 +259,18 @@ public sealed partial class ResourceManager
       await Delete(transaction, fileAccess);
     }
 
+    await foreach (
+      Resource<FileStar> fileStar in Query<FileStar>(
+        transaction,
+        (query) => query.Where((item) => item.FileId == file.Id)
+      )
+    )
+    {
+      await Delete(transaction, fileStar);
+    }
+
     await Delete<File>(transaction, file);
   }
-
-  public IAsyncEnumerable<Resource<File>> GetFiles(
-    ResourceTransaction transaction,
-    File? parentFolder = null,
-    FileType? type = null,
-    string? name = null,
-    User? ownerUser = null,
-    ObjectId? id = null,
-    TrashOptions trashOptions = TrashOptions.NotIncluded,
-    Func<IQueryable<File>, IQueryable<File>>? filter = null
-  ) =>
-    Query<File>(
-      transaction,
-      (query) =>
-        query
-          .Where(
-            (item) =>
-              (parentFolder == null || parentFolder.Id == item.ParentId)
-              && (type == null || item.Type == type)
-              && (
-                name == null
-                || item.Name.Contains(
-                  name,
-                  StringComparison.CurrentCultureIgnoreCase
-                )
-              )
-              && (ownerUser == null || ownerUser.Id == item.OwnerUserId)
-              && (id == null || item.Id == id)
-              && (
-                trashOptions == TrashOptions.NotIncluded
-                  ? item.TrashTime == null
-                  : trashOptions != TrashOptions.Exclusive
-                    || item.TrashTime != null
-              )
-          )
-          .OrderBy((item) => item.Type)
-          .ApplyFilter(filter)
-    );
 }
 
 public static class IQueryableExtensions

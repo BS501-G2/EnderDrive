@@ -26,12 +26,7 @@
 </script>
 
 {#snippet content()}
-  <button
-    {onclick}
-    class:active={$isActive}
-    class:mobile={$isMobile}
-    class:desktop={$isDesktop}
-  >
+  <button {onclick} class:active={$isActive} class:mobile={$isMobile} class:desktop={$isDesktop}>
     {#if $isMobile && $isActive}
       <div class="indicator"></div>
     {/if}

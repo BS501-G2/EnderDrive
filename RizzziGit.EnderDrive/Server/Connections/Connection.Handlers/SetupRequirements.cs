@@ -1,5 +1,6 @@
 using System.Linq;
 using MongoDB.Bson.Serialization.Attributes;
+using RizzziGit.EnderDrive.Server.Resources;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
@@ -21,8 +22,7 @@ public sealed partial class Connection
       new()
       {
         AdminSetupRequired = !await Resources
-          .GetAdminAccesses(transaction)
-          .ToAsyncEnumerable()
+          .Query<AdminAccess>(transaction)
           .AnyAsync(transaction.CancellationToken),
       };
 }

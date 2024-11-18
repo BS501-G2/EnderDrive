@@ -5,9 +5,7 @@ import type { IconOptions } from '../ui/icon.svelte'
 const contextName = `${Date.now()}`
 
 export function useDashboardContext() {
-  return getContext<ReturnType<typeof createDashboardContext>['context']>(
-    contextName
-  )
+  return getContext<ReturnType<typeof createDashboardContext>['context']>(contextName)
 }
 
 export interface BackgroundTask {
@@ -112,10 +110,7 @@ export function createDashboardContext() {
         }
       ])
 
-      return () =>
-        mobileAppButtons.update((value) =>
-          value.filter((value) => value.id !== id)
-        )
+      return () => mobileAppButtons.update((value) => value.filter((value) => value.id !== id))
     },
 
     pushMobileTopLeft: (snippet: Snippet) => {
@@ -128,10 +123,7 @@ export function createDashboardContext() {
         }
       ])
 
-      return () =>
-        mobileTopLeft.update((value) =>
-          value.filter((value) => value.id !== id)
-        )
+      return () => mobileTopLeft.update((value) => value.filter((value) => value.id !== id))
     },
 
     pushMobileTopRight: (snippet: Snippet) => {
@@ -144,10 +136,7 @@ export function createDashboardContext() {
         }
       ])
 
-      return () =>
-        mobileTopRight.update((value) =>
-          value.filter((value) => value.id !== id)
-        )
+      return () => mobileTopRight.update((value) => value.filter((value) => value.id !== id))
     },
 
     pushMobileBottom: (snippet: Snippet) => {
@@ -160,8 +149,7 @@ export function createDashboardContext() {
         }
       ])
 
-      return () =>
-        mobileBottom.update((value) => value.filter((value) => value.id !== id))
+      return () => mobileBottom.update((value) => value.filter((value) => value.id !== id))
     },
 
     pushDesktopSide: (snippet: Snippet) => {
@@ -174,8 +162,7 @@ export function createDashboardContext() {
         }
       ])
 
-      return () =>
-        desktopSide.update((value) => value.filter((value) => value.id !== id))
+      return () => desktopSide.update((value) => value.filter((value) => value.id !== id))
     },
 
     pushDesktopTopLeft: (snippet: Snippet) => {
@@ -188,10 +175,7 @@ export function createDashboardContext() {
         }
       ])
 
-      return () =>
-        desktopTopLeft.update((value) =>
-          value.filter((value) => value.id !== id)
-        )
+      return () => desktopTopLeft.update((value) => value.filter((value) => value.id !== id))
     },
 
     pushDesktopTopMiddle: (snippet: Snippet) => {
@@ -204,10 +188,7 @@ export function createDashboardContext() {
         }
       ])
 
-      return () =>
-        desktopTopMiddle.update((value) =>
-          value.filter((value) => value.id !== id)
-        )
+      return () => desktopTopMiddle.update((value) => value.filter((value) => value.id !== id))
     },
 
     pushDesktopTopRight: (snippet: Snippet) => {
@@ -220,10 +201,7 @@ export function createDashboardContext() {
         }
       ])
 
-      return () =>
-        desktopTopRight.update((value) =>
-          value.filter((value) => value.id !== id)
-        )
+      return () => desktopTopRight.update((value) => value.filter((value) => value.id !== id))
     },
 
     executeBackgroundTask: async <T>(
@@ -258,10 +236,7 @@ export function createDashboardContext() {
         value.push({
           id,
           state,
-          clear: () =>
-            backgroundTasks.update((value) =>
-              value.filter((value) => value.id !== id)
-            )
+          clear: () => backgroundTasks.update((value) => value.filter((value) => value.id !== id))
         })
 
         return value

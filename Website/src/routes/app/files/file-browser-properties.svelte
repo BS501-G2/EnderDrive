@@ -6,6 +6,7 @@
   import Separator from '$lib/client/ui/separator.svelte'
   import { fly } from 'svelte/transition'
   import FileBrowserPropertiesDetails from './file-browser-properties-details.svelte'
+  import FileBrowserFileIcon from './file-browser-file-icon.svelte'
 
   const {
     selectedFileIds
@@ -30,25 +31,15 @@
         selectedFileIds.map(async (fileId): Promise<FileProperties> => {
           const file = await getFile(fileId)
           const fileContent = await getMainFileContent(file.id)
-          const fileOldestSnapshot = await getOldestFileSnapshot(
-            file.id,
-            fileContent.id
-          )
-          const fileLatestSnapshot = await getLatestFileSnapshot(
-            file.id,
-            fileContent.id
-          )
+          const fileOldestSnapshot = await getOldestFileSnapshot(file.id, fileContent.id)
+          const fileLatestSnapshot = await getLatestFileSnapshot(file.id, fileContent.id)
 
           const viruses =
             fileLatestSnapshot != null
               ? await scanFile(file.id, fileContent.id, fileLatestSnapshot.id)
               : null
           const mime = await getFileMime(file.id)
-          const size = await getFileSize(
-            file.id,
-            fileContent.id,
-            fileLatestSnapshot?.id
-          )
+          const size = await getFileSize(file.id, fileContent.id, fileLatestSnapshot?.id)
 
           const modified =
             fileLatestSnapshot?.createTime != null
@@ -89,11 +80,22 @@
       {#if files.length > 0}
         <div class="header">
           <div class="preview">
-            <Icon icon="file" size="72px" />
+            {#if files.length === 1}
+              <FileBrowserFileIcon mime={files[0]?.mime} size="72px" />
+            {:else if files.length === 0}
+              <Icon icon="file" size="72px" />
+            {:else}
+              <Icon icon="file" size="72px" />
+            {/if}
+            <!-- <FileMime -->
           </div>
 
           <p class="title">
-            {files[0]?.file.name}
+            {#if files.length > 1}
+              {files.length} files
+            {:else}
+              {files[0]?.file.name}
+            {/if}
           </p>
         </div>
 

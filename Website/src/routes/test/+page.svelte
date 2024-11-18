@@ -25,8 +25,7 @@
           try {
             const result = await onClick()
 
-            return (output =
-              typeof result === 'string' ? result : JSON.stringify(result))
+            return (output = typeof result === 'string' ? result : JSON.stringify(result))
           } catch (error: any) {
             output = `${error.stack}`
 
@@ -44,34 +43,18 @@
   const adminUsername = 'testuser'
   const adminPassword = 'TestUser123;'
 
-  const {
-    getSetupRequirements,
-    createAdmin,
-    resolveUsername,
-    authenticatePassword
-  } = useServerContext()
+  const { getSetupRequirements, createAdmin, resolveUsername, authenticatePassword } =
+    useServerContext()
 
-  onMount(() =>
-    pushAction('Get Setup Requirements', () => getSetupRequirements())
-  )
+  onMount(() => pushAction('Get Setup Requirements', () => getSetupRequirements()))
 
   onMount(() =>
     pushAction('Create Administrator Account', async () => {
-      await createAdmin(
-        adminUsername,
-        adminPassword,
-        adminPassword,
-        'Test',
-        null,
-        'User',
-        null
-      )
+      await createAdmin(adminUsername, adminPassword, adminPassword, 'Test', null, 'User', null)
     })
   )
 
-  onMount(() =>
-    pushAction('Resolve Username', async () => resolveUsername(adminUsername))
-  )
+  onMount(() => pushAction('Resolve Username', async () => resolveUsername(adminUsername)))
 
   onMount(() =>
     pushAction('Authenticate Password', async () => {

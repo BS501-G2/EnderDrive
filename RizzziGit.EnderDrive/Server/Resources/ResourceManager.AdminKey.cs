@@ -34,11 +34,7 @@ public sealed partial class ResourceManager
     byte[] iv = new byte[16];
     context.RandomNumberGenerator.GetBytes(iv);
 
-    byte[] aesKey = HashPayload(
-      salt,
-      iterations,
-      Encoding.UTF8.GetBytes(password)
-    );
+    byte[] aesKey = HashPayload(salt, iterations, Encoding.UTF8.GetBytes(password));
 
     byte[] challengeBytes = new byte[1024 * 8];
     byte[] encryptedChallengeBytes = KeyManager.Encrypt(aesKey, challengeBytes);
@@ -55,6 +51,8 @@ public sealed partial class ResourceManager
         EncryptedChallengeBytes = encryptedChallengeBytes,
       }
     );
+
+    await adminKey.Save(transaction);
 
     return new(adminKey) { AesKey = aesKey };
   }

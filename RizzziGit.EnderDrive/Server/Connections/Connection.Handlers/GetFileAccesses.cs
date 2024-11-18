@@ -41,35 +41,38 @@ public sealed partial class Connection
   > GetFileAccesses =>
     async (transaction, request, userAuthentication, me, myAdminAccess) =>
     {
-      User? targetUser;
+      Resource<User>? targetUser;
       if (request.TargetUserId != me.Id && myAdminAccess == null)
       {
-        throw new InvalidOperationException(
-          "Target user must be set to self when not an admin."
-        );
+        throw new InvalidOperationException("Target user must be set to self when not an admin.");
       }
 
       targetUser =
         request.TargetUserId != null
           ? await Internal_EnsureFirst(
             transaction,
-            Resources.GetUsers(transaction, id: request.TargetFileId)
+            Resources.Query<User>(
+              transaction,
+              (query) => query.Where((item) => item.Id == request.TargetUserId)
+            )
           )
           : null;
 
-      File? targetFile =
+      Resource<File>? targetFile =
         request.TargetFileId != null
-          ? await Internal_GetFile(transaction, me, request.TargetFileId)
+          ? await Internal_GetFile(transaction, me, userAuthentication, request.TargetFileId)
           : null;
 
-      User? authorUser = null;
+      Resource<User>? authorUser = null;
 
       if (request.TargetUserId != null)
       {
         targetUser = Internal_EnsureExists(
           await Resources
-            .GetUsers(transaction, id: request.TargetUserId)
-            .ToAsyncEnumerable()
+            .Query<User>(
+              transaction,
+              (query) => query.Where((item) => item.Id == request.TargetUserId)
+            )
             .FirstOrDefaultAsync(transaction.CancellationToken)
         );
       }
@@ -79,41 +82,55 @@ public sealed partial class Connection
         if (
           targetUser == null
           && !await Resources
-            .GetAdminAccesses(transaction, userId: me.Id)
-            .ToAsyncEnumerable()
+            .Query<AdminAccess>(
+              transaction,
+              (query) => query.Where((item) => item.UserId == request.AuthorUserId)
+            )
             .AnyAsync(transaction.CancellationToken)
         )
         {
-          throw new InvalidOperationException(
-            "Target user must be set if not an admin."
-          );
+          throw new InvalidOperationException("Target user must be set if not an admin.");
         }
 
         authorUser = Internal_EnsureExists(
           await Resources
-            .GetUsers(transaction, id: request.AuthorUserId)
-            .ToAsyncEnumerable()
+            .Query<User>(
+              transaction,
+              (query) => query.Where((item) => item.Id == request.AuthorUserId)
+            )
             .FirstOrDefaultAsync(transaction.CancellationToken)
         );
       }
 
-      FileAccess[] fileAccesses = await Resources
-        .GetFileAccesses(
+      Resource<FileAccess>[] fileAccesses = await Resources
+        .Query<FileAccess>(
           transaction,
-          targetUser,
-          targetFile: targetFile,
-          authorUser: authorUser,
-          level: request.Level
+          (query) =>
+            query
+              .Where(
+                (item) =>
+                  (request.TargetFileId == null || item.FileId == request.TargetFileId)
+                  && (
+                    request.TargetUserId == null
+                    || (
+                      item.TargetEntity != null
+                      && item.TargetEntity.EntityType == FileAccessTargetEntityType.User
+                      && item.TargetEntity.EntityId == request.TargetUserId
+                    )
+                  )
+                  && (request.AuthorUserId == null || item.AuthorUserId == request.AuthorUserId)
+                  && (request.Level == null || item.Level >= request.Level)
+              )
+              .ApplyPagination(request.Pagination)
         )
-        .ApplyPagination(request.Pagination)
-        .ToAsyncEnumerable()
         .WhereAwait(
           async (fileAccess) =>
           {
-            File file = await Internal_GetFile(
+            Resource<File> file = await Internal_GetFile(
               transaction,
               me,
-              fileAccess.FileId
+              userAuthentication,
+              fileAccess.Data.FileId
             );
 
             FileAccessResult? fileAccessResult = await Resources.FindFileAccess(
@@ -129,11 +146,6 @@ public sealed partial class Connection
         )
         .ToArrayAsync(transaction.CancellationToken);
 
-      return new()
-      {
-        FileAccesses = fileAccesses
-          .Select((fileAccess) => JToken.FromObject(fileAccess).ToString())
-          .ToArray(),
-      };
+      return new() { FileAccesses = [.. fileAccesses.ToJson()] };
     };
 }

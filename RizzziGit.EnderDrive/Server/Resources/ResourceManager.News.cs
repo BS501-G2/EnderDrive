@@ -25,53 +25,26 @@ public record class News : ResourceData
 
 public sealed partial class ResourceManager
 {
-  public async Task<News> CreateNews(
+  public async Task<Resource<News>> CreateNews(
     ResourceTransaction transaction,
     string title,
-    File[] images,
-    User newsAuthor,
+    Resource<File>[] images,
+    Resource<User> newsAuthor,
     DateTimeOffset? publishTime
   )
   {
-    News news =
+    Resource<News> news = ToResource<News>(
+      transaction,
       new()
       {
-        Id = ObjectId.GenerateNewId(),
         Title = title,
         ImageFileIds = images.Select((item) => item.Id).ToArray(),
         AuthorUserId = newsAuthor.Id,
         PublishTime = publishTime,
-      };
+      }
+    );
 
-    await InsertOld(transaction, news);
+    await news.Save(transaction);
     return news;
   }
-
-  public async Task DeleteNews(ResourceTransaction transaction, News news)
-  {
-    await DeleteOld(transaction, news);
-  }
-
-  public IQueryable<News> GetNews(
-    ResourceTransaction transaction,
-    bool? published = null,
-    ObjectId? id = null
-  ) =>
-    QueryOld<News>(
-      transaction,
-      (query) =>
-        query
-          .Where(
-            (item) =>
-              (
-                (published == null)
-                || (
-                  (bool)published
-                    ? item.PublishTime != null
-                    : item.PublishTime == null
-                )
-              ) && (id == null || item.Id == id)
-          )
-          .OrderByDescending((item) => item.Id)
-    );
 }

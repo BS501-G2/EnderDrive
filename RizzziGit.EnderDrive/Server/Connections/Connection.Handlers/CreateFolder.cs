@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using Newtonsoft.Json.Linq;
@@ -20,35 +21,42 @@ public sealed partial class Connection
     public required string File;
   }
 
-  private FileRequestHandler<
-    CreateFolderRequest,
-    CreateFolderResponse
-  > CreateFolder =>
-    async (
-      transaction,
-      request,
-      userAuthentication,
-      me,
-      myAdminAccess,
-      file,
-      result
-    ) =>
+  private FileRequestHandler<CreateFolderRequest, CreateFolderResponse> CreateFolder =>
+    async (transaction, request, userAuthentication, me, myAdminAccess, fileAccess) =>
     {
       ConnectionContext context = GetContext();
 
-      if (file.Type != FileType.Folder)
+      if (fileAccess.UnlockedFile.File.Data.Type != FileType.Folder)
       {
         throw new InvalidOperationException("Parent is not a folder.");
+      }
+
+      if (
+        await Resources
+          .Query<File>(
+            transaction,
+            (query) =>
+              query
+                .Where((file) => file.ParentId == fileAccess.UnlockedFile.File.Id)
+                .Where((file) => file.Name.Equals(request.Name, StringComparison.OrdinalIgnoreCase))
+          )
+          .AnyAsync(transaction.CancellationToken)
+      )
+      {
+        throw new ConnectionResponseException(
+          ResponseCode.FileNameConflict,
+          new ConnectionResponseExceptionData.FileNameConflict() { Name = request.Name }
+        );
       }
 
       UnlockedFile newFile = await Resources.CreateFile(
         transaction,
         me,
-        result.File,
+        fileAccess.UnlockedFile,
         FileType.Folder,
         request.Name
       );
 
-      return new() { File = JToken.FromObject(newFile.Original).ToString() };
+      return new() { File = newFile.ToString() };
     };
 }

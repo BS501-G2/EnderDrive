@@ -1,11 +1,5 @@
 <script lang="ts">
-  import {
-    derived,
-    get,
-    writable,
-    type Readable,
-    type Writable
-  } from 'svelte/store'
+  import { derived, get, writable, type Readable, type Writable } from 'svelte/store'
   import LandingPageButton from './landing-page-button.svelte'
   import type { LandingPageEntry } from '$lib/client/contexts/landing'
   import { tweened } from 'svelte/motion'
@@ -20,11 +14,8 @@
     currentPage: Readable<number>
   } = $props()
 
-  const widths: Writable<[number, Readable<number>, Readable<number>][]> =
-    writable([])
-  const flattenedCurrentPage = derived(currentPage, (value) =>
-    Math.round(value)
-  )
+  const widths: Writable<[number, Readable<number>, Readable<number>][]> = writable([])
+  const flattenedCurrentPage = derived(currentPage, (value) => Math.round(value))
 
   const offset = tweened($currentPage, {
     duration: 250,
@@ -38,10 +29,7 @@
 
   const a = derived(
     [flattenedCurrentPage, pages, widths],
-    ([currentPage, pageButtons, widths]): [
-      barLength: number,
-      barPosition: number
-    ] => {
+    ([currentPage, pageButtons, widths]): [barLength: number, barPosition: number] => {
       const page = pageButtons[currentPage]
 
       if (page != null) {

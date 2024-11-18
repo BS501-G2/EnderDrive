@@ -14,9 +14,7 @@ export interface NavigationPage {
 }
 
 export function useNavigationContext() {
-  return getContext<ReturnType<typeof createNavigationContext>['context']>(
-    navigationContextName
-  )
+  return getContext<ReturnType<typeof createNavigationContext>['context']>(navigationContextName)
 }
 
 export function createNavigationContext() {
@@ -34,10 +32,7 @@ export function createNavigationContext() {
         }
       ])
 
-      return () =>
-        navigationEntries.update((value) =>
-          value.filter((value) => value.id !== id)
-        )
+      return () => navigationEntries.update((value) => value.filter((value) => value.id !== id))
     }
   })
 

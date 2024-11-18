@@ -7,11 +7,7 @@ namespace RizzziGit.EnderDrive.Server.Connections;
 
 public sealed partial class Connection
 {
-  private sealed record class GetFileStarRequest
-  {
-    [BsonElement("fileId")]
-    public required ObjectId FileId;
-  }
+  private sealed record class GetFileStarRequest : BaseFileRequest { }
 
   private sealed record class GetFileStarResponse
   {
@@ -19,30 +15,14 @@ public sealed partial class Connection
     public required bool Starred;
   }
 
-  private AuthenticatedRequestHandler<
-    GetFileStarRequest,
-    GetFileStarResponse
-  > GetFileStar =>
-    async (transaction, request, userAuthentication, me, myAdminAccess) =>
+  private FileRequestHandler<GetFileStarRequest, GetFileStarResponse> GetFileStar =>
+    async (transaction, request, userAuthentication, me, myAdminAccess, fileAccess) =>
     {
-      File file = await Internal_EnsureFirst(
-        transaction,
-        Resources.GetFiles(transaction: transaction, id: request.FileId)
-      );
-
-      FileAccessResult fileAccessResult = await Internal_UnlockFile(
-        transaction,
-        file,
-        me,
-        userAuthentication
-      );
-
       return new()
       {
-        Starred = await Resources
-          .GetFileStars(transaction, file, me)
-          .ToAsyncEnumerable()
-          .AnyAsync(transaction),
+        Starred = (await Resources.GetFileStar(transaction, fileAccess.UnlockedFile.File, me))
+          .Data
+          .Starred,
       };
     };
 }

@@ -20,9 +20,7 @@ export interface ColorContext {
     (
       index: number,
       alpha?: number
-    ) =>
-      | `rgb(${number},${number},${number})`
-      | `rgba(${number},${number},${number},${number})`
+    ) => `rgb(${number},${number},${number})` | `rgba(${number},${number},${number},${number})`
   >
 
   useCssVarColor: Readable<(index: number) => `--${string}`>
@@ -35,17 +33,12 @@ export function useColorContext() {
 }
 
 export function createColorContext() {
-  const currentPalette: Writable<Palette> = persisted(
-    'color-scheme',
-    colors[0],
-    {
-      serializer: {
-        stringify: (palette) => palette.name,
-        parse: (name) =>
-          colors.find((palette) => palette.name === name) ?? colors[0]
-      }
+  const currentPalette: Writable<Palette> = persisted('color-scheme', colors[0], {
+    serializer: {
+      stringify: (palette) => palette.name,
+      parse: (name) => colors.find((palette) => palette.name === name) ?? colors[0]
     }
-  )
+  })
 
   const context: ColorContext = {
     currentPalette: derived(currentPalette, (value) => value ?? colors[0]),
@@ -59,31 +52,25 @@ export function createColorContext() {
       return true
     },
 
-    useColor: derived(
-      currentPalette,
-      (palette) => (index: number, alpha?: number) => {
-        const result = palette.colors[index]
-        if (result == null) {
-          throw new Error('Invalid color index')
-        }
-
-        const color: Color = [...result]
-        if (alpha != null) {
-          color[3] = alpha
-        }
-
-        return color as Color
+    useColor: derived(currentPalette, (palette) => (index: number, alpha?: number) => {
+      const result = palette.colors[index]
+      if (result == null) {
+        throw new Error('Invalid color index')
       }
-    ),
 
-    useCssColor: derived(
-      currentPalette,
-      () => (index: number, alpha?: number) => {
-        const color = get(context.useColor)(index, alpha)
-
-        return rgbToCss(color) as never
+      const color: Color = [...result]
+      if (alpha != null) {
+        color[3] = alpha
       }
-    ),
+
+      return color as Color
+    }),
+
+    useCssColor: derived(currentPalette, () => (index: number, alpha?: number) => {
+      const color = get(context.useColor)(index, alpha)
+
+      return rgbToCss(color) as never
+    }),
 
     useCssVarColor: derived(
       currentPalette,

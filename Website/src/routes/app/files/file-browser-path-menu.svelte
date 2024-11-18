@@ -1,9 +1,5 @@
 <script lang="ts">
-  import {
-    FileType,
-    useServerContext,
-    type FileResource
-  } from '$lib/client/client'
+  import { FileType, useServerContext, type FileResource } from '$lib/client/client'
   import Icon from '$lib/client/ui/icon.svelte'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import Separator from '$lib/client/ui/separator.svelte'
@@ -26,12 +22,8 @@
 
   const entryBounds = $derived(button.getBoundingClientRect())
 
-  const x = $derived(
-    cascade ? entryBounds.x + entryBounds.width : entryBounds.x
-  )
-  const y = $derived(
-    cascade ? entryBounds.y : entryBounds.y + entryBounds.height
-  )
+  const x = $derived(cascade ? entryBounds.x + entryBounds.width : entryBounds.x)
+  const y = $derived(cascade ? entryBounds.y : entryBounds.y + entryBounds.height)
 </script>
 
 <Overlay {x} {y} {ondismiss} nodim>

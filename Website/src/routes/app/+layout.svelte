@@ -30,8 +30,7 @@
     backgroundTasks
   } = createDashboardContext()
   const { navigationEntries } = createNavigationContext()
-  const { isMobile, isDesktop, isCustomBar, isFullscreen, titleStack } =
-    useAppContext()
+  const { isMobile, isDesktop, isCustomBar, isFullscreen, titleStack } = useAppContext()
   const { authentication } = useClientContext()
   const { me } = useServerContext()
 
@@ -46,12 +45,9 @@
   onMount(() =>
     authentication.subscribe(async (authentication) => {
       if (authentication == null) {
-        await goto(
-          `/landing?login&return=${encodeURIComponent($page.url.pathname)}`,
-          {
-            replaceState: true
-          }
-        )
+        await goto(`/landing?login&return=${encodeURIComponent($page.url.pathname)}`, {
+          replaceState: true
+        })
       }
     })
   )
@@ -79,10 +75,7 @@
         </Button>
 
         {#if !$isMobile}
-          <Button
-            foreground={navButton}
-            onclick={() => window.history.forward()}
-          >
+          <Button foreground={navButton} onclick={() => window.history.forward()}>
             <Icon icon="chevron-right" thickness="solid" />
           </Button>
         {/if}

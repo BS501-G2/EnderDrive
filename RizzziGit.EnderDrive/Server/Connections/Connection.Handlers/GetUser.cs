@@ -21,20 +21,13 @@ public sealed partial class Connection
     public required string? User;
   };
 
-  private AuthenticatedRequestHandler<
-    GetUserRequest,
-    GetUserResponse
-  > GetUser =>
+  private AuthenticatedRequestHandler<GetUserRequest, GetUserResponse> GetUser =>
     async (transaction, request, _, _, _) =>
     {
-      User? user = await Resources
-        .GetUsers(transaction, id: request.UserId)
-        .ToAsyncEnumerable()
+      Resource<User>? user = await Resources
+        .Query<User>(transaction, (query) => query.Where((user) => user.Id == request.UserId))
         .FirstOrDefaultAsync(transaction.CancellationToken);
 
-      return new()
-      {
-        User = user != null ? JToken.FromObject(user).ToString() : null,
-      };
+      return new() { User = user?.ToJson() };
     };
 }

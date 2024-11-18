@@ -26,15 +26,9 @@ public sealed partial class Connection
     ConnectionPacket<ClientSideRequestCode> request =
       ConnectionPacket<ClientSideRequestCode>.Create(code, data);
 
-    ConnectionPacket<ResponseCode> response =
-      ConnectionPacket<ResponseCode>.Deserialize(
-        (
-          await context.Internal.SendRequest(
-            request.Serialize(),
-            cancellationToken
-          )
-        ).ToByteArray()
-      );
+    ConnectionPacket<ResponseCode> response = ConnectionPacket<ResponseCode>.Deserialize(
+      (await context.Internal.SendRequest(request.Serialize(), cancellationToken)).ToByteArray()
+    );
 
     if (response.Code != ResponseCode.OK)
     {

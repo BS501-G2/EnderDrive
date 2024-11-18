@@ -28,9 +28,7 @@ public static partial class Program
       };
 
       server.Logged += (level, scope, message, time) =>
-        Console.WriteLine(
-          $"[{time}] [{level}] [{string.Join('/', scope)}] {message}"
-        );
+        Console.WriteLine($"[{time}] [{level}] [{string.Join('/', scope)}] {message}");
 
       await server.Start();
       await server.Watch();

@@ -1,7 +1,6 @@
 using System.Linq;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
-using Newtonsoft.Json.Linq;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
@@ -10,8 +9,14 @@ using Utilities;
 
 public sealed partial class Connection
 {
-  private sealed record class GetFileContentsRequest : BaseFileRequest
+  private sealed record class GetFileContentsRequest
   {
+    [BsonElement("fileId")]
+    public required ObjectId? FileId;
+
+    [BsonElement("fileContentId")]
+    public required ObjectId? FileContentId;
+
     [BsonElement("pagination")]
     public required PaginationOptions? Pagination;
   }
@@ -22,31 +27,33 @@ public sealed partial class Connection
     public required string[] FileContents;
   }
 
-  private FileRequestHandler<
+  private AuthenticatedRequestHandler<
     GetFileContentsRequest,
     GetFileContentsResponse
   > GetFileContents =>
-    async (
-      transaction,
-      request,
-      userAuthentication,
-      me,
-      _,
-      file,
-      fileAccessResult
-    ) =>
+    async (transaction, request, _, _, _) =>
     {
-      FileContent[] fileContents = await Resources
-        .GetFileContents(transaction, file)
-        .ApplyPagination(request.Pagination)
-        .ToAsyncEnumerable()
+      Resource<File>? file =
+        request.FileId != null
+          ? await Resources
+            .Query<File>(transaction, (query) => query.Where((item) => item.Id == request.FileId))
+            .FirstOrDefaultAsync(transaction)
+          : null;
+
+      Resource<FileContent>[] fileContents = await Resources
+        .Query<FileContent>(
+          transaction,
+          (query) =>
+            query
+              .Where(
+                (item) =>
+                  (file == null || item.FileId == file.Id)
+                  && (request.FileContentId == null || item.Id == request.FileContentId)
+              )
+              .ApplyPagination(request.Pagination)
+        )
         .ToArrayAsync(transaction.CancellationToken);
 
-      return new()
-      {
-        FileContents = fileContents
-          .Select((fileContent) => JToken.FromObject(fileContent).ToString())
-          .ToArray(),
-      };
+      return new() { FileContents = [.. fileContents.ToJson()] };
     };
 }

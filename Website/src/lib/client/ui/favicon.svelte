@@ -6,12 +6,7 @@
   } = $props()
 </script>
 
-<svg
-  width="{size}px"
-  height="{size}px"
-  xmlns="http://www.w3.org/2000/svg"
-  viewBox="0 0 16 16"
->
+<svg width="{size}px" height="{size}px" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
   <rect x="2" y="1" fill="#0f3031ff" />
   <rect x="3" y="1" fill="#0f3031ff" />
   <rect x="4" y="1" fill="#0f3031ff" />

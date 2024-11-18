@@ -43,12 +43,7 @@
 </div>
 
 {#if show}
-  <FileBrowserPathMenu
-    {file}
-    {button}
-    ondismiss={() => (show = false)}
-    cascade
-  />
+  <FileBrowserPathMenu {file} {button} ondismiss={() => (show = false)} cascade />
 {/if}
 
 <style lang="scss">

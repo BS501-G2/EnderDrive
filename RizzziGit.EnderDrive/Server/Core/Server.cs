@@ -45,10 +45,7 @@ public sealed class Server(
     ConnectionManager connectionManager = new(this);
     MimeDetector mimeDetector = new(this);
 
-    await StartServices(
-      [keyGenerator, resourceManager],
-      startupCancellationToken
-    );
+    await StartServices([keyGenerator, resourceManager], startupCancellationToken);
     await StartServices([adminManager], startupCancellationToken);
     await StartServices(
       [virusScanner, apiServer, googleService, connectionManager, mimeDetector],
@@ -80,10 +77,7 @@ public sealed class Server(
   public new Task Start(CancellationToken cancellationToken = default) =>
     base.Start(cancellationToken);
 
-  protected override async Task OnRun(
-    ServerData data,
-    CancellationToken cancellationToken
-  )
+  protected override async Task OnRun(ServerData data, CancellationToken cancellationToken)
   {
     ServerData context = GetContext();
 
@@ -99,10 +93,7 @@ public sealed class Server(
     );
   }
 
-  protected override async Task OnStop(
-    ServerData data,
-    ExceptionDispatchInfo? exception
-  )
+  protected override async Task OnStop(ServerData data, ExceptionDispatchInfo? exception)
   {
     ServerData context = GetContext();
 

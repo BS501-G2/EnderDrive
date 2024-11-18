@@ -154,9 +154,7 @@
           {/if}
 
           {#if pages[setup + 1] == null}
-            <Button onclick={() => finalize()} {background} {foreground}
-              >Finalize</Button
-            >
+            <Button onclick={() => finalize()} {background} {foreground}>Finalize</Button>
           {:else}
             <Button
               onclick={() => {
@@ -177,13 +175,13 @@
 
 {#snippet step0()}
   <p>
-    This website requires a first-time setup. We need you to create the first
-    administrator account to kickstart the website operations.
+    This website requires a first-time setup. We need you to create the first administrator account
+    to kickstart the website operations.
   </p>
 
   <p>
-    In the subsequent steps, you will be guided to create an account with full
-    administrator privileges.
+    In the subsequent steps, you will be guided to create an account with full administrator
+    privileges.
   </p>
 {/snippet}
 
@@ -194,20 +192,10 @@
       <Input id="username" type="text" name="Username" bind:value={username} />
     </div>
     <div class="padding">
-      <Input
-        id="display-name"
-        type="text"
-        name="Display Name"
-        bind:value={displayName}
-      />
+      <Input id="display-name" type="text" name="Display Name" bind:value={displayName} />
     </div>
     <div class="padding">
-      <Input
-        id="password"
-        type="password"
-        name="Password"
-        bind:value={password}
-      />
+      <Input id="password" type="password" name="Password" bind:value={password} />
     </div>
     <div class="padding">
       <Input
@@ -222,28 +210,13 @@
   <h2 class="field-header">Personal Information</h2>
   <div class="fields">
     <div class="padding">
-      <Input
-        id="first-name"
-        type="text"
-        name="First Name"
-        bind:value={firstName}
-      />
+      <Input id="first-name" type="text" name="First Name" bind:value={firstName} />
     </div>
     <div class="padding">
-      <Input
-        id="middlen-name"
-        type="text"
-        name="Middle Name"
-        bind:value={middleName}
-      />
+      <Input id="middlen-name" type="text" name="Middle Name" bind:value={middleName} />
     </div>
     <div class="padding">
-      <Input
-        id="last-name"
-        type="text"
-        name="Last Name"
-        bind:value={lastName}
-      />
+      <Input id="last-name" type="text" name="Last Name" bind:value={lastName} />
     </div>
   </div>
 {/snippet}
@@ -298,10 +271,7 @@
           display: grid;
 
           justify-content: space-evenly;
-          grid-template-columns: repeat(
-            auto-fit,
-            minmax(0, min(100%/1, max(360px, 100%/2)))
-          );
+          grid-template-columns: repeat(auto-fit, minmax(0, min(100%/1, max(360px, 100%/2))));
 
           > div.padding {
             padding: 8px;

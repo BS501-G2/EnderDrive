@@ -30,8 +30,7 @@ public abstract record ConnectionManagerFeed
     CancellationToken CancellationToken
   ) : ConnectionManagerFeed();
 
-  public sealed record Error(ExceptionDispatchInfo Exception)
-    : ConnectionManagerFeed();
+  public sealed record Error(ExceptionDispatchInfo Exception) : ConnectionManagerFeed();
 }
 
 public sealed partial class ConnectionManager(Server server)
@@ -63,8 +62,7 @@ public sealed partial class ConnectionManager(Server server)
   )
   {
     await foreach (
-      ConnectionManagerFeed feed in GetContext()
-        .Feed.WithCancellation(serviceCancellationToken)
+      ConnectionManagerFeed feed in GetContext().Feed.WithCancellation(serviceCancellationToken)
     )
     {
       switch (feed)
@@ -93,20 +91,13 @@ public sealed partial class ConnectionManager(Server server)
     }
   }
 
-  public async Task Push(
-    WebSocket webSocket,
-    CancellationToken cancellationToken
-  )
+  public async Task Push(WebSocket webSocket, CancellationToken cancellationToken)
   {
     var context = GetContext();
     TaskCompletionSource source = new();
 
     await context.Feed.Enqueue(
-      new ConnectionManagerFeed.NewConnection(
-        source,
-        webSocket,
-        cancellationToken
-      ),
+      new ConnectionManagerFeed.NewConnection(source, webSocket, cancellationToken),
       cancellationToken
     );
 
@@ -122,8 +113,9 @@ public sealed partial class ConnectionManager(Server server)
   )
   {
     var context = GetContext();
-    using CancellationTokenSource linkedCancellationTokenSource =
-      serviceCancellationToken.Link(cancellationToken);
+    using CancellationTokenSource linkedCancellationTokenSource = serviceCancellationToken.Link(
+      cancellationToken
+    );
 
     Connection connection = new(this, connectionId, webSocket);
 
@@ -138,9 +130,7 @@ public sealed partial class ConnectionManager(Server server)
       catch (Exception exception)
       {
         await context.Feed.Enqueue(
-          new ConnectionManagerFeed.Error(
-            ExceptionDispatchInfo.Capture(exception)
-          ),
+          new ConnectionManagerFeed.Error(ExceptionDispatchInfo.Capture(exception)),
           serviceCancellationToken
         );
       }

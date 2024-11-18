@@ -1,6 +1,7 @@
 using System.Linq;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using RizzziGit.EnderDrive.Server.Resources;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
@@ -27,8 +28,17 @@ public sealed partial class Connection
       {
         UserId = (
           await Resources
-            .GetUsers(transaction, request.Username)
-            .ToAsyncEnumerable()
+            .Query<User>(
+              transaction,
+              (query) =>
+                query.Where(
+                  (item) =>
+                    item.Username.Equals(
+                      request.Username,
+                      System.StringComparison.OrdinalIgnoreCase
+                    )
+                )
+            )
             .FirstOrDefaultAsync(transaction.CancellationToken)
         )?.Id,
       };

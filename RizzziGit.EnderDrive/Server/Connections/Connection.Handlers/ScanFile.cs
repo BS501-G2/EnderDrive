@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using ClamAV.Net.Client.Results;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
@@ -25,44 +26,45 @@ public sealed partial class Connection
   };
 
   private FileRequestHandler<ScanFileRequest, ScanFileResponse> ScanFile =>
-    async (
-      transaction,
-      request,
-      userAuthentication,
-      me,
-      myAdminAccess,
-      file,
-      result
-    ) =>
+    async (transaction, request, userAuthentication, me, myAdminAccess, result) =>
     {
-      FileContent fileContent = await Internal_GetFirst(
+      Resource<FileContent> fileContent = await Internal_EnsureFirst(
         transaction,
-        Resources.GetFileContents(transaction, file, id: request.FileContentId)
+        Resources.Query<FileContent>(
+          transaction,
+          (query) =>
+            query.Where(
+              (fileContent) =>
+                fileContent.Id == request.FileContentId && fileContent.FileId == request.FileId
+            )
+        )
       );
 
-      FileSnapshot fileSnapshot = await Internal_GetFirst(
+      Resource<FileSnapshot> fileSnapshot = await Internal_EnsureFirst(
         transaction,
-        Resources.GetFileSnapshots(
+        Resources.Query<FileSnapshot>(
           transaction,
-          file,
-          fileContent,
-          request.FileSnapshotId
+          (query) =>
+            query.Where(
+              (fileSnapshot) =>
+                fileSnapshot.Id == request.FileSnapshotId
+                && fileSnapshot.FileId == request.FileId
+                && fileSnapshot.FileContentId == request.FileContentId
+            )
         )
       );
 
       return new()
       {
-        Result = JToken
-          .FromObject(
-            await Server.VirusScanner.Scan(
-              transaction,
-              result.File,
-              fileContent,
-              fileSnapshot,
-              false
-            )
+        Result = (
+          await Server.VirusScanner.Scan(
+            transaction,
+            result.UnlockedFile,
+            fileContent,
+            fileSnapshot,
+            false
           )
-          .ToString(),
+        ).ToJson(),
       };
     };
 }

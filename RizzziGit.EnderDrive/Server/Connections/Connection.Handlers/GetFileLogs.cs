@@ -34,17 +34,13 @@ public sealed partial class Connection
     public required string[] FileLogs;
   }
 
-  private AuthenticatedRequestHandler<
-    GetFileLogsRequest,
-    GetFileLogsResponse
-  > GetFileLogs =>
+  private AuthenticatedRequestHandler<GetFileLogsRequest, GetFileLogsResponse> GetFileLogs =>
     async (transaction, request, userAuthentication, me, myAdminAccess) =>
     {
       if (
         me.Id != request.UserId
         && !await Resources
-          .GetAdminAccesses(transaction, me.Id)
-          .ToAsyncEnumerable()
+          .Query<AdminAccess>(transaction, (query) => query.Where((item) => item.UserId == me.Id))
           .AnyAsync(transaction)
       )
       {
@@ -53,17 +49,16 @@ public sealed partial class Connection
         );
       }
 
-      User? user =
+      Resource<User>? user =
         request.UserId != null
           ? await Resources
-            .GetUsers(transaction, id: request.UserId)
-            .ToAsyncEnumerable()
+            .Query<User>(transaction, (query) => query.Where((item) => item.Id == request.UserId))
             .FirstOrDefaultAsync(transaction)
           : null;
 
-      File? file =
+      Resource<File>? file =
         request.FileId != null
-          ? await Internal_GetFile(transaction, me, request.FileId)
+          ? await Internal_GetFile(transaction, me, userAuthentication, request.FileId)
           : null;
 
       FileAccessResult? fileAccessResult =
@@ -81,17 +76,14 @@ public sealed partial class Connection
         file != null
         && fileAccessResult == null
         && !await Resources
-          .GetAdminAccesses(transaction, me.Id)
-          .ToAsyncEnumerable()
+          .Query<AdminAccess>(transaction, (query) => query.Where((item) => item.UserId == me.Id))
           .AnyAsync(transaction)
       )
       {
-        throw new InvalidOperationException(
-          "File access is required when not an administrator."
-        );
+        throw new InvalidOperationException("File access is required when not an administrator.");
       }
 
-      FileContent? fileContent = null;
+      Resource<FileContent>? fileContent = null;
       if (request.FileContentId != null)
       {
         if (file == null)
@@ -103,13 +95,15 @@ public sealed partial class Connection
 
         fileContent =
           await Resources
-            .GetFileContents(transaction, file, id: request.FileContentId)
-            .ToAsyncEnumerable()
+            .Query<FileContent>(
+              transaction,
+              (query) => query.Where((item) => item.Id == request.FileContentId)
+            )
             .FirstOrDefaultAsync(transaction.CancellationToken)
           ?? throw new InvalidOperationException("File content not found.");
       }
 
-      FileSnapshot? fileSnapshot = null;
+      Resource<FileSnapshot>? fileSnapshot = null;
 
       if (request.FileSnapshotId != null)
       {
@@ -122,26 +116,33 @@ public sealed partial class Connection
 
         fileSnapshot =
           await Resources
-            .GetFileSnapshots(
+            .Query<FileSnapshot>(
               transaction,
-              file!,
-              fileContent,
-              request.FileSnapshotId
+              (query) =>
+                query.Where(
+                  (item) =>
+                    (file == null || item.FileId == file.Id)
+                    && item.FileContentId == fileContent.Id
+                    && item.Id == request.FileSnapshotId
+                )
             )
-            .ToAsyncEnumerable()
             .FirstOrDefaultAsync(transaction.CancellationToken)
           ?? throw new InvalidOperationException("File snapshot not found.");
       }
 
-      FileLog[] fileLogs = await Resources
-        .GetFileLogs(transaction, file, fileContent, fileSnapshot, user)
-        .ApplyPagination(request.Pagination)
-        .ToAsyncEnumerable()
+      Resource<FileLog>[] fileLogs = await Resources
+        .Query<FileLog>(
+          transaction,
+          (query) =>
+            query.Where(
+              (item) =>
+                (file == null || item.FileId == file.Id)
+                && (fileContent == null || item.FileContentId == fileContent.Id)
+                && (fileSnapshot == null || item.FileSnapshotId == fileSnapshot.Id)
+            )
+        )
         .ToArrayAsync(transaction.CancellationToken);
 
-      return new()
-      {
-        FileLogs = fileLogs.Select(fileLog => fileLog.ToString()).ToArray(),
-      };
+      return new() { FileLogs = [.. fileLogs.ToJson()] };
     };
 }

@@ -27,10 +27,8 @@ public sealed partial class GoogleService(Server server)
   {
     private Feed() { }
 
-    public sealed record GetPayload(
-      TaskCompletionSource<byte[]> TaskCompletionSource,
-      string Token
-    ) : Feed();
+    public sealed record GetPayload(TaskCompletionSource<byte[]> TaskCompletionSource, string Token)
+      : Feed();
   }
 
   protected override Task<GoogleContext> OnStart(
@@ -49,21 +47,18 @@ public sealed partial class GoogleService(Server server)
     CancellationToken serviceCancellationToken
   )
   {
-    await foreach (
-      Feed feed in context.Feed.WithCancellation(serviceCancellationToken)
-    )
+    await foreach (Feed feed in context.Feed.WithCancellation(serviceCancellationToken))
     {
       switch (feed)
       {
-        case Feed.GetPayload(
-          TaskCompletionSource<byte[]> taskCompletionSource,
-          string token
-        ):
+        case Feed.GetPayload(TaskCompletionSource<byte[]> taskCompletionSource, string token):
         {
           try
           {
-            GoogleJsonWebSignature.Payload payload =
-              await GoogleJsonWebSignature.ValidateAsync(token, new() { });
+            GoogleJsonWebSignature.Payload payload = await GoogleJsonWebSignature.ValidateAsync(
+              token,
+              new() { }
+            );
 
             taskCompletionSource.SetResult(Encoding.UTF8.GetBytes(payload.Prn));
           }
@@ -78,18 +73,12 @@ public sealed partial class GoogleService(Server server)
     }
   }
 
-  public async Task<byte[]> GetPayload(
-    string token,
-    CancellationToken cancellationToken
-  )
+  public async Task<byte[]> GetPayload(string token, CancellationToken cancellationToken)
   {
     TaskCompletionSource<byte[]> taskCompletionSource = new();
 
     await GetContext()
-      .Feed.Enqueue(
-        new Feed.GetPayload(taskCompletionSource, token),
-        cancellationToken
-      );
+      .Feed.Enqueue(new Feed.GetPayload(taskCompletionSource, token), cancellationToken);
 
     return await taskCompletionSource.Task;
   }

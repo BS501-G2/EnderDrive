@@ -67,12 +67,7 @@
 
     {#each $mobileAppButtons as { id, show, icon, onclick } (id)}
       {#if show}
-        <Button
-          bind:buttonElement={element}
-          hint="Actions"
-          {onclick}
-          foreground={buttonForeground}
-        >
+        <Button bind:buttonElement={element} hint="Actions" {onclick} foreground={buttonForeground}>
           <Icon {...icon} size="1em" />
         </Button>
       {/if}

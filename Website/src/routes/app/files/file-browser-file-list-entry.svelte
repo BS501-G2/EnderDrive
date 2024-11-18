@@ -1,10 +1,7 @@
 <script lang="ts">
   import { FileType, useServerContext } from '$lib/client/client'
   import { useAppContext } from '$lib/client/contexts/app'
-  import {
-    useFileBrowserContext,
-    type FileEntry
-  } from '$lib/client/contexts/file-browser'
+  import { useFileBrowserContext, type FileEntry } from '$lib/client/contexts/file-browser'
   import { useFileBrowserListContext } from '$lib/client/contexts/file-browser-list'
   import UserLink from '$lib/client/model/user-link.svelte'
   import Button from '$lib/client/ui/button.svelte'
@@ -15,14 +12,14 @@
   import { get } from 'svelte/store'
   import { fly } from 'svelte/transition'
   import moment, * as Moment from 'moment'
+  import FileBrowserFileIcon from './file-browser-file-icon.svelte'
 
   const {
     file
   }: {
     file: FileEntry
   } = $props()
-  const { pushFile, selectedFileIds, selectFile, deselectFile } =
-    useFileBrowserListContext()
+  const { pushFile, selectedFileIds, selectFile, deselectFile } = useFileBrowserListContext()
   const {
     getFileContents,
     getFileMime,
@@ -42,7 +39,8 @@
   onMount(() => pushFile(file, fileElement))
 
   const getModified = async () => {
-    const fileSnapshot = (await getFileSnapshots(file.file.id, void 0, 0, 1))[0]
+    const fileContent = await getMainFileContent(file.file.id)
+    const fileSnapshot = (await getFileSnapshots(file.file.id, fileContent.id, void 0, 0, 1))[0]
     const user = await getUser(fileSnapshot.authorUserId)
 
     return [fileSnapshot, user!] as const
@@ -75,9 +73,11 @@
         {#if files === 0}
           Empty
         {:else if files === 1}
-          {files} file
+          {files}
+          file
         {:else}
-          {files} files
+          {files}
+          files
         {/if}
       {/await}
     {/if}
@@ -150,19 +150,7 @@
       {#await getFileMime(file.file.id)}
         <LoadingSpinner size="32px" />
       {:then mime}
-        {#if mime.startsWith('image/')}
-          <Icon icon="image" size="32px" />
-        {:else if mime.startsWith('video/')}
-          <Icon icon="film" size="32px" thickness="solid" />
-        {:else if mime.startsWith('audio/')}
-          <Icon icon="music" size="32px" />
-        {:else if mime.startsWith('text/')}
-          <Icon icon="text" size="32px" />
-        {:else if mime.startsWith('application/')}
-          <Icon icon="file" size="32px" />
-        {:else}
-          <Icon icon="file" size="32px" />
-        {/if}
+        <FileBrowserFileIcon {mime} size="32px" />
       {/await}
     {/if}
   </div>
@@ -178,7 +166,9 @@
           event.preventDefault()
 
           if ($isMobile) {
-            onFileId?.(event as never, file.file.id)
+            if ($selectedFileIds.length === 0) {
+              onFileId?.(event as never, file.file.id)
+            }
           } else {
             $selectedFileIds = [file.file.id]
           }
@@ -209,9 +199,7 @@
           <LoadingSpinner size="1em" />
         {:then [fileSnapshot, user]}
           <p class="user">
-            {moment
-              .unix(new Date(fileSnapshot.createTime).getTime() / 1000)
-              .fromNow()}
+            {moment.unix(new Date(fileSnapshot.createTime).getTime() / 1000).fromNow()}
             by
             <UserLink userId={user.id} />
           </p>

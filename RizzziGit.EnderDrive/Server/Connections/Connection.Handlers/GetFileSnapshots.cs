@@ -11,10 +11,16 @@ using Utilities;
 
 public sealed partial class Connection
 {
-  private sealed record class GetFileSnapshotsRequest : BaseFileRequest
+  private sealed record class GetFileSnapshotsRequest
   {
+    [BsonElement("fileId")]
+    public required ObjectId? FileId;
+
     [BsonElement("fileContentId")]
     public required ObjectId? FileContentId;
+
+    [BsonElement("fileSnapshotId")]
+    public required ObjectId? FileSnapshotId;
 
     [BsonElement("pagination")]
     public required PaginationOptions? Pagination;
@@ -26,43 +32,50 @@ public sealed partial class Connection
     public required string[] FileSnapshots;
   }
 
-  private FileRequestHandler<
+  private AuthenticatedRequestHandler<
     GetFileSnapshotsRequest,
     GetFileSnapshotsResponse
   > GetFileSnapshots =>
-    async (
-      transaction,
-      request,
-      userAuthentication,
-      me,
-      _,
-      file,
-      fileAccessResult
-    ) =>
+    async (transaction, request, userAuthentication, me, myAdminAccess) =>
     {
       ConnectionContext context = GetContext();
 
-      FileContent fileContent =
-        await Resources
-          .GetFileContents(transaction, file, id: request.FileContentId)
-          .ToAsyncEnumerable()
-          .FirstOrDefaultAsync(transaction.CancellationToken)
-        ?? throw new InvalidOperationException("Invalid file content id.");
+      Resource<File>? file =
+        request.FileId != null
+          ? await Resources
+            .Query<File>(transaction, (query) => query.Where((item) => item.Id == request.FileId))
+            .FirstOrDefaultAsync(transaction.CancellationToken)
+          : null;
 
-      FileSnapshot[] fileSnapshots = await Resources
-        .GetFileSnapshots(transaction, file, fileContent)
-        .ApplyPagination(request.Pagination)
-        .ToAsyncEnumerable()
+      Resource<FileContent>? fileContent =
+        request.FileContentId != null
+          ? await Resources
+            .Query<FileContent>(
+              transaction,
+              (fileContent) =>
+                fileContent.Where(
+                  (item) =>
+                    (file == null || item.FileId == file.Id)
+                    && (request.FileContentId == null || item.Id == request.FileContentId)
+                )
+            )
+            .FirstOrDefaultAsync(transaction.CancellationToken)
+          : null;
+
+      Resource<FileSnapshot>[] fileSnapshots = await Resources
+        .Query<FileSnapshot>(
+          transaction,
+          (query) =>
+            query
+              .Where(
+                (fileSnapshot) =>
+                  (fileContent == null || fileSnapshot.FileContentId == fileContent.Id)
+                  && (request.FileSnapshotId == null || fileSnapshot.Id == request.FileSnapshotId)
+              )
+              .ApplyPagination(request.Pagination)
+        )
         .ToArrayAsync(transaction.CancellationToken);
 
-      return new()
-      {
-        FileSnapshots =
-        [
-          .. fileSnapshots.Select(
-            (fileSnapshot) => JToken.FromObject(fileSnapshot).ToString()
-          ),
-        ],
-      };
+      return new() { FileSnapshots = [.. fileSnapshots.ToJson()] };
     };
 }

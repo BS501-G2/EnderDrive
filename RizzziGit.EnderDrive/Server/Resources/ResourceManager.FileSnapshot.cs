@@ -38,7 +38,7 @@ public sealed partial class ResourceManager
     UnlockedFile file,
     Resource<FileContent> fileContent,
     UnlockedUserAuthentication userAuthentication,
-    FileSnapshot? baseFileSnapshot
+    Resource<FileSnapshot>? baseFileSnapshot
   )
   {
     Resource<FileSnapshot> fileSnapshot = ToResource<FileSnapshot>(
@@ -53,18 +53,42 @@ public sealed partial class ResourceManager
         BaseFileSnapshotId = baseFileSnapshot?.Id,
 
         CreateTime = DateTimeOffset.UtcNow,
-        Size = baseFileSnapshot?.Size ?? 0,
+        Size = baseFileSnapshot?.Data.Size ?? 0,
       }
     );
 
     await fileSnapshot.Save(transaction);
+
+    if (baseFileSnapshot != null)
+    {
+      await foreach (
+        Resource<FileData> data in Query<FileData>(
+          transaction,
+          (query) => query.Where((item) => item.FileSnapshotId == baseFileSnapshot.Id)
+        )
+      )
+      {
+        Resource<FileData> newData = ToResource<FileData>(
+          transaction,
+          new()
+          {
+            FileId = data.Data.FileId,
+            FileContentId = data.Data.FileContentId,
+            FileSnapshotId = fileSnapshot.Id,
+            AuthorUserId = userAuthentication.UserAuthentication.Data.UserId,
+            Index = data.Data.Index,
+            BufferId = data.Data.BufferId,
+          }
+        );
+
+        await newData.Save(transaction);
+      }
+    }
+
     return fileSnapshot;
   }
 
-  public async Task Delete(
-    ResourceTransaction transaction,
-    Resource<FileSnapshot> fileSnapshot
-  )
+  public async Task Delete(ResourceTransaction transaction, Resource<FileSnapshot> fileSnapshot)
   {
     await foreach (
       Resource<FileData> data in Query<FileData>(
@@ -74,6 +98,38 @@ public sealed partial class ResourceManager
     )
     {
       await Delete(transaction, data);
+    }
+
+    await foreach (
+      Resource<VirusReport> virusReport in Query<VirusReport>(
+        transaction,
+        (query) =>
+          query.Where(
+            (item) =>
+              item.FileId == fileSnapshot.Data.FileId
+              && item.FileContentId == fileSnapshot.Data.FileContentId
+              && item.FileSnapshotId == fileSnapshot.Id
+          )
+      )
+    )
+    {
+      await Delete(transaction, virusReport);
+    }
+
+    await foreach (
+      Resource<MimeDetectionReport> mimeDetectionReport in Query<MimeDetectionReport>(
+        transaction,
+        (query) =>
+          query.Where(
+            (item) =>
+              item.FileId == fileSnapshot.Data.FileId
+              && item.FileContentId == fileSnapshot.Data.FileContentId
+              && item.FileSnapshotId == fileSnapshot.Id
+          )
+      )
+    )
+    {
+      await Delete(transaction, mimeDetectionReport);
     }
   }
 }

@@ -2,10 +2,7 @@
   import { useDashboardContext } from '$lib/client/contexts/dashboard'
   import { derived, writable, type Readable } from 'svelte/store'
   import AppButton from '../app-button.svelte'
-  import {
-    useFileBrowserContext,
-    type FileBrowserAction
-  } from '$lib/client/contexts/file-browser'
+  import { useFileBrowserContext, type FileBrowserAction } from '$lib/client/contexts/file-browser'
   import { onMount, type Snippet } from 'svelte'
   import Separator from '$lib/client/ui/separator.svelte'
   import Button from '$lib/client/ui/button.svelte'
@@ -23,9 +20,7 @@
   const { isMobile } = useAppContext()
 
   const appButtons = derived(actions, (actions) =>
-    actions.filter(
-      (action) => action.type === 'left-main' || action.type === 'right-main'
-    )
+    actions.filter((action) => action.type === 'left-main' || action.type === 'right-main')
   )
 
   const buttons = derived(actions, (actions) => {

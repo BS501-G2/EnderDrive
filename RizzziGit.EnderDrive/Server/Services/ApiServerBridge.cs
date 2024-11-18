@@ -99,10 +99,7 @@ public sealed partial class SocketIoBridge(ApiServer server)
     }
     else
     {
-      Info(
-        $"Node process exited with code {context.Process.ExitCode}.",
-        "Non-Fatal Error"
-      );
+      Info($"Node process exited with code {context.Process.ExitCode}.", "Non-Fatal Error");
     }
   }
 }

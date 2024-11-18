@@ -24,15 +24,8 @@
     current: Writable<CurrentFile>
     actions: Readable<FileBrowserAction[]>
   } = $props()
-  const {
-    getFiles,
-    getFileAccesses,
-    getFilePath,
-    getFileStars,
-    getFile,
-    getFileMime,
-    me
-  } = useServerContext()
+  const { getFiles, getFileAccesses, getFilePath, getFileStars, getFile, getFileMime, me } =
+    useServerContext()
   const { pushRefresh } = useFileBrowserContext()
 
   async function load(
@@ -122,12 +115,7 @@
         }
 
         case FileBrowserResolveType.Starred: {
-          const fileStars = await getFileStars(
-            undefined,
-            undefined,
-            offset,
-            length
-          )
+          const fileStars = await getFileStars(undefined, undefined, offset, length)
 
           return {
             type: 'starred',

@@ -19,6 +19,10 @@
     {
       "name": "Server (old)",
       "path": "client/lib"
+    },
+    {
+      "name": "Root",
+      "path": "."
     }
   ],
   "settings": {}

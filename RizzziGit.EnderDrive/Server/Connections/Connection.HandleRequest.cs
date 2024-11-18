@@ -24,18 +24,13 @@ public sealed partial class Connection
     try
     {
       ConnectionPacket<ServerSideRequestCode> request =
-        ConnectionPacket<ServerSideRequestCode>.Deserialize(
-          webConnectionRequest.Data
-        );
+        ConnectionPacket<ServerSideRequestCode>.Deserialize(webConnectionRequest.Data);
 
       ConnectionPacket<ResponseCode> response = !context.Handlers.TryGetValue(
         request.Code,
         out RawRequestHandler? handler
       )
-        ? ConnectionPacket<ResponseCode>.Create(
-          ResponseCode.NoHandlerFound,
-          new { }
-        )
+        ? ConnectionPacket<ResponseCode>.Create(ResponseCode.NoHandlerFound, new { })
         : await handler(request, cancellationToken);
 
       webConnectionRequest.SendResponse(response.Serialize());
@@ -46,21 +41,17 @@ public sealed partial class Connection
 
       if (
         exception is OperationCanceledException operationCanceledException
-        && operationCanceledException.CancellationToken
-          == webConnectionRequest.CancellationToken
+        && operationCanceledException.CancellationToken == webConnectionRequest.CancellationToken
       )
       {
         webConnectionRequest.SendCancelResponse();
       }
-      else if (
-        exception is ConnectionResponseException connectionResponseException
-      )
+      else if (exception is ConnectionResponseException connectionResponseException)
       {
-        ConnectionPacket<ResponseCode> payload =
-          ConnectionPacket<ResponseCode>.Create(
-            connectionResponseException.Code,
-            connectionResponseException.Data
-          );
+        ConnectionPacket<ResponseCode> payload = ConnectionPacket<ResponseCode>.Create(
+          connectionResponseException.Code,
+          connectionResponseException.Data
+        );
 
         webConnectionRequest.SendResponse(payload.Serialize());
       }

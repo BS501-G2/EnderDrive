@@ -19,9 +19,8 @@ public sealed partial class Connection
     ResourceTransaction transaction,
     S request,
     UnlockedUserAuthentication userAuthentication,
-    User me,
+    Resource<User> me,
     UnlockedAdminAccess? adminAccess,
-    File file,
     FileAccessResult fileAccessResult
   )
     where S : BaseFileRequest;
@@ -39,13 +38,16 @@ public sealed partial class Connection
       code,
       async (transaction, request, userAuthentication, me, myAdminAccess) =>
       {
-        File file = await Internal_GetFile(transaction, me, request.FileId);
+        Resource<File> file = await Internal_GetFile(
+          transaction,
+          me,
+          userAuthentication,
+          request.FileId
+        );
 
-        if (fileType != null && file.Type != fileType)
+        if (fileType != null && file.Data.Type != fileType)
         {
-          throw new InvalidOperationException(
-            $"Required file type: {fileType}"
-          );
+          throw new InvalidOperationException($"Required file type: {fileType}");
         }
 
         FileAccessResult accessResult = await Internal_UnlockFile(
@@ -62,7 +64,6 @@ public sealed partial class Connection
           userAuthentication,
           me,
           myAdminAccess,
-          file,
           accessResult
         );
       }

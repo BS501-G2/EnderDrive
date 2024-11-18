@@ -4,9 +4,7 @@ import { derived, writable, type Writable } from 'svelte/store'
 
 const contextName = 'File Browser List Context'
 
-export type FileBrowserListContext = ReturnType<
-  typeof createFileBrowserListContext
->['context']
+export type FileBrowserListContext = ReturnType<typeof createFileBrowserListContext>['context']
 
 export function createFileBrowserListContext() {
   const files: Writable<
@@ -31,8 +29,7 @@ export function createFileBrowserListContext() {
         }
       ])
 
-      return () =>
-        files.update((value) => value.filter((file) => file.id !== id))
+      return () => files.update((value) => value.filter((file) => file.id !== id))
     },
 
     selectFile: (id: string) => {

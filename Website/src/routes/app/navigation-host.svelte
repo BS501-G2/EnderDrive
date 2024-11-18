@@ -5,11 +5,7 @@
   import { type NavigationEntry } from '$lib/client/contexts/navigation'
   import { derived, type Readable } from 'svelte/store'
   import Navigation from './navigation.svelte'
-  import {
-    useClientContext,
-    UserRole,
-    useServerContext
-  } from '$lib/client/client'
+  import { useClientContext, UserRole, useServerContext } from '$lib/client/client'
 
   const { isMobile } = useAppContext()
   const { clientState } = useClientContext()

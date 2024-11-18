@@ -40,13 +40,9 @@ public sealed partial class VirusScanner
       );
     }
 
-    private async Task HandleTcpClient(
-      TcpClient client,
-      CancellationToken cancellationToken
-    )
+    private async Task HandleTcpClient(TcpClient client, CancellationToken cancellationToken)
     {
-      using Socket socket =
-        new(AddressFamily.Unix, SocketType.Stream, ProtocolType.IP);
+      using Socket socket = new(AddressFamily.Unix, SocketType.Stream, ProtocolType.IP);
       await socket.ConnectAsync(new UnixDomainSocketEndPoint(unixSocketPath));
 
       using NetworkStream clientStream = client.GetStream();
@@ -63,22 +59,14 @@ public sealed partial class VirusScanner
             break;
           }
 
-          await to.WriteAsync(
-            buffer.AsMemory(0, bufferRead),
-            cancellationToken
-          );
+          await to.WriteAsync(buffer.AsMemory(0, bufferRead), cancellationToken);
         }
       }
 
-      await Task.WhenAny(
-        [pipe(socketStream, clientStream), pipe(clientStream, socketStream)]
-      );
+      await Task.WhenAny([pipe(socketStream, clientStream), pipe(clientStream, socketStream)]);
     }
 
-    private async Task ListenTcp(
-      TcpListener listener,
-      CancellationToken cancellationToken
-    )
+    private async Task ListenTcp(TcpListener listener, CancellationToken cancellationToken)
     {
       List<Task> connections = [];
 
@@ -159,10 +147,7 @@ public sealed partial class VirusScanner
       await ListenTcp(GetContext().InternalTcpListener, cancellationToken);
     }
 
-    protected override Task OnStop(
-      TcpForwarderContext data,
-      ExceptionDispatchInfo? exception
-    )
+    protected override Task OnStop(TcpForwarderContext data, ExceptionDispatchInfo? exception)
     {
       GetContext().InternalTcpListener.Stop();
       return Task.CompletedTask;

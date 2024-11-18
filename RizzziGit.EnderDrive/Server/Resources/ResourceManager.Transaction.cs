@@ -45,8 +45,9 @@ public sealed partial class ResourceManager
 
     async Task transactInner(ulong transactionId, Logger logger)
     {
-      using CancellationTokenSource linkedCancellationTokenSource =
-        cancellationToken.Link(serviceCancellationToken);
+      using CancellationTokenSource linkedCancellationTokenSource = cancellationToken.Link(
+        serviceCancellationToken
+      );
 
       using IClientSessionHandle session = await Client.StartSessionAsync(
         null,
@@ -69,9 +70,7 @@ public sealed partial class ResourceManager
           }
         );
 
-        await session.CommitTransactionAsync(
-          linkedCancellationTokenSource.Token
-        );
+        await session.CommitTransactionAsync(linkedCancellationTokenSource.Token);
       }
       catch (Exception exception)
       {
@@ -91,9 +90,7 @@ public sealed partial class ResourceManager
 
         try
         {
-          await session.AbortTransactionAsync(
-            linkedCancellationTokenSource.Token
-          );
+          await session.AbortTransactionAsync(linkedCancellationTokenSource.Token);
         }
         catch (Exception abortException)
         {
@@ -212,9 +209,8 @@ public sealed record class ResourceTransaction
     RegisterOnFailure = registerOnFailure;
   }
 
-  public static implicit operator CancellationToken(
-    ResourceTransaction parameters
-  ) => parameters.CancellationToken;
+  public static implicit operator CancellationToken(ResourceTransaction parameters) =>
+    parameters.CancellationToken;
 
   public readonly Action<Func<Task>> RegisterOnFailure;
 
@@ -225,12 +221,8 @@ public sealed record class ResourceTransaction
   public required CancellationToken CancellationToken;
 }
 
-public delegate Task ResourceTransactionCallback(
-  ResourceTransaction parameters
-);
-public delegate Task<T> ResourceTransactionCallback<T>(
-  ResourceTransaction parameters
-);
+public delegate Task ResourceTransactionCallback(ResourceTransaction parameters);
+public delegate Task<T> ResourceTransactionCallback<T>(ResourceTransaction parameters);
 public delegate IAsyncEnumerable<T> ResourceTransactionCallbackEnumerable<T>(
   ResourceTransaction parameters
 );

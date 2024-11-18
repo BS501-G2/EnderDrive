@@ -11,13 +11,7 @@ const createSize = <T extends number>(size: T) =>
   }) as const
 
 const createSizes = () =>
-  [
-    createSize(32),
-    createSize(64),
-    createSize(128),
-    createSize(144),
-    createSize(256)
-  ] as const
+  [createSize(32), createSize(64), createSize(128), createSize(144), createSize(256)] as const
 
 const shortcut = <T extends string, V extends string>(name: T, url: V) =>
   ({

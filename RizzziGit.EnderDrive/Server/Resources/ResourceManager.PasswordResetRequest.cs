@@ -10,23 +10,17 @@ public record class PasswordResetRequest : ResourceData
 
 public sealed partial class ResourceManager
 {
-  public async Task<PasswordResetRequest> CreatePasswordResetRequest(
+  public async Task<Resource<PasswordResetRequest>> CreatePasswordResetRequest(
     ResourceTransaction transaction,
     User user
   )
   {
-    PasswordResetRequest passwordResetRequest =
-      new() { Id = ObjectId.GenerateNewId(), UserId = user.Id };
+    Resource<PasswordResetRequest> request = ToResource<PasswordResetRequest>(
+      transaction,
+      new() { UserId = user.Id }
+    );
 
-    await InsertOld(transaction, passwordResetRequest);
-
-    return passwordResetRequest;
+    await request.Save(transaction);
+    return request;
   }
-
-  public async Task AcceptPasswordResetRequest(
-    ResourceTransaction transaction,
-    string newPassword,
-    PasswordResetRequest passwordResetRequest,
-    UnlockedAdminAccess unlockedAdminAccess
-  ) { }
 }

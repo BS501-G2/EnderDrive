@@ -18,16 +18,13 @@ export enum WindowMode {
 const appContextName = `${Date.now()}`
 
 export function useAppContext() {
-  return getContext<ReturnType<typeof createAppContext>['context']>(
-    appContextName
-  )
+  return getContext<ReturnType<typeof createAppContext>['context']>(appContextName)
 }
 
 export function createAppContext() {
   const viewMode: Writable<ViewMode> = writable(ViewMode.None)
   const windowMode: Writable<WindowMode> = writable(WindowMode.Normal)
-  const overlay: Writable<[id: number, snippet: Snippet, dim: boolean][]> =
-    writable([])
+  const overlay: Writable<[id: number, snippet: Snippet, dim: boolean][]> = writable([])
   const titleStack: Writable<
     {
       id: number
@@ -42,9 +39,7 @@ export function createAppContext() {
       overlay.update((overlay) => [...overlay, [id, view, dim]])
 
       return () =>
-        overlay.update(
-          (overlay) => (overlay = overlay.filter((value) => value[0] != id))
-        )
+        overlay.update((overlay) => (overlay = overlay.filter((value) => value[0] != id)))
     },
 
     pushTitle: (title: string) => {
@@ -58,8 +53,7 @@ export function createAppContext() {
         }
       ])
 
-      return () =>
-        titleStack.update((value) => value.filter((value) => value.id !== id))
+      return () => titleStack.update((value) => value.filter((value) => value.id !== id))
     },
 
     viewMode: derived(viewMode, (value) => value),
@@ -69,25 +63,13 @@ export function createAppContext() {
       viewMode,
       (mode) => mode === ViewMode.Desktop || mode === ViewMode.LimitedDesktop
     ),
-    isLimitedDesktop: derived(
-      viewMode,
-      (mode) => mode === ViewMode.LimitedDesktop
-    ),
+    isLimitedDesktop: derived(viewMode, (mode) => mode === ViewMode.LimitedDesktop),
     isMobile: derived(viewMode, (mode) => mode === ViewMode.Mobile),
 
     isNormal: derived(windowMode, (value) => value === 0),
-    isCustomBar: derived(
-      windowMode,
-      (value) => (value & WindowMode.CustomBar) != 0
-    ),
-    isFullscreen: derived(
-      windowMode,
-      (value) => (value & WindowMode.Fullscreen) != 0
-    ),
-    isMinimal: derived(
-      windowMode,
-      (value) => (value & WindowMode.Minimal) != 0
-    ),
+    isCustomBar: derived(windowMode, (value) => (value & WindowMode.CustomBar) != 0),
+    isFullscreen: derived(windowMode, (value) => (value & WindowMode.Fullscreen) != 0),
+    isMinimal: derived(windowMode, (value) => (value & WindowMode.Minimal) != 0),
 
     currentTitle: derived(titleStack, (value) => value.at(-1)),
 

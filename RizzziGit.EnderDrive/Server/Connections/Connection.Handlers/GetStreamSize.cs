@@ -18,20 +18,12 @@ public sealed partial class Connection
     public required long Size;
   }
 
-  private RequestHandler<
-    GetStreamSizeRequest,
-    GetStreamSizeResponse
-  > GetStreamSize =>
+  private RequestHandler<GetStreamSizeRequest, GetStreamSizeResponse> GetStreamSize =>
     async (request, cancellationToken) =>
     {
       ConnectionContext context = GetContext();
 
-      if (
-        !context.FileStreams.TryGetValue(
-          request.StreamId,
-          out ConnectionByteStream? stream
-        )
-      )
+      if (!context.FileStreams.TryGetValue(request.StreamId, out ConnectionByteStream? stream))
       {
         throw new InvalidOperationException("File stream not found.");
       }

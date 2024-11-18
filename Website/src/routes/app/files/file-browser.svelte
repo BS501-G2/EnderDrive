@@ -15,8 +15,7 @@
   import { onMount } from 'svelte'
   import FileBrowserPropertiesMobile from './file-browser-properties-mobile.svelte'
 
-  const { resolve, onFileId, selectMode, customContext }: FileBrowserOptions =
-    $props()
+  const { resolve, onFileId, selectMode, customContext }: FileBrowserOptions = $props()
   const { actions, top, current, middle, bottom } =
     customContext ?? createFileBrowserContext(onFileId, selectMode)
   const { showDetails, fileListContext } = useFileBrowserContext()
@@ -96,7 +95,11 @@
       <FileBrowserProperties
         selectedFileIds={$current.type === 'file'
           ? [$current.file.id]
-          : flattenedSelectedIds}
+          : $current.type === 'folder'
+            ? flattenedSelectedIds.length
+              ? flattenedSelectedIds
+              : [$current.file.id]
+            : flattenedSelectedIds}
       />
     </div>
   {/if}

@@ -23,42 +23,17 @@ public sealed partial class ConnectionContext
 
   public required UnlockedUserAuthentication? CurrentUser;
 
-  public required ConcurrentDictionary<
-    ServerSideRequestCode,
-    RawRequestHandler
-  > Handlers;
+  public required ConcurrentDictionary<ServerSideRequestCode, RawRequestHandler> Handlers;
 
   public required ulong NextFileStreamId;
-  public required ConcurrentDictionary<
-    ObjectId,
-    ConnectionByteStream
-  > FileStreams;
-}
-
-public enum ResponseCode : byte
-{
-  OK,
-  Cancelled,
-  InvalidParameters,
-  NoHandlerFound,
-  InvalidRequestCode,
-  InternalError,
-  AuthenticationRequired,
-  AgreementRequired,
-  InsufficientRole,
-  ResourceNotFound,
-  Forbidden,
+  public required ConcurrentDictionary<ObjectId, ConnectionByteStream> FileStreams;
 }
 
 public sealed partial class ConnectionPacket<T>
   where T : Enum
 {
   public static ConnectionPacket<T> Deserialize(CompositeBuffer bytes) =>
-    new()
-    {
-      Code = (T)Enum.ToObject(typeof(T), bytes[0]),
-      Data = bytes.Slice(1),
-    };
+    new() { Code = (T)Enum.ToObject(typeof(T), bytes[0]), Data = bytes.Slice(1) };
 
   public static ConnectionPacket<T> Create<V>(T code, V data)
   {
@@ -103,11 +78,7 @@ public sealed partial class Connection(
     WebConnection connection =
       new(
         webSocket,
-        new()
-        {
-          Name = $"Connection #{ConnectionId}",
-          Logger = ((IService)manager).Logger,
-        }
+        new() { Name = $"Connection #{ConnectionId}", Logger = ((IService)manager).Logger }
       );
 
     await StartServices([connection], startupCancellationToken);
@@ -144,81 +115,32 @@ public sealed partial class Connection(
     await await Task.WhenAny(tasks);
   }
 
-  private async Task RunWorker(
-    ConnectionContext context,
-    CancellationToken cancellationToken
-  )
+  private async Task RunWorker(ConnectionContext context, CancellationToken cancellationToken)
   {
     while (true)
     {
       cancellationToken.ThrowIfCancellationRequested();
 
-      WebConnectionRequest? request = await context.Internal.ReceiveRequest(
-        cancellationToken
-      );
+      WebConnectionRequest? request = await context.Internal.ReceiveRequest(cancellationToken);
 
       if (request == null)
       {
         break;
       }
 
-      _ = Task.Run(
-        () => HandleRequest(context, request, cancellationToken),
-        cancellationToken
-      );
+      _ = Task.Run(() => HandleRequest(context, request, cancellationToken), cancellationToken);
     }
   }
 
-  protected override async Task OnStop(
-    ConnectionContext context,
-    ExceptionDispatchInfo? exception
-  )
+  protected override async Task OnStop(ConnectionContext context, ExceptionDispatchInfo? exception)
   {
     foreach ((_, ConnectionByteStream stream) in context.FileStreams)
     {
-      stream.Queue.Dispose();
+      await stream.Close(CancellationToken.None);
     }
 
     context.FileStreams.Clear();
 
     await StopServices(context.Internal);
-  }
-}
-
-public abstract class ConnectionException(
-  string? message = null,
-  Exception? inner = null
-) : Exception(message, inner);
-
-public sealed class ConnectionResponseException(
-  ResponseCode code,
-  ConnectionResponseExceptionData data
-) : ConnectionException($"Server returned error response: {code}")
-{
-  public readonly ResponseCode Code = code;
-  public new readonly ConnectionResponseExceptionData Data = data;
-}
-
-public abstract record class ConnectionResponseExceptionData
-{
-  private ConnectionResponseExceptionData() { }
-
-  public sealed record class AuthenticationRequired
-    : ConnectionResponseExceptionData { }
-
-  public sealed record class RequiredRoles : ConnectionResponseExceptionData
-  {
-    public required UserRole[]? IncludeRoles;
-    public required UserRole[]? ExcludeRoles;
-  }
-
-  public sealed record class ResourceNotFound : ConnectionResponseExceptionData
-  {
-    public required string ResourceName;
-  }
-
-  public sealed record class Forbidden : ConnectionResponseExceptionData
-  {
-    public required ObjectId FileId;
   }
 }

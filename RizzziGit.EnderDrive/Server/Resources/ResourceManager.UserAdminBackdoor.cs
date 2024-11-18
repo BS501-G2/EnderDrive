@@ -14,79 +14,28 @@ public record class UserAdminBackdoor : ResourceData
   public required ObjectId UserId;
 
   public required byte[] EncryptedUserPrivateRsaKey;
-
-  public UnlockedUserAdminBackdoor Unlocked(UnlockedAdminAccess adminAccess)
-  {
-    byte[] userAesKey = KeyManager.Decrypt(
-      adminAccess,
-      EncryptedUserPrivateRsaKey
-    );
-
-    return new()
-    {
-      Id = Id,
-
-      Original = this,
-      UserPrivateRsaKey = userAesKey,
-
-      UserId = UserId,
-      EncryptedUserPrivateRsaKey = EncryptedUserPrivateRsaKey,
-    };
-  }
-}
-
-public record class UnlockedUserAdminBackdoor : UserAdminBackdoor
-{
-  public static implicit operator byte[](
-    UnlockedUserAdminBackdoor userAdminBackdoor
-  ) => userAdminBackdoor.UserPrivateRsaKey;
-
-  public required UserAdminBackdoor Original;
-
-  public required byte[] UserPrivateRsaKey;
 }
 
 public sealed partial class ResourceManager
 {
   public async Task<UnlockedUserAdminBackdoor> CreateUserAdminBackdoor(
     ResourceTransaction transaction,
-    User user,
+    Resource<User> user,
     UnlockedUserAuthentication userAuthentication,
     UnlockedAdminKey adminKey
   )
   {
     byte[] userPrivateRsaKey = userAuthentication.UserRsaPrivateKey;
-    UserAdminBackdoor item =
+    Resource<UserAdminBackdoor> item = ToResource<UserAdminBackdoor>(
+      transaction,
       new()
       {
-        Id = ObjectId.GenerateNewId(),
-
         UserId = user.Id,
-        EncryptedUserPrivateRsaKey = KeyManager.Encrypt(
-          adminKey,
-          userPrivateRsaKey
-        ),
-      };
-
-    await InsertOld(transaction, item);
-
-    return new()
-    {
-      Id = item.Id,
-      UserId = item.UserId,
-      EncryptedUserPrivateRsaKey = item.EncryptedUserPrivateRsaKey,
-      UserPrivateRsaKey = userPrivateRsaKey,
-
-      Original = item,
-    };
-  }
-
-  public IQueryable<UserAdminBackdoor> GetUserAdminBackdoors(
-    ResourceTransaction transaction,
-    ObjectId? userId = null
-  ) =>
-    QueryOld<UserAdminBackdoor>(
-      transaction,
-      (query) => query.Where((item) => userId == null || item.UserId == userId)
+        EncryptedUserPrivateRsaKey = KeyManager.Encrypt(adminKey, userPrivateRsaKey),
+      }
     );
+
+    await item.Save(transaction);
+    return new(item) { UserPrivateRsaKey = userPrivateRsaKey };
+  }
 }

@@ -20,9 +20,6 @@ public sealed partial class Connection
       context,
       code,
       (request, cancellationToken) =>
-        Resources.Transact(
-          (transaction) => handler(transaction, request),
-          cancellationToken
-        )
+        Resources.Transact((transaction) => handler(transaction, request), cancellationToken)
     );
 }

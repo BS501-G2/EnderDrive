@@ -5,13 +5,11 @@
   import FileBrowserRefresh from './file-browser-refresh.svelte'
   import { useAppContext } from '$lib/client/contexts/app'
   import FileBrowserFileContent from './file-browser-file-content.svelte'
-  import {
-    useFileBrowserContext,
-    type FileBrowserAction
-  } from '$lib/client/contexts/file-browser'
+  import { useFileBrowserContext, type FileBrowserAction } from '$lib/client/contexts/file-browser'
   import FileBrowserActionHostMobile from './file-browser-action-host-mobile.svelte'
   import { derived, writable, type Readable } from 'svelte/store'
   import { createFileBrowserListContext } from '$lib/client/contexts/file-browser-list'
+  import FileBrowserActions from './file-browser-actions.svelte'
 
   const {
     file,
@@ -20,8 +18,7 @@
     file: FileResource
     actions: Readable<FileBrowserAction[]>
   } = $props()
-  const { getFile, getFileContents, getFileSnapshots, scanFile } =
-    useServerContext()
+  const { getFile, getFileContents, getFileSnapshots, scanFile } = useServerContext()
   const { setFileListContext } = useFileBrowserContext()
 
   const { isMobile, isDesktop } = useAppContext()
@@ -52,7 +49,7 @@
         </div>
 
         <div class="main">
-          <FileBrowserFileContent fileId={file.id} />
+          <FileBrowserFileContent fileId={file.id} {selectedFileIds} />
         </div>
         <!--
 				<div class="footer">
@@ -65,7 +62,7 @@
 
 {#if $isDesktop}
   <div class="content">
-    <FileBrowserFileContent fileId={file.id} />
+    <FileBrowserFileContent fileId={file.id} {selectedFileIds} />
   </div>
 {/if}
 

@@ -27,20 +27,12 @@ public sealed partial class Connection
     {
       ConnectionContext context = GetContext();
 
-      if (
-        !context.FileStreams.TryGetValue(
-          request.StreamId,
-          out ConnectionByteStream? stream
-        )
-      )
+      if (!context.FileStreams.TryGetValue(request.StreamId, out ConnectionByteStream? stream))
       {
         throw new InvalidOperationException("File stream not found.");
       }
 
-      CompositeBuffer data = await stream.Read(
-        request.Length,
-        cancellationToken
-      );
+      CompositeBuffer data = await stream.Read(request.Length, cancellationToken);
 
       return new() { Data = data.ToByteArray() };
     };

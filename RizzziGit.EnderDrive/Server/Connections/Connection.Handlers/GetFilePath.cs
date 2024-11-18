@@ -24,32 +24,29 @@ public sealed partial class Connection
     public required string[] Path;
   }
 
-  private FileRequestHandler<
-    GetFilePathRequest,
-    GetFilePathResponse
-  > GetFilePath =>
-    async (
-      transaction,
-      request,
-      userAuthentication,
-      me,
-      _,
-      currentFile,
-      result
-    ) =>
+  private FileRequestHandler<GetFilePathRequest, GetFilePathResponse> GetFilePath =>
+    async (transaction, request, userAuthentication, me, _, result) =>
     {
-      File rootFile =
+      UnlockedFile rootFile =
         result.FileAccess != null
-          ? result.File
-          : await Resources.GetRootFolder(transaction, me);
+          ? result.UnlockedFile
+          : await Resources.GetRootFolder(transaction, me, userAuthentication);
 
-      List<File> path = [currentFile];
+      Resource<File> currentFile = rootFile.File;
+      List<Resource<File>> path = [rootFile.File];
+
       while (true)
       {
+        if (currentFile.Data.ParentId == null)
+        {
+          break;
+        }
+
         currentFile = await Internal_GetFile(
           transaction,
           me,
-          currentFile.ParentId
+          userAuthentication,
+          currentFile.Data.ParentId
         );
 
         if (path.Last().Id != currentFile.Id)
@@ -57,17 +54,12 @@ public sealed partial class Connection
           path.Add(currentFile);
         }
 
-        if (currentFile.Id == rootFile.Id)
+        if (currentFile.Id == rootFile.File.Data.Id)
         {
           break;
         }
       }
 
-      return new()
-      {
-        Path = path.Reverse<File>()
-          .Select((entry) => JToken.FromObject(entry).ToString())
-          .ToArray(),
-      };
+      return new() { Path = [.. path.Reverse<Resource<File>>().ToJson()] };
     };
 }

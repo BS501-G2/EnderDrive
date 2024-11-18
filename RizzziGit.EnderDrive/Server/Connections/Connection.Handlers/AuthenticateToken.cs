@@ -35,27 +35,27 @@ public sealed partial class Connection
         throw new InvalidOperationException("Already signed in.");
       }
 
-      User? user =
+      Resource<User>? user =
         await Resources
-          .GetUsers(transaction, id: request.UserId)
-          .ToAsyncEnumerable()
+          .Query<User>(transaction, (query) => query.Where((item) => item.Id == request.UserId))
           .FirstOrDefaultAsync(transaction.CancellationToken)
         ?? throw new InvalidOperationException("Invalid user id.");
 
       UnlockedUserAuthentication? unlockedUserAuthentication = null;
       await foreach (
-        UserAuthentication userAuthentication in Resources
-          .GetUserAuthentications(
-            transaction,
-            user: user,
-            type: UserAuthenticationType.Token
-          )
-          .ToAsyncEnumerable()
+        Resource<UserAuthentication> userAuthentication in Resources.Query<UserAuthentication>(
+          transaction,
+          (query) => query.Where((item) => item.UserId == user.Id)
+        )
       )
       {
         try
         {
-          unlockedUserAuthentication = userAuthentication.Unlock(request.Token);
+          unlockedUserAuthentication = UnlockedUserAuthentication.Unlock(
+            userAuthentication,
+            request.Token
+          );
+
           break;
         }
         catch { }

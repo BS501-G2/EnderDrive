@@ -156,11 +156,7 @@ public sealed partial class ResourceManager
     long readEnd = long.Min(readStart + size, fileSnapshot.Data.Size);
 
     long bytesRead = 0;
-    long indexStart = Math.DivRem(
-      position,
-      FILE_BUFFER_SIZE,
-      out long indexStartOffset
-    );
+    long indexStart = Math.DivRem(position, FILE_BUFFER_SIZE, out long indexStartOffset);
     CompositeBuffer bytes = [];
 
     for (long index = indexStart; bytesRead < (readEnd - readStart); index++)
@@ -174,12 +170,7 @@ public sealed partial class ResourceManager
 
       if (bufferEnd - bufferStart > 0)
       {
-        CompositeBuffer buffer = await ReadFileBlock(
-          transaction,
-          file,
-          fileSnapshot,
-          index
-        );
+        CompositeBuffer buffer = await ReadFileBlock(transaction, file, fileSnapshot, index);
 
         CompositeBuffer toRead = buffer.Slice(bufferStart, bufferEnd);
 
@@ -205,26 +196,16 @@ public sealed partial class ResourceManager
     long writeEnd = position + bytes.Length;
 
     long bytesWritten = 0;
-    long indexStart = Math.DivRem(
-      position,
-      FILE_BUFFER_SIZE,
-      out long indexStartOffset
-    );
+    long indexStart = Math.DivRem(position, FILE_BUFFER_SIZE, out long indexStartOffset);
 
     for (long index = indexStart; bytes.Length > bytesWritten; )
     {
       long currentStart = indexStart == index ? indexStartOffset : 0;
-      long currentEnd =
-        currentStart + long.Min(bytes.Length - bytesWritten, FILE_BUFFER_SIZE);
+      long currentEnd = currentStart + long.Min(bytes.Length - bytesWritten, FILE_BUFFER_SIZE);
 
       if (currentEnd - currentStart > 0)
       {
-        CompositeBuffer current = await ReadFileBlock(
-          transaction,
-          file,
-          fileSnapshot,
-          indexStart
-        );
+        CompositeBuffer current = await ReadFileBlock(transaction, file, fileSnapshot, indexStart);
 
         CompositeBuffer toWrite = bytes.Slice(currentStart, currentEnd);
 
@@ -244,10 +225,7 @@ public sealed partial class ResourceManager
       }
     }
 
-    fileSnapshot.Data.Size = long.Max(
-      position + bytes.Length,
-      fileSnapshot.Data.Size
-    );
+    fileSnapshot.Data.Size = long.Max(position + bytes.Length, fileSnapshot.Data.Size);
 
     await fileSnapshot.Save(transaction);
   }

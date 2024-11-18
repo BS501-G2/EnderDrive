@@ -141,11 +141,7 @@ public sealed partial class ResourceManager
 
         FileId = file.File.Id,
         AuthorUserId = authorUser.Id,
-        TargetEntity = new()
-        {
-          EntityType = FileAccessTargetEntityType.Group,
-          EntityId = group.Id,
-        },
+        TargetEntity = new() { EntityType = FileAccessTargetEntityType.Group, EntityId = group.Id },
 
         EncryptedAesKey = encryptedAesKey,
 
@@ -177,10 +173,7 @@ public sealed partial class ResourceManager
     Resource<AdminAccess>? adminAccess = await Query<AdminAccess>(
         transaction,
         (query) =>
-          query.Where(
-            (item) =>
-              item.UserId == userAuthentication.UserAuthentication.Data.UserId
-          )
+          query.Where((item) => item.UserId == userAuthentication.UserAuthentication.Data.UserId)
       )
       .FirstOrDefaultAsync(transaction.CancellationToken);
 
@@ -195,10 +188,7 @@ public sealed partial class ResourceManager
         user,
         UnlockedFile.WithAesKey(
           file,
-          KeyManager.Decrypt(
-            unlockedAdminAccess.AdminAesKey,
-            file.Data.AdminEncryptedAesKey
-          )
+          KeyManager.Decrypt(unlockedAdminAccess.AdminAesKey, file.Data.AdminEncryptedAesKey)
         ),
         null
       );
@@ -212,8 +202,7 @@ public sealed partial class ResourceManager
               (item) =>
                 item.FileId == file.Id
                 && item.Level >= minLevel
-                && item.AuthorUserId
-                  == userAuthentication.UserAuthentication.Data.UserId
+                && item.AuthorUserId == userAuthentication.UserAuthentication.Data.UserId
             )
             .OrderByDescending((item) => item.Level)
       )
@@ -223,19 +212,12 @@ public sealed partial class ResourceManager
     {
       if (access.Data.TargetEntity == null)
       {
-        return new(
-          user,
-          UnlockedFile.WithAesKey(file, access.Data.EncryptedAesKey),
-          access
-        );
+        return new(user, UnlockedFile.WithAesKey(file, access.Data.EncryptedAesKey), access);
       }
 
       return new(
         user,
-        UnlockedFile.WithAesKey(
-          file,
-          UnlockedFileAccess.Unlock(access, userAuthentication)
-        ),
+        UnlockedFile.WithAesKey(file, UnlockedFileAccess.Unlock(access, userAuthentication)),
         access
       );
     }
@@ -271,7 +253,7 @@ public sealed partial class ResourceManager
       user,
       UnlockedFile.WithAesKey(
         file,
-        KeyManager.Decrypt(result.File.AesKey, file.Data.EncryptedAesKey)
+        KeyManager.Decrypt(result.UnlockedFile.AesKey, file.Data.EncryptedAesKey)
       ),
       result.FileAccess
     );
@@ -280,12 +262,12 @@ public sealed partial class ResourceManager
 
 public sealed record FileAccessResult(
   Resource<User> User,
-  UnlockedFile File,
+  UnlockedFile UnlockedFile,
   Resource<FileAccess>? FileAccess
 )
 {
   public FileAccessLevel AccessLevel =>
-    File.File.Data.OwnerUserId == User.Id
+    UnlockedFile.File.Data.OwnerUserId == User.Id
       ? FileAccessLevel.Full
       : FileAccess?.Data.Level ?? FileAccessLevel.None;
 }

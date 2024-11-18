@@ -56,12 +56,7 @@
             will automatically redirect you inside it.
           </p>
 
-          <Input
-            id="folder-name"
-            type="text"
-            name="Folder Name"
-            bind:value={name}
-          />
+          <Input id="folder-name" type="text" name="Folder Name" bind:value={name} />
         </div>
 
         <Separator horizontal />

@@ -10,13 +10,7 @@
   import Overlay from '../overlay.svelte'
   import { fly } from 'svelte/transition'
   import Separator from '$lib/client/ui/separator.svelte'
-  import {
-    derived,
-    get,
-    writable,
-    type Readable,
-    type Writable
-  } from 'svelte/store'
+  import { derived, get, writable, type Readable, type Writable } from 'svelte/store'
   import Icon from '$lib/client/ui/icon.svelte'
 
   const {
@@ -43,9 +37,7 @@
   const activeTasks: Readable<FlattenedBackgroundTask[]> = derived(
     flattenedTasks,
     (flattenedArray) =>
-      flattenedArray.filter(
-        (flattenedEntry) => flattenedEntry.state.status[0] === 'pending'
-      )
+      flattenedArray.filter((flattenedEntry) => flattenedEntry.state.status[0] === 'pending')
   )
 
   executeBackgroundTask(async (context) => {

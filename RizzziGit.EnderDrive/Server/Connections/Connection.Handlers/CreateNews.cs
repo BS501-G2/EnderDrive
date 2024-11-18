@@ -33,49 +33,57 @@ public sealed partial class Connection
     public required string News;
   }
 
-  private AuthenticatedRequestHandler<
-    CreateNewsRequest,
-    CreateNewsResponse
-  > CreateNews =>
+  private AuthenticatedRequestHandler<CreateNewsRequest, CreateNewsResponse> CreateNews =>
     async (transaction, request, userAuthentication, me, myAdminAccess) =>
     {
-      File[] files = await Task.WhenAll(
+      Resource<File>[] files = await Task.WhenAll(
         request.ImageFileIds.Select(
           async (fileId) =>
           {
-            File file = await Internal_GetFile(transaction, me, fileId);
-            FileAccess fileAccess =
+            Resource<File> file = await Internal_GetFile(
+              transaction,
+              me,
+              userAuthentication,
+              fileId
+            );
+            Resource<FileAccess> fileAccess =
               await Resources
-                .GetFileAccesses(transaction, targetFile: file)
-                .Where((item) => item.TargetEntity == null)
-                .ToAsyncEnumerable()
+                .Query<FileAccess>(
+                  transaction,
+                  (query) =>
+                    query.Where((item) => item.FileId == file.Id && item.TargetEntity == null)
+                )
                 .FirstOrDefaultAsync(transaction)
-              ?? throw new InvalidOperationException("Images must be public.");
+              ?? throw new InvalidOperationException("The image must be public.");
 
-            if (file.Type != FileType.File)
+            if (file.Data.Type != FileType.File)
             {
-              throw new InvalidOperationException("File is not a file");
+              throw new InvalidOperationException("File is not a type of file.");
             }
 
-            if (file.TrashTime != null)
+            if (file.Data.TrashTime != null)
             {
-              throw new InvalidOperationException("File is in the trash");
+              throw new InvalidOperationException("File is in the trash.");
             }
 
-            FileContent fileContent = await Resources.GetMainFileContent(
+            Resource<FileContent> fileContent = await Resources.GetMainFileContent(
               transaction,
               file
             );
 
-            FileSnapshot fileSnapshot =
-              await Resources.GetLatestFileSnapshot(
-                transaction,
-                file,
-                fileContent
-              )
+            Resource<FileSnapshot> fileSnapshot =
+              await Resources
+                .Query<FileSnapshot>(
+                  transaction,
+                  (query) =>
+                    query
+                      .Where((item) => item.FileId == file.Id)
+                      .OrderByDescending((item) => item.Id)
+                )
+                .FirstOrDefaultAsync(transaction.CancellationToken)
               ?? await Resources.CreateFileSnapshot(
                 transaction,
-                file.WithAesKey(fileAccess.EncryptedAesKey),
+                UnlockedFile.WithAesKey(file, fileAccess.Data.EncryptedAesKey),
                 fileContent,
                 userAuthentication,
                 null
@@ -83,7 +91,7 @@ public sealed partial class Connection
 
             Definition? mimeResult = await Server.MimeDetector.Inspect(
               transaction,
-              file.WithAesKey(fileAccess.EncryptedAesKey),
+              UnlockedFile.WithAesKey(file, fileAccess.Data.EncryptedAesKey),
               fileContent,
               fileSnapshot
             );
@@ -102,7 +110,7 @@ public sealed partial class Connection
         )
       );
 
-      News news = await Resources.CreateNews(
+      Resource<News> news = await Resources.CreateNews(
         transaction,
         request.Title,
         files,

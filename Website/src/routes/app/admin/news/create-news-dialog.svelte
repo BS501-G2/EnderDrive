@@ -8,13 +8,15 @@
 
   const {
     newsId,
-    ondismiss
+    ondismiss,
+    onresult
   }: {
     newsId?: number
-    ondismiss: () => void
+    ondismiss: () => void,
+    onresult: (file: FileResource) => void
   } = $props()
 
-  const { getFileMime } = useServerContext()
+  const { getFileMime, createNews, getNews } = useServerContext()
   let browse: [fileId: string | null] | null = $state(null)
 </script>
 
@@ -40,8 +42,10 @@
             onresult={async (files: FileResource[]) => {
               const fileMime = await getFileMime(files[0].id)
 
-              console.log(fileMime)
+              
+
               browse = null
+              onresult(files[0])
             }}
             oncancel={() => {
               browse = null

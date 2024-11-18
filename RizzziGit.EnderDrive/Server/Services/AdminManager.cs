@@ -5,6 +5,7 @@ using RizzziGit.Commons.Services;
 namespace RizzziGit.EnderDrive.Server.Services;
 
 using System;
+using System.Linq;
 using Core;
 using RizzziGit.EnderDrive.Server.Resources;
 
@@ -21,8 +22,9 @@ public sealed partial class AdminManager(ResourceManager resources)
     CancellationToken serviceCancellationToken
   )
   {
-    AdminKey? adminKey = await resources.Transact(
-      resources.GetExistingAdminKey
+    Resource<AdminKey>? adminKey = await resources.Transact(
+      async (transaction) =>
+        await resources.Query<AdminKey>(transaction).FirstOrDefaultAsync(startupCancellationToken)
     );
 
     UnlockedAdminKey unlockedAdminKey;
@@ -52,9 +54,9 @@ public sealed partial class AdminManager(ResourceManager resources)
       {
         Console.Write("Please enter the existing system password: ");
         string? password =
-          Console.ReadLine()
-          ?? throw new InvalidOperationException("Password must be set.");
-        unlockedAdminKey = adminKey.Unlock(password);
+          Console.ReadLine() ?? throw new InvalidOperationException("Password must be set.");
+
+        unlockedAdminKey = UnlockedAdminKey.Unlock(adminKey, password);
       }
     }
 

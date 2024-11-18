@@ -3,13 +3,7 @@
 import { Buffer } from 'buffer'
 import { getContext, setContext, type Snippet } from 'svelte'
 import * as MsgPack from '@msgpack/msgpack'
-import {
-  derived,
-  get,
-  writable,
-  type Readable,
-  type Writable
-} from 'svelte/store'
+import { derived, get, writable, type Readable, type Writable } from 'svelte/store'
 import * as SocketIO from 'socket.io-client'
 
 import { persisted } from 'svelte-persisted-store'
@@ -30,9 +24,7 @@ enum InternalErrorReason {
   DuplicateId = 0
 }
 
-export type Packet<
-  C extends ClientSideRequestCode | ServerSideRequestCode | ResponseCode
-> =
+export type Packet<C extends ClientSideRequestCode | ServerSideRequestCode | ResponseCode> =
   | {
       type: PacketType.Request
       id: number
@@ -75,9 +67,7 @@ export interface ClientPacket<
   Data: any
 }
 
-export interface Payload<
-  T extends ClientSideRequestCode | ServerSideRequestCode | ResponseCode
-> {
+export interface Payload<T extends ClientSideRequestCode | ServerSideRequestCode | ResponseCode> {
   Code: T
   Data: object
 }
@@ -120,14 +110,12 @@ export function createClientContext() {
     autoConnect: false
   })
 
-  function send<
-    T extends ClientSideRequestCode | ServerSideRequestCode | ResponseCode
-  >(packet: Packet<T>) {
+  function send<T extends ClientSideRequestCode | ServerSideRequestCode | ResponseCode>(
+    packet: Packet<T>
+  ) {
     console.debug(
       '->',
-      JSON.stringify(
-        packet
-      ) /** new Error().stack?.split('\n').slice(1).join('\n') */
+      JSON.stringify(packet) /** new Error().stack?.split('\n').slice(1).join('\n') */
     )
     socket.emit('message', packet)
   }
@@ -136,9 +124,7 @@ export function createClientContext() {
     socket.on('message', (packet: Packet<any>) => {
       console.debug(
         '<-',
-        JSON.stringify(
-          packet
-        ) /**new Error().stack?.split('\n').slice(1).join('\n')u */
+        JSON.stringify(packet) /**new Error().stack?.split('\n').slice(1).join('\n')u */
       )
       switch (packet.type) {
         case PacketType.Request: {
@@ -252,11 +238,7 @@ export function createClientContext() {
       state.set([ClientState.Connected])
     })
 
-    function onClose(
-      error: Error = new Error(
-        'Failed to establish a connection to the server.'
-      )
-    ) {
+    function onClose(error: Error = new Error('Failed to establish a connection to the server.')) {
       if (get(state)[0] === ClientState.Failed) {
         return
       }
@@ -280,11 +262,12 @@ export function createClientContext() {
     reject: (reason: Error) => void
   }[] = []
 
-  const storedAuthenticationToken: Writable<AuthenticationToken | null> =
-    persisted('stored-token', null)
+  const storedAuthenticationToken: Writable<AuthenticationToken | null> = persisted(
+    'stored-token',
+    null
+  )
 
-  const notificationContext: Writable<NotificationContext | null> =
-    writable(null)
+  const notificationContext: Writable<NotificationContext | null> = writable(null)
 
   const context = setContext(clientContextName, {
     clientState: derived(proxiedSate, (value) => value),
@@ -401,11 +384,7 @@ export function createClientContext() {
 
   state.subscribe(async (currentState) => {
     if (currentState[0] === ClientState.Connected) {
-      const { authenticateToken } = getServerFunctions(
-        context,
-        storedAuthenticationToken,
-        state
-      )
+      const { authenticateToken } = getServerFunctions(context, storedAuthenticationToken, state)
       const token = get(storedAuthenticationToken)
 
       if (!(token == null || token.userId == null || token.token == null)) {
@@ -441,20 +420,6 @@ export function useServerContext(): ServerSideContext {
   return useClientContext()[requestFunctionsSymbol]
 }
 
-export enum ResponseCode {
-  OK,
-  Cancelled,
-  InvalidParameters,
-  NoHandlerFound,
-  InvalidRequestCode,
-  InternalError,
-  AuthenticationRequired,
-  AgreementRequired,
-  InsufficientRole,
-  ResourceNotFound,
-  Forbidden
-}
-
 export class ClientError extends Error {
   public constructor(message?: string, options?: ErrorOptions) {
     super(message, options)
@@ -462,10 +427,7 @@ export class ClientError extends Error {
 }
 
 export class ClientRequestError extends ClientError {
-  public constructor(
-    errorData: string = 'Remote sent an error',
-    options?: ErrorOptions
-  ) {
+  public constructor(errorData: string = 'Remote sent an error', options?: ErrorOptions) {
     super(errorData, options)
 
     this.#errorData = errorData
@@ -479,10 +441,7 @@ export class ClientRequestError extends ClientError {
 }
 
 export class ClientResponseError extends ClientError {
-  public constructor(
-    requestCode: ServerSideRequestCode,
-    responseCode: ResponseCode
-  ) {
+  public constructor(requestCode: ServerSideRequestCode, responseCode: ResponseCode) {
     super(`Server responded with code: ${ResponseCode[responseCode]}`)
 
     this.#requestCode = requestCode
@@ -529,17 +488,10 @@ export interface AuthenticationToken {
 export type ServerSideContext = ReturnType<typeof getServerFunctions>
 
 function setClientRequestHandlers(
-  map: Map<
-    number,
-    (data: any, isCancelled: () => boolean) => Promise<Payload<ResponseCode>>
-  >,
+  map: Map<number, (data: any, isCancelled: () => boolean) => Promise<Payload<ResponseCode>>>,
   notification: Readable<NotificationContext | null>
 ) {
-  const setHandler = <
-    C extends ClientSideRequestCode,
-    T extends object,
-    R extends object
-  >(
+  const setHandler = <C extends ClientSideRequestCode, T extends object, R extends object>(
     code: C,
     handler: (data: T) => Promise<R>
   ) => {
@@ -627,13 +579,10 @@ function getServerFunctions(
       token: string
       userId: string
     }> => {
-      const { token } = await request(
-        ServerSideRequestCode.AuthenticatePassword,
-        {
-          userId,
-          password
-        }
-      )
+      const { token } = await request(ServerSideRequestCode.AuthenticatePassword, {
+        userId,
+        password
+      })
 
       storedAuthenticationToken.set({
         userId,
@@ -647,12 +596,9 @@ function getServerFunctions(
     },
 
     authenticateGoogle: async (googleToken: string) => {
-      const { token, userId } = await request(
-        ServerSideRequestCode.AuthenticateGoogle,
-        {
-          googleToken
-        }
-      )
+      const { token, userId } = await request(ServerSideRequestCode.AuthenticateGoogle, {
+        googleToken
+      })
 
       storedAuthenticationToken.set({
         userId,
@@ -666,13 +612,10 @@ function getServerFunctions(
     },
 
     authenticateToken: async (userId: string, token: string): Promise<void> => {
-      const { renewedToken } = await request(
-        ServerSideRequestCode.AuthenticateToken,
-        {
-          userId,
-          token
-        }
-      )
+      const { renewedToken } = await request(ServerSideRequestCode.AuthenticateToken, {
+        userId,
+        token
+      })
 
       if (renewedToken != null) {
         storedAuthenticationToken.set({
@@ -697,10 +640,7 @@ function getServerFunctions(
     },
 
     amILoggedIn: async () => {
-      const { isLoggedIn } = await request(
-        ServerSideRequestCode.AmILoggedIn,
-        {}
-      )
+      const { isLoggedIn } = await request(ServerSideRequestCode.AmILoggedIn, {})
 
       return isLoggedIn as boolean
     },
@@ -782,32 +722,22 @@ function getServerFunctions(
       offset?: number,
       count?: number
     ) => {
-      const { fileAccesses } = await request(
-        ServerSideRequestCode.GetFileAccesses,
-        {
-          targetUserId,
-          targetFileId,
-          authorUserId,
-          level,
-          id,
-          pagination: {
-            offset,
-            count
-          }
+      const { fileAccesses } = await request(ServerSideRequestCode.GetFileAccesses, {
+        targetUserId,
+        targetFileId,
+        authorUserId,
+        level,
+        id,
+        pagination: {
+          offset,
+          count
         }
-      )
+      })
 
-      return fileAccesses.map((fileAccess: any) =>
-        JSON.parse(fileAccess)
-      ) as FileAccessResource[]
+      return fileAccesses.map((fileAccess: any) => JSON.parse(fileAccess)) as FileAccessResource[]
     },
 
-    getFileStars: async (
-      fileId?: string,
-      userId?: string,
-      offset?: number,
-      count?: number
-    ) => {
+    getFileStars: async (fileId?: string, userId?: string, offset?: number, count?: number) => {
       const { fileStars } = await request(ServerSideRequestCode.GetFileStars, {
         fileId,
         userId,
@@ -817,9 +747,7 @@ function getServerFunctions(
         }
       })
 
-      return fileStars.map((fileStar: any) =>
-        JSON.parse(fileStar)
-      ) as FileStarResource[]
+      return fileStars.map((fileStar: any) => JSON.parse(fileStar)) as FileStarResource[]
     },
 
     getFilePath: async (fileId?: string, offset?: number, count?: string) => {
@@ -843,38 +771,30 @@ function getServerFunctions(
       return JSON.parse(file) as FileResource
     },
 
-    getFileMime: async (
-      fileId: string,
-      fileContentId?: string,
-      fileSnapshotId?: string
-    ) => {
-      const { fileMimeType } = await request(
-        ServerSideRequestCode.GetFileMime,
-        {
-          fileId,
-          fileContentId,
-          fileSnapshotId
-        }
-      )
+    getFileMime: async (fileId: string, fileContentId?: string, fileSnapshotId?: string) => {
+      const { fileMimeType } = await request(ServerSideRequestCode.GetFileMime, {
+        fileId,
+        fileContentId,
+        fileSnapshotId
+      })
 
       return fileMimeType as string
     },
 
     getFileContents: async (
-      fileId: string,
+      fileId?: string,
+      fileContentId?: string,
       offset?: number,
       count?: number
     ) => {
-      const { fileContents } = await request(
-        ServerSideRequestCode.GetFileContents,
-        {
-          fileId,
-          pagination: {
-            offset,
-            count
-          }
+      const { fileContents } = await request(ServerSideRequestCode.GetFileContents, {
+        fileId,
+        fileContentId,
+        pagination: {
+          offset,
+          count
         }
-      )
+      })
 
       return fileContents.map((fileContent: any) =>
         JSON.parse(fileContent)
@@ -882,12 +802,9 @@ function getServerFunctions(
     },
 
     getMainFileContent: async (fileId: string) => {
-      const { fileContent } = await request(
-        ServerSideRequestCode.GetMainFileContent,
-        {
-          fileId
-        }
-      )
+      const { fileContent } = await request(ServerSideRequestCode.GetMainFileContent, {
+        fileId
+      })
 
       return JSON.parse(fileContent) as FileContentResource
     },
@@ -895,20 +812,19 @@ function getServerFunctions(
     getFileSnapshots: async (
       fileId: string,
       fileContentId?: string,
+      fileSnapshotId?: string,
       offset?: number,
       count?: number
     ) => {
-      const { fileSnapshots } = await request(
-        ServerSideRequestCode.GetFileSnapshots,
-        {
-          fileId,
-          fileContentId,
-          pagination: {
-            offset,
-            count
-          }
+      const { fileSnapshots } = await request(ServerSideRequestCode.GetFileSnapshots, {
+        fileId,
+        fileContentId,
+        fileSnapshotId,
+        pagination: {
+          offset,
+          count
         }
-      )
+      })
 
       return fileSnapshots.map((fileSnapshot: string) =>
         JSON.parse(fileSnapshot)
@@ -947,16 +863,10 @@ function getServerFunctions(
         }
       })
 
-      return fileLogs.map((fileLog: any) =>
-        JSON.parse(fileLog)
-      ) as FileLogResource[]
+      return fileLogs.map((fileLog: any) => JSON.parse(fileLog)) as FileLogResource[]
     },
 
-    getFileSize: async (
-      fileId: string,
-      fileContentId?: string,
-      fileSnapshotId?: string
-    ) => {
+    getFileSize: async (fileId: string, fileContentId?: string, fileSnapshotId?: string) => {
       const { size } = await request(ServerSideRequestCode.GetFileSize, {
         fileId,
         fileContentId,
@@ -966,11 +876,7 @@ function getServerFunctions(
       return size as number
     },
 
-    scanFile: async (
-      fileId: string,
-      fileContentId: string,
-      fileSnapshotId: string
-    ) => {
+    scanFile: async (fileId: string, fileContentId: string, fileSnapshotId: string) => {
       const { result } = await request(ServerSideRequestCode.ScanFile, {
         fileId,
         fileContentId,
@@ -980,20 +886,16 @@ function getServerFunctions(
       return JSON.parse(result) as VirusReportResource
     },
 
-    createFile: async (parentFolderId: string, name: string) => {
+    createFile: async (fileId: string, name: string) => {
       const { streamId } = await request(ServerSideRequestCode.CreateFile, {
-        parentFolderId,
+        fileId,
         name
       })
 
       return streamId as string
     },
 
-    openStream: async (
-      fileId: string,
-      fileContentId: string,
-      fileSnapshotId: string
-    ) => {
+    openStream: async (fileId: string, fileContentId: string, fileSnapshotId: string) => {
       const { streamId } = await request(ServerSideRequestCode.OpenStream, {
         fileId,
         fileContentId,
@@ -1015,7 +917,7 @@ function getServerFunctions(
         length
       })
 
-      return Buffer.from(data)
+      return Buffer.from(data, 'base64')
     },
 
     writeStream: async (streamId: string, data: Buffer | Blob) => {
@@ -1041,21 +943,14 @@ function getServerFunctions(
     },
 
     getStreamPosition: async (streamId: string) => {
-      const { position } = await request(
-        ServerSideRequestCode.GetStreamPosition,
-        {
-          streamId
-        }
-      )
+      const { position } = await request(ServerSideRequestCode.GetStreamPosition, {
+        streamId
+      })
 
       return position as number
     },
 
-    createNews: async (
-      title: string,
-      imageFileIds: string[],
-      publishTime?: Date
-    ) => {
+    createNews: async (title: string, imageFileIds: string[], publishTime?: Date) => {
       const { news } = await request(ServerSideRequestCode.CreateNews, {
         title,
         imageFileIds,
@@ -1071,12 +966,7 @@ function getServerFunctions(
       })
     },
 
-    getNews: async (
-      afterId?: string,
-      published?: boolean,
-      offset?: number,
-      count?: number
-    ) => {
+    getNews: async (afterId?: string, published?: boolean, offset?: number, count?: number) => {
       const { newsEntries } = await request(ServerSideRequestCode.GetNews, {
         afterId,
         published,
@@ -1086,37 +976,25 @@ function getServerFunctions(
         }
       })
 
-      return newsEntries.map((newsEntry: any) =>
-        JSON.parse(newsEntry)
-      ) as NewsResource[]
+      return newsEntries.map((newsEntry: any) => JSON.parse(newsEntry)) as NewsResource[]
     },
 
     getLatestFileSnapshot: async (fileId: string, fileContentId?: string) => {
-      const { fileSnapshot } = await request(
-        ServerSideRequestCode.GetLatestFileSnapshot,
-        {
-          fileId,
-          fileContentId
-        }
-      )
+      const { fileSnapshot } = await request(ServerSideRequestCode.GetLatestFileSnapshot, {
+        fileId,
+        fileContentId
+      })
 
-      return fileSnapshot != null
-        ? (JSON.parse(fileSnapshot) as FileSnapshotResource)
-        : null
+      return fileSnapshot != null ? (JSON.parse(fileSnapshot) as FileSnapshotResource) : null
     },
 
     getOldestFileSnapshot: async (fileId: string, fileContentId?: string) => {
-      const { fileSnapshot } = await request(
-        ServerSideRequestCode.GetOldestFileSnapshot,
-        {
-          fileId,
-          fileContentId
-        }
-      )
+      const { fileSnapshot } = await request(ServerSideRequestCode.GetOldestFileSnapshot, {
+        fileId,
+        fileContentId
+      })
 
-      return fileSnapshot != null
-        ? (JSON.parse(fileSnapshot) as FileSnapshotResource)
-        : null
+      return fileSnapshot != null ? (JSON.parse(fileSnapshot) as FileSnapshotResource) : null
     },
 
     setFileStar: async (fileId: string, starred: boolean) => {
@@ -1149,6 +1027,21 @@ export interface VirusReportResource extends ResourceData {
 export enum ClientSideRequestCode {
   Ping,
   Notify
+}
+
+export enum ResponseCode {
+  OK,
+  Cancelled,
+  InvalidParameters,
+  NoHandlerFound,
+  InvalidRequestCode,
+  InternalError,
+  AuthenticationRequired,
+  AgreementRequired,
+  InsufficientRole,
+  ResourceNotFound,
+  Forbidden,
+  FileNameConflict
 }
 
 export enum ServerSideRequestCode {
@@ -1321,8 +1214,7 @@ export enum FileLogType {
 }
 
 export enum VirusReportStatus {
-  NotScanned,
+  Pending,
   Failed,
-  Scanning,
   Completed
 }
