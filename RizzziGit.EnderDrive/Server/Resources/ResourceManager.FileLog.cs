@@ -25,27 +25,31 @@ public sealed record class FileLog : ResourceData
 
 public enum FileLogType : byte
 {
-  CreateFile,
-  TrashFile,
-  ModifyFile,
+  Create,
+  Update,
+  Trash,
+  Untrash,
+  Share,
+  Unshare,
+  Delete,
+  Read,
 }
 
 public sealed partial class ResourceManager
 {
   public async Task<Resource<FileLog>> CreateFileLog(
     ResourceTransaction transaction,
-    File file,
-    User actorUser,
+    Resource<File> file,
+    Resource<User> actorUser,
     FileLogType type,
-    FileContent? fileContent = null,
-    FileSnapshot? fileSnapshot = null
+    Resource<FileContent>? fileContent = null,
+    Resource<FileSnapshot>? fileSnapshot = null
   )
   {
     Resource<FileLog> log = ToResource<FileLog>(
       transaction,
       new()
       {
-        Id = ObjectId.GenerateNewId(),
         Type = type,
         ActorUserId = actorUser.Id,
         FileId = file.Id,

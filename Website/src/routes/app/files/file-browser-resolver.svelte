@@ -9,11 +9,12 @@
     type FileEntry
   } from '$lib/client/contexts/file-browser'
   import { get, type Readable, type Writable } from 'svelte/store'
-  import { onMount } from 'svelte'
+  import { onMount, type Snippet } from 'svelte'
   import Banner from '$lib/client/ui/banner.svelte'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import FileBrowserFileList from './file-browser-file-list.svelte'
   import FileBrowserFileView from './file-browser-file-view.svelte'
+  import Button from '$lib/client/ui/button.svelte'
 
   const {
     resolve,
@@ -90,7 +91,7 @@
 
         case FileBrowserResolveType.Shared: {
           const fileAccesses = await getFileAccesses(
-            undefined,
+            self.id,
             undefined,
             undefined,
             undefined,
@@ -115,7 +116,7 @@
         }
 
         case FileBrowserResolveType.Starred: {
-          const fileStars = await getFileStars(undefined, undefined, offset, length)
+          const fileStars = await getFileStars(undefined, self.id, offset, length)
 
           return {
             type: 'starred',
@@ -185,16 +186,37 @@
 </script>
 
 {#if $current.type === 'error'}
-  <Banner
-    type="error"
-    icon={{
-      icon: 'xmark',
-      thickness: 'solid',
-      size: '1.5em'
-    }}
-  >
-    {$current.error.message}
-  </Banner>
+  <div class="banner">
+    <Banner
+      type="error"
+      icon={{
+        icon: 'xmark',
+        thickness: 'solid',
+        size: '1.5em'
+      }}
+    >
+      <p>
+        {$current.error.message}
+      </p>
+
+      {#snippet bottom()}
+        {#snippet retryForeground(view: Snippet)}
+          <div class="retry-foreground">
+            {@render view()}
+          </div>
+        {/snippet}
+
+        <Button
+          foreground={retryForeground}
+          onclick={async () => {
+            await load($resolve)
+          }}
+        >
+          Retry
+        </Button>
+      {/snippet}
+    </Banner>
+  </div>
 {:else if $current.type === 'loading'}
   <div class="loading">
     <LoadingSpinner size="3em" />
@@ -207,6 +229,18 @@
 
 <style lang="scss">
   @use '../../../global.scss' as *;
+
+  div.banner {
+    flex-grow: 1;
+
+    align-items: center;
+
+    justify-content: center;
+
+    div.retry-foreground {
+      padding: 8px;
+    }
+  }
 
   div.loading {
     flex-grow: 1;

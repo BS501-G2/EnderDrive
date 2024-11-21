@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Buffer } from 'buffer'
-import { getContext, setContext, type Snippet } from 'svelte'
-import * as MsgPack from '@msgpack/msgpack'
+import { getContext, setContext } from 'svelte'
 import { derived, get, writable, type Readable, type Writable } from 'svelte/store'
 import * as SocketIO from 'socket.io-client'
 
@@ -1010,6 +1009,67 @@ function getServerFunctions(
       })
 
       return starred as boolean
+    },
+
+    didIAgree: async () => {
+      const { agreed } = await request(ServerSideRequestCode.DidIAgree, {})
+
+      return agreed as boolean
+    },
+
+    agree: async () => {
+      await request(ServerSideRequestCode.Agree, {})
+    },
+
+    createUser: async ({
+      username,
+      firstName,
+      middleName,
+      lastName,
+      displayName,
+      password
+    }: {
+      username: string
+      password?: string
+      firstName: string
+      middleName?: string
+      lastName: string
+      displayName?: string
+    }): Promise<{ password: string; userId: string }> => {
+      const { password: passwordResult, userId } = await request(ServerSideRequestCode.CreateUser, {
+        username,
+        firstName,
+        middleName,
+        lastName,
+        displayName,
+        password
+      })
+
+      return { password: passwordResult, userId }
+    },
+
+    getUsernameValidationFlags: async (username: string) => {
+      const { flags } = await request(ServerSideRequestCode.GetUsernameValidationFlags, {
+        username
+      })
+
+      return flags as UsernameValidationFlags
+    },
+
+    getPasswordValidationFlags: async (password: string) => {
+      const { flags } = await request(ServerSideRequestCode.GetPasswordValidationFlags, {
+        password
+      })
+
+      return flags as PasswordValidationFlags
+    },
+
+    setFileAccess: async (fileId: string, level: FileAccessLevel, targetUserId?: string) => {
+      await request(ServerSideRequestCode.SetFileAccess, {
+        fileId,
+        targetUserId,
+        level
+      })
     }
   }
 
@@ -1094,7 +1154,35 @@ export enum ServerSideRequestCode {
 
   CreateNews,
   DeleteNews,
-  GetNews
+  GetNews,
+
+  DidIAgree,
+  Agree,
+
+  TrashFile,
+  UntrashFile,
+  MoveFile,
+  CreateUser,
+
+  GetUsernameValidationFlags,
+  GetPasswordValidationFlags,
+
+  SetFileAccess
+}
+
+export enum UsernameValidationFlags {
+  OK = 0,
+  TooShort = 1 << 0,
+  TooLong = 1 << 1,
+  InvalidChars = 1 << 2
+}
+
+export enum PasswordValidationFlags {
+  OK = 0,
+  TooShort = 1 << 0,
+  TooLong = 1 << 1,
+  NoRequiredChars = 1 << 2,
+  PasswordMismatch = 1 << 3
 }
 
 export interface SearchParams {

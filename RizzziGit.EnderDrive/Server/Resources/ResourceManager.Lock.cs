@@ -34,13 +34,12 @@ public sealed record class UnlockedUserAuthentication(
   {
     byte[] aesKey;
     {
-      using Rfc2898DeriveBytes rfc2898DeriveBytes =
-        new(
-          payload,
-          userAuthentication.Data.Salt,
-          userAuthentication.Data.Iterations,
-          HashAlgorithmName.SHA256
-        );
+      using Rfc2898DeriveBytes rfc2898DeriveBytes = new(
+        payload,
+        userAuthentication.Data.Salt,
+        userAuthentication.Data.Iterations,
+        HashAlgorithmName.SHA256
+      );
 
       aesKey = rfc2898DeriveBytes.GetBytes(32);
     }
@@ -95,13 +94,12 @@ public sealed record class UnlockedAdminKey(Resource<AdminKey> AdminKey)
 {
   public static UnlockedAdminKey Unlock(Resource<AdminKey> adminKey, string password)
   {
-    using Rfc2898DeriveBytes rfc2898DeriveBytes =
-      new(
-        Encoding.UTF8.GetBytes(password),
-        adminKey.Data.Salt,
-        adminKey.Data.Iterations,
-        HashAlgorithmName.SHA256
-      );
+    using Rfc2898DeriveBytes rfc2898DeriveBytes = new(
+      Encoding.UTF8.GetBytes(password),
+      adminKey.Data.Salt,
+      adminKey.Data.Iterations,
+      HashAlgorithmName.SHA256
+    );
     byte[] aesKey = rfc2898DeriveBytes.GetBytes(32);
 
     byte[] decryptedChallengeBytes = KeyManager.Decrypt(

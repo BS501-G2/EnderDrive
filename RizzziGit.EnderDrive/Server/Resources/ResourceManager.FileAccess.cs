@@ -25,15 +25,6 @@ public enum FileAccessTargetEntityType
   Group,
 }
 
-public record class FileTargetEntity
-{
-  [JsonProperty("enityType")]
-  public required FileAccessTargetEntityType EntityType;
-
-  [JsonProperty("entityId")]
-  public required ObjectId EntityId;
-}
-
 public record class FileAccess : ResourceData
 {
   [JsonProperty("fileId")]
@@ -42,8 +33,8 @@ public record class FileAccess : ResourceData
   [JsonProperty("authorUserId")]
   public required ObjectId AuthorUserId;
 
-  [JsonProperty("targetEntity")]
-  public required FileTargetEntity? TargetEntity;
+  [JsonProperty("targetUser")]
+  public required ObjectId? TargetUserId;
 
   [JsonIgnore]
   public required byte[] EncryptedAesKey;
@@ -73,10 +64,9 @@ public sealed partial class ResourceManager
       transaction,
       new()
       {
-        Id = ObjectId.GenerateNewId(),
         FileId = file.File.Id,
         AuthorUserId = authorUser.Id,
-        TargetEntity = null,
+        TargetUserId = null,
         EncryptedAesKey = file.AesKey,
         Level = level,
       }
@@ -101,17 +91,11 @@ public sealed partial class ResourceManager
       transaction,
       new()
       {
-        Id = ObjectId.GenerateNewId(),
-
         FileId = file.File.Data.Id,
 
         AuthorUserId = authorUser.Id,
 
-        TargetEntity = new()
-        {
-          EntityType = FileAccessTargetEntityType.User,
-          EntityId = targetUser.Id,
-        },
+        TargetUserId = targetUser.Id,
 
         EncryptedAesKey = encryptedAesKey,
 
@@ -120,37 +104,6 @@ public sealed partial class ResourceManager
     );
 
     await access.Save(transaction);
-    return new(access) { AesKey = file.AesKey };
-  }
-
-  public async Task<UnlockedFileAccess> CreateFileAccess(
-    ResourceTransaction transaction,
-    UnlockedFile file,
-    Resource<Group> group,
-    Resource<User> authorUser,
-    FileAccessLevel level
-  )
-  {
-    byte[] encryptedAesKey = KeyManager.Encrypt(group.Data, file.AesKey);
-
-    Resource<FileAccess> access = ToResource<FileAccess>(
-      transaction,
-      new()
-      {
-        Id = ObjectId.GenerateNewId(),
-
-        FileId = file.File.Id,
-        AuthorUserId = authorUser.Id,
-        TargetEntity = new() { EntityType = FileAccessTargetEntityType.Group, EntityId = group.Id },
-
-        EncryptedAesKey = encryptedAesKey,
-
-        Level = level,
-      }
-    );
-
-    await access.Save(transaction);
-
     return new(access) { AesKey = file.AesKey };
   }
 
@@ -210,7 +163,7 @@ public sealed partial class ResourceManager
 
     if (access != null)
     {
-      if (access.Data.TargetEntity == null)
+      if (access.Data.TargetUserId == null)
       {
         return new(user, UnlockedFile.WithAesKey(file, access.Data.EncryptedAesKey), access);
       }

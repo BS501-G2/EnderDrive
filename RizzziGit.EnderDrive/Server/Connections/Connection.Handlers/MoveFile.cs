@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
@@ -11,7 +12,7 @@ public sealed partial class Connection
   private sealed record MoveFileRequest : BaseFileRequest
   {
     [BsonElement("newParentId")]
-    public required ObjectId? NewParentId;
+    public required ObjectId NewParentId;
 
     [BsonElement("newName")]
     public required string? NewName;
@@ -22,32 +23,64 @@ public sealed partial class Connection
   private FileRequestHandler<MoveFileRequest, MoveFileResponse> MoveFile =>
     async (transaction, request, userAuthentication, me, myAdminAccess, fileAccess) =>
     {
-      Resource<File> file =
-        request.NewParentId != null
-          ? await Internal_GetFile(transaction, me, userAuthentication, request.NewParentId.Value)
-          : await Internal_GetFile(transaction, me, userAuthentication, request.FileId);
-
-      FileAccessResult unlockedFile = await Internal_UnlockFile(
+      Resource<File> oldParent = await Internal_GetFile(
         transaction,
-        file,
+        me,
+        userAuthentication,
+        fileAccess.UnlockedFile.File.Data.ParentId
+      );
+
+      Resource<File> newParent = await Internal_GetFile(
+        transaction,
+        me,
+        userAuthentication,
+        request.NewParentId
+      );
+
+      if (newParent.Data.Type != FileType.Folder)
+      {
+        throw new InvalidOperationException("Parent is not a folder.");
+      }
+
+      FileAccessResult newParentAccessResult = await Internal_UnlockFile(
+        transaction,
+        newParent,
         me,
         userAuthentication
       );
 
-    //   if (
-    //     await Resources
-    //       .Query<File>(
-    //         transaction,
-    //         (query) => query.Where((file) => file.ParentId == request.FileId)
-    //       )
-    //       .AnyAsync(transaction.CancellationToken)
-    //   )
-    //   {
-    //     throw new ConnectionResponseException(
-    //       ResponseCode.FileNameConflict,
-    //       new ConnectionResponseExceptionData.FileNameConflict() { Name = request.Name }
-    //     );
-    //   }
+      string newName = request.NewName ?? fileAccess.UnlockedFile.File.Data.Name;
+
+      if (
+        await Resources
+          .Query<File>(
+            transaction,
+            (query) =>
+              query
+                .Where((file) => file.ParentId == newParent.Id)
+                .Where((file) => file.TrashTime != null)
+                .Where((file) => file.Name.Equals(newName, StringComparison.OrdinalIgnoreCase))
+          )
+          .AnyAsync(transaction.CancellationToken)
+      )
+      {
+        throw new ConnectionResponseException(
+          ResponseCode.FileNameConflict,
+          new ConnectionResponseExceptionData.FileNameConflict() { Name = newName }
+        );
+      }
+
+      await Resources.MoveFile(
+        transaction,
+        fileAccess.UnlockedFile,
+        newParentAccessResult.UnlockedFile
+      );
+
+      fileAccess.UnlockedFile.File.Data.Name = newName;
+      await fileAccess.UnlockedFile.File.Save(transaction);
+
+      await Resources.CreateFileLog(transaction, newParent, me, FileLogType.Update);
+      await Resources.CreateFileLog(transaction, oldParent, me, FileLogType.Update);
 
       return new() { };
     };

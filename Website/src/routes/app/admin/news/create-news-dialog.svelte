@@ -8,11 +8,11 @@
 
   const {
     newsId,
-    ondismiss,
+    oncancel,
     onresult
   }: {
     newsId?: number
-    ondismiss: () => void,
+    oncancel: () => void
     onresult: (file: FileResource) => void
   } = $props()
 
@@ -42,10 +42,9 @@
             onresult={async (files: FileResource[]) => {
               const fileMime = await getFileMime(files[0].id)
 
-              
+              onresult(files[0])
 
               browse = null
-              onresult(files[0])
             }}
             oncancel={() => {
               browse = null
@@ -57,7 +56,7 @@
     {/snippet}
   </Overlay>
 {:else}
-  <Overlay {ondismiss}>
+  <Overlay ondismiss={oncancel}>
     {#snippet children(windowButtons: Snippet)}
       <div class="create-dialog">
         <div class="header">

@@ -99,6 +99,7 @@
         {#if error != null}
           {error.message}
         {:else if promise != null}
+        
           <LoadingSpinner size="1em" />
         {:else}
           {@render children()}

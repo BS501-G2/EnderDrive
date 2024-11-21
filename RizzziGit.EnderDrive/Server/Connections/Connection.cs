@@ -75,24 +75,22 @@ public sealed partial class Connection(
     CancellationToken serviceCancellationToken
   )
   {
-    WebConnection connection =
-      new(
-        webSocket,
-        new() { Name = $"Connection #{ConnectionId}", Logger = ((IService)manager).Logger }
-      );
+    WebConnection connection = new(
+      webSocket,
+      new() { Name = $"Connection #{ConnectionId}", Logger = ((IService)manager).Logger }
+    );
 
     await StartServices([connection], startupCancellationToken);
 
-    ConnectionContext context =
-      new()
-      {
-        Internal = connection,
-        CurrentUser = null,
-        Handlers = new(),
+    ConnectionContext context = new()
+    {
+      Internal = connection,
+      CurrentUser = null,
+      Handlers = new(),
 
-        NextFileStreamId = 0,
-        FileStreams = new(),
-      };
+      NextFileStreamId = 0,
+      FileStreams = new(),
+    };
 
     RegisterHandlers(context);
 

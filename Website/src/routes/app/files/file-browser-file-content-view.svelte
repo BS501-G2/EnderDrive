@@ -54,11 +54,11 @@
     </div>
   </div>
 {:then imageUrl}
-  <iframe src={imageUrl} title="Image Content"></iframe>
+  <embed src={imageUrl} title="Image Content" />
 {/await}
 
 <style lang="scss">
-  iframe {
+  embed {
     flex-grow: 1;
   }
 

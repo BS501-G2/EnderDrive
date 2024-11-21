@@ -35,17 +35,16 @@ public sealed partial class ResourceManager
     bool createNewSnapshot
   )
   {
-    FileStream stream =
-      new(
-        this,
-        transaction,
-        file,
-        content,
-        createNewSnapshot
-          ? await CreateFileSnapshot(transaction, file, content, userAuthentication, snapshot)
-          : snapshot,
-        userAuthentication
-      );
+    FileStream stream = new(
+      this,
+      transaction,
+      file,
+      content,
+      createNewSnapshot
+        ? await CreateFileSnapshot(transaction, file, content, userAuthentication, snapshot)
+        : snapshot,
+      userAuthentication
+    );
 
     return stream;
   }

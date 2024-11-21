@@ -28,8 +28,6 @@ public sealed partial class ResourceManager
       transaction,
       new()
       {
-        Id = ObjectId.GenerateNewId(),
-
         UserId = user.Id,
 
         EncryptedAesKey = KeyManager.Encrypt(user.Data, adminKey.AesKey),

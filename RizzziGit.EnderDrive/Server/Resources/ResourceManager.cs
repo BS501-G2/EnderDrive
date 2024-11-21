@@ -60,14 +60,13 @@ public sealed partial class ResourceManager(Server server)
       (options) => options.AddProvider(new LoggerProvider((category) => new LoggerInstance(this)))
     );
 
-    MongoClient client =
-      new(
-        new MongoClientSettings()
-        {
-          Server = new MongoServerAddress("127.0.0.1"),
-          LoggingSettings = new(loggerFactory),
-        }
-      );
+    MongoClient client = new(
+      new MongoClientSettings()
+      {
+        Server = new MongoServerAddress("127.0.0.1"),
+        LoggingSettings = new(loggerFactory),
+      }
+    );
 
     RandomNumberGenerator randomNumberGenerator = RandomNumberGenerator.Create();
 

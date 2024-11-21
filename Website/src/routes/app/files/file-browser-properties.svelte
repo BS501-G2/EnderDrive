@@ -5,8 +5,13 @@
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import Separator from '$lib/client/ui/separator.svelte'
   import { fly } from 'svelte/transition'
-  import FileBrowserPropertiesDetails from './file-browser-properties-details.svelte'
   import FileBrowserFileIcon from './file-browser-file-icon.svelte'
+  import type { Snippet } from 'svelte'
+  import Button from '$lib/client/ui/button.svelte'
+  import { createFileBrowserPropertiesContext } from '$lib/client/contexts/file-browser-properties'
+  import { useAppContext } from '$lib/client/contexts/app'
+  import FileBrowserPropertiesDetailsTab from './file-browser-properties-details-tab.svelte'
+  import FileBrowserPropertiesAccessTab from './file-browser-properties-access-tab.svelte'
 
   const {
     selectedFileIds
@@ -24,6 +29,8 @@
   } = useServerContext()
 
   let promises: Promise<FileProperties[]> = $state(null as never)
+  const { currentTab, tabs } = createFileBrowserPropertiesContext()
+  const { isMobile } = useAppContext()
 
   $effect(() => {
     promises = (() =>
@@ -73,7 +80,7 @@
 >
   {#if promises != null}
     {#await promises}
-      <div class="loading">
+      <div class="loading" in:fly|global={{ x: 16 }}>
         <LoadingSpinner size="3rem" />
       </div>
     {:then files}
@@ -101,14 +108,52 @@
 
         <Separator horizontal />
 
-        <div class="details">
-          <FileBrowserPropertiesDetails {files} />
+        <div class="details" in:fly|global={{ x: 16 }}>
+          <div class="tabs">
+            {#each $tabs as { id, name, icon }, index (id)}
+              {#snippet foreground(view: Snippet)}
+                <div class="tab-button">
+                  {@render view()}
+                </div>
+              {/snippet}
+
+              <div class="entry">
+                <Button {foreground} onclick={() => currentTab.set(index)}>
+                  <Icon {...icon} />
+                  <p class="label">
+                    {name}
+                  </p>
+                </Button>
+
+                {#if $currentTab === index}
+                  <div class="indicator" class:mobile={$isMobile}></div>
+                {/if}
+              </div>
+            {/each}
+          </div>
+
+          <Separator horizontal />
+
+          <div class="tab-content">
+            {@render $tabs[$currentTab]?.content()}
+          </div>
         </div>
       {:else}
         <div class="empty">
           <Icon icon="file" size="72px" />
           <p>Select any file to examine</p>
         </div>
+      {/if}
+
+      {#if files.length > 0}
+        <FileBrowserPropertiesDetailsTab {files} />
+      {/if}
+
+      {#if files.length === 1 && files[0].file.parentId != null}
+        <FileBrowserPropertiesAccessTab file={files[0]} />
+      {/if}
+
+      {#if files.length === 1}
       {/if}
     {/await}
   {/if}
@@ -152,6 +197,37 @@
 
   div.details {
     flex-grow: 1;
+
+    > div.tabs {
+      flex-direction: row;
+      overflow: auto hidden;
+
+      div.entry {
+        flex-grow: 1;
+
+        div.tab-button {
+          flex-direction: row;
+          align-items: center;
+
+          padding: 8px;
+          gap: 8px;
+        }
+
+        div.indicator {
+          @include force-size(&, 1px);
+
+          background-color: var(--color-1);
+        }
+
+        div.indicator.mobile {
+          background-color: var(--color-5);
+        }
+      }
+    }
+
+    > div.tab-content {
+      flex-grow: 1;
+    }
   }
 
   div.empty {

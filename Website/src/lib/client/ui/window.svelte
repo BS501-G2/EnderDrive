@@ -2,13 +2,17 @@
   import type { Snippet } from 'svelte'
   import Overlay from '../../../routes/overlay.svelte'
   import Separator from './separator.svelte'
+  import type { IconOptions } from './icon.svelte'
+  import Icon from './icon.svelte'
 
   const {
+    titleIcon,
     title,
     header,
     children: body,
     ondismiss
   }: {
+    titleIcon?: IconOptions
     title?: string
     header?: Snippet
     children: Snippet
@@ -20,15 +24,23 @@
   {#snippet children(windowButtons: Snippet)}
     <div class="window">
       <div class="header">
-        <h2 class="title">
-          {title ?? ''}
-        </h2>
+        <div class="title">
+          {#if titleIcon}
+            <div class="icon">
+              <Icon {...titleIcon} size="1rem" />
+            </div>
+          {/if}
 
-        {#if header}
-          <div class="head-bar">
-            {@render header()}
-          </div>
-        {/if}
+          <h2 class="title">
+            {title ?? ''}
+          </h2>
+
+          {#if header}
+            <div class="head-bar">
+              {@render header()}
+            </div>
+          {/if}
+        </div>
 
         {@render windowButtons()}
       </div>
@@ -48,22 +60,34 @@
     color: var(--color-1);
 
     > div.header {
-      gap: 8px;
+      gap: 16px;
 
       flex-direction: row;
 
+      > div.title {
+        flex-grow: 1;
+        gap: 16px;
+        padding: 8px 16px;
+
+        flex-direction: row;
+
       align-items: center;
 
-      > h2.title {
-        flex-grow: 1;
-        font-size: 1.2em;
-        font-weight: bolder;
-        margin-left: 8px;
+        > div.icon {
+        }
+
+        > h2.title {
+          flex-grow: 1;
+          font-size: 1.2em;
+          font-weight: bolder;
+        }
+
+
       }
     }
 
     > div.body {
-      padding: 8px;
+      padding: 16px;
       gap: 8px;
     }
   }

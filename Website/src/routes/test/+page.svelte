@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
-  import { useClientContext, useServerContext } from '$lib/client/client'
+  import { useClientContext, UserRole, useServerContext } from '$lib/client/client'
   import Button from '$lib/client/ui/button.svelte'
   import RequireClient from '$lib/client/ui/require-client.svelte'
   import { onMount, type Snippet } from 'svelte'
@@ -43,21 +43,42 @@
   const adminUsername = 'testuser'
   const adminPassword = 'TestUser123;'
 
-  const { getSetupRequirements, createAdmin, resolveUsername, authenticatePassword } =
-    useServerContext()
+  const {
+    getSetupRequirements,
+    createAdmin,
+    me,
+    deauthenticate,
+    createUser,
+    resolveUsername,
+    authenticatePassword
+  } = useServerContext()
+
+  const { authentication } = useClientContext()
 
   onMount(() => pushAction('Get Setup Requirements', () => getSetupRequirements()))
 
-  onMount(() =>
-    pushAction('Create Administrator Account', async () => {
-      await createAdmin(adminUsername, adminPassword, adminPassword, 'Test', null, 'User', null)
-    })
-  )
+  onMount(() => pushAction('Go To Landing', () => goto('/landing')))
+
+  onMount(() => pushAction('Go To App', () => goto('/app/files')))
 
   onMount(() => pushAction('Resolve Username', async () => resolveUsername(adminUsername)))
 
   onMount(() =>
-    pushAction('Authenticate Password', async () => {
+    pushAction('Create Administrator', async () => {
+      await createAdmin(
+        adminUsername,
+        adminPassword,
+        adminPassword,
+        'Admin',
+        'Nis',
+        'Trator',
+        'Administrator'
+      )
+    })
+  )
+
+  onMount(() =>
+    pushAction('Login As Administrator', async () => {
       const userId = await resolveUsername(adminUsername)
 
       if (userId == null) {
@@ -68,9 +89,33 @@
     })
   )
 
-  onMount(() => pushAction('Go To Landing', () => goto('/landing')))
+  onMount(() => pushAction('Logout', async () => deauthenticate()))
 
-  onMount(() => pushAction('Go To App', () => goto('/app/files')))
+  onMount(() =>
+    pushAction('Create Test Users', async () => {
+      for (let iteration = 0; iteration < 10; iteration++) {
+        await createUser({
+          username: `testuser${iteration}`,
+          password: 'TestUser123;',
+          firstName: 'Test',
+          lastName: 'User'
+        })
+      }
+    })
+  )
+
+  for (let iteration = 0; iteration < 10; iteration++) {
+    const capturedIteration = iteration
+
+    onMount(() =>
+      pushAction(`Login As User ${capturedIteration}`, async () => {
+        await authenticatePassword(
+          (await resolveUsername(`testuser${capturedIteration}`))!,
+          'TestUser123;'
+        )
+      })
+    )
+  }
 </script>
 
 {#snippet background(view: Snippet)}
@@ -89,6 +134,18 @@
   <div class="card">
     <div class="header">
       <h2>Actions</h2>
+
+      <div>
+        <p>Current Account</p>
+
+        {#if $authentication != null}
+          {#await me() then myAccount}
+            <p>{myAccount.displayName ?? myAccount.firstName} (@{myAccount.username})</p>
+          {/await}
+        {:else}
+          (none)
+        {/if}
+      </div>
     </div>
     <div class="separator"></div>
     <div class="body actions">
@@ -124,6 +181,15 @@
     padding: 16px;
     margin: 16px;
     gap: 16px;
+
+    > div.header {
+      flex-direction: row;
+      align-items: flex-end;
+
+      > h2 {
+        flex-grow: 1;
+      }
+    }
 
     > div.separator {
       background-color: var(--color-1);

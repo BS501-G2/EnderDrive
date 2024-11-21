@@ -23,7 +23,7 @@
   <LoadingSpinner size="1rem" />
 {:then user}
   {#if user}
-    <a class="user" href="/app/profile?id={user.id}">@{user.username}</a>
+    <a class="user" href="/app/profile?id={user.id}">{user.displayName ?? `${user.firstName}`}</a>
   {:else}
     <p class="invalid">Invalid username</p>
   {/if}
@@ -37,6 +37,7 @@
   a.user {
     color: inherit;
     text-decoration: none;
+    font-weight: bolder;
   }
 
   a.user:hover {

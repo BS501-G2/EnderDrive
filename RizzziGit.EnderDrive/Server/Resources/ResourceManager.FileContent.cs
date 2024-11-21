@@ -38,7 +38,6 @@ public sealed partial class ResourceManager
         transaction,
         new()
         {
-          Id = ObjectId.GenerateNewId(),
           FileId = file.Id,
           Main = true,
           Name = "Main Content",
@@ -60,7 +59,6 @@ public sealed partial class ResourceManager
       transaction,
       new()
       {
-        Id = ObjectId.GenerateNewId(),
         FileId = file.File.Id,
         Main = false,
         Name = name,

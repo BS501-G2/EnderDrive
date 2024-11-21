@@ -53,7 +53,7 @@ public record class UserAuthentication : ResourceData
 }
 
 [Flags]
-public enum PasswordVerification
+public enum PasswordValidationFlags
 {
   OK = 0,
   TooShort = 1 << 0,
@@ -76,34 +76,38 @@ public sealed partial class ResourceManager
 
   private static byte[] HashPayload(byte[] salt, int iterations, byte[] payload)
   {
-    using Rfc2898DeriveBytes rfc2898DeriveBytes =
-      new(payload, salt, iterations, HashAlgorithmName.SHA256);
+    using Rfc2898DeriveBytes rfc2898DeriveBytes = new(
+      payload,
+      salt,
+      iterations,
+      HashAlgorithmName.SHA256
+    );
 
     return rfc2898DeriveBytes.GetBytes(32);
   }
 
-  public PasswordVerification VerifyPassword(string password, string? confirmPassword = null)
+  public PasswordValidationFlags ValidatePassword(string password, string? confirmPassword = null)
   {
-    PasswordVerification verification = 0;
+    PasswordValidationFlags verification = 0;
 
     if (password.Length < 6)
     {
-      verification |= PasswordVerification.TooShort;
+      verification |= PasswordValidationFlags.TooShort;
     }
 
     if (password.Length > 36)
     {
-      verification |= PasswordVerification.TooLong;
+      verification |= PasswordValidationFlags.TooLong;
     }
 
     if (!PASSWORD_REGEX.IsMatch(password))
     {
-      verification |= PasswordVerification.NoRequiredChars;
+      verification |= PasswordValidationFlags.NoRequiredChars;
     }
 
     if (confirmPassword != null && password != confirmPassword)
     {
-      verification |= PasswordVerification.PasswordMismatch;
+      verification |= PasswordValidationFlags.PasswordMismatch;
     }
 
     return verification;
@@ -136,7 +140,6 @@ public sealed partial class ResourceManager
       transaction,
       new()
       {
-        Id = ObjectId.GenerateNewId(),
         UserId = user.Id,
         Type = type,
         Iterations = iterations,
@@ -189,7 +192,6 @@ public sealed partial class ResourceManager
       transaction,
       new()
       {
-        Id = ObjectId.GenerateNewId(),
         UserId = user.Id,
         Type = type,
         Iterations = iterations,
@@ -236,7 +238,6 @@ public sealed partial class ResourceManager
       transaction,
       new()
       {
-        Id = ObjectId.GenerateNewId(),
         UserId = user.Id,
         Type = type,
         Iterations = iterations,

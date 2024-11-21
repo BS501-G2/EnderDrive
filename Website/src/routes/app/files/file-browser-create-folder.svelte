@@ -64,7 +64,7 @@
         <div class="footer">
           <Button {onclick}>
             <div class="button">
-              <Icon icon="plus" />
+              <Icon icon="plus" thickness="solid" />
               <p>Create</p>
             </div>
           </Button>

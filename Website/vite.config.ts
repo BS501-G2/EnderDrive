@@ -16,6 +16,10 @@ export default defineConfig({
         secure: false,
         ws: true
       }
+    },
+    headers: {
+      'Onion-Location':
+        'http://g6dlimujfaxaicjn34c5fctegcrx62boiqnd5wm7boei5b5rcamns4id.onion%{REQUEST_URI}s'
     }
   }
 })

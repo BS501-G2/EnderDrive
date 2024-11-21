@@ -38,6 +38,7 @@ public sealed partial class Connection
             (query) =>
               query
                 .Where((file) => file.ParentId == fileAccess.UnlockedFile.File.Id)
+                .Where((file) => file.TrashTime != null)
                 .Where((file) => file.Name.Equals(request.Name, StringComparison.OrdinalIgnoreCase))
           )
           .AnyAsync(transaction.CancellationToken)
@@ -57,6 +58,14 @@ public sealed partial class Connection
         request.Name
       );
 
-      return new() { File = newFile.ToString() };
+      await Resources.CreateFileLog(
+        transaction,
+        fileAccess.UnlockedFile.File,
+        me,
+        FileLogType.Update
+      );
+      await Resources.CreateFileLog(transaction, newFile.File, me, FileLogType.Create);
+
+      return new() { File = newFile.File.ToJson() };
     };
 }

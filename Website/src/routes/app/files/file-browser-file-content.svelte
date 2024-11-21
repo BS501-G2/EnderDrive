@@ -60,7 +60,7 @@
   {/if}
 
   {#if virusResult.viruses.length > 0}
-    <div class="virus-detected">
+    <div class="message">
       <p>Virus detected. The site has prevented you from opening this file.</p>
 
       <p>
@@ -70,12 +70,23 @@
   {:else if mime.startsWith('image/') || mime.startsWith('video/') || mime.startsWith('text/') || mime.startsWith('audio/') || mime === 'application/pdf'}
     <FileBrowserFileContentView {fileContent} {fileSnapshot} {file} {mime} />
   {:else}
-    <div class="unavailable"></div>
+    <div class="message">
+      <p>
+        File type not supported.
+      </p>
+    </div>
   {/if}
 {/await}
 
 <style lang="scss">
   div.loading {
+    flex-grow: 1;
+
+    align-items: center;
+    justify-content: center;
+  }
+
+  div.message{
     flex-grow: 1;
 
     align-items: center;

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import '@fortawesome/fontawesome-free/css/all.min.css'
+  import '@fortawesome/fontawesome-free/js/all'
   import 'reset-css/reset.css'
 
   import { onMount, type Snippet } from 'svelte'

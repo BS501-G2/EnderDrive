@@ -65,7 +65,7 @@ public record class User : ResourceData
 }
 
 [Flags]
-public enum UsernameValidation
+public enum UsernameValidationFlags
 {
   OK = 0,
   TooShort = 1 << 0,
@@ -83,23 +83,23 @@ public sealed partial class ResourceManager
   public const int USERNAME_MIN_LENGTH = 6;
   public const int USERNAME_MAX_LENGTH = 12;
 
-  public UsernameValidation ValidateUsername(string username)
+  public UsernameValidationFlags ValidateUsername(string username)
   {
-    UsernameValidation validation = default;
+    UsernameValidationFlags validation = default;
 
     if (username.Length < USERNAME_MIN_LENGTH)
     {
-      validation |= UsernameValidation.TooShort;
+      validation |= UsernameValidationFlags.TooShort;
     }
 
     if (username.Length > USERNAME_MAX_LENGTH)
     {
-      validation |= UsernameValidation.TooLong;
+      validation |= UsernameValidationFlags.TooLong;
     }
 
     if (!USERNAME_REGEX.IsMatch(username))
     {
-      validation |= UsernameValidation.InvalidChars;
+      validation |= UsernameValidationFlags.InvalidChars;
     }
 
     return validation;

@@ -42,7 +42,6 @@ public sealed partial class ResourceManager
         transaction,
         new()
         {
-          Id = ObjectId.GenerateNewId(),
           FileId = file.Id,
           UserId = user.Id,
           CreateTime = DateTimeOffset.Now,

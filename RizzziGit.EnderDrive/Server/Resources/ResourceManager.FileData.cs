@@ -112,7 +112,6 @@ public sealed partial class ResourceManager
       transaction,
       new()
       {
-        Id = ObjectId.GenerateNewId(),
         FileId = file.File.Id,
         FileContentId = fileContent.Id,
         EncryptedBuffer = KeyManager.Encrypt(file, bytes.ToByteArray()),
@@ -127,8 +126,6 @@ public sealed partial class ResourceManager
         transaction,
         new()
         {
-          Id = ObjectId.GenerateNewId(),
-
           FileId = file.File.Id,
           FileContentId = fileContent.Id,
           FileSnapshotId = fileSnapshot.Id,

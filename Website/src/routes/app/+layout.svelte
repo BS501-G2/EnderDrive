@@ -32,7 +32,7 @@
   const { navigationEntries } = createNavigationContext()
   const { isMobile, isDesktop, isCustomBar, isFullscreen, titleStack } = useAppContext()
   const { authentication } = useClientContext()
-  const { me } = useServerContext()
+  const { me, didIAgree } = useServerContext()
 
   const {
     children
@@ -48,6 +48,8 @@
         await goto(`/landing?login&return=${encodeURIComponent($page.url.pathname)}`, {
           replaceState: true
         })
+      } else if (!await didIAgree() && !$page.url.pathname.startsWith('/agreement')) {
+        await goto(`/app/agreement?return=${encodeURIComponent($page.url.pathname)}`)
       }
     })
   )
@@ -164,28 +166,28 @@
       </div>
     {/if}
   </div>
-{/if}
 
-<Search />
-<AppButtonHost {mobileAppButtons} />
-<ProgressHost tasks={backgroundTasks} />
+  <Search />
+  <AppButtonHost {mobileAppButtons} />
+  <ProgressHost tasks={backgroundTasks} />
 
-{#if $isDesktop}
-  <NotificationButtonDesktop />
+  {#if $isDesktop}
+    <NotificationButtonDesktop />
 
-  {#await me() then user}
-    {#if user != null}
-      <User bind:logoutConfirmation {user} />
-    {/if}
-  {/await}
-{/if}
+    {#await me() then user}
+      {#if user != null}
+        <User bind:logoutConfirmation {user} />
+      {/if}
+    {/await}
+  {/if}
 
-{#if logoutConfirmation}
-  <LogoutConfirmation
-    ondismiss={() => {
-      logoutConfirmation = false
-    }}
-  />
+  {#if logoutConfirmation}
+    <LogoutConfirmation
+      ondismiss={() => {
+        logoutConfirmation = false
+      }}
+    />
+  {/if}
 {/if}
 
 <style lang="scss">

@@ -28,6 +28,14 @@ public sealed partial class Connection
         requiredExcludeRole
       );
 
+    void registerAdminHandler<S, R>(
+      ServerSideRequestCode code,
+      AdminRequestHandler<S, R> handler,
+      UserRole[]? requiredIncludeRole = null,
+      UserRole[]? requiredExcludeRole = null
+    ) =>
+      RegisterAdminHandler<S, R>(context, code, handler, requiredIncludeRole, requiredExcludeRole);
+
     void registerFileHandler<S, R>(
       ServerSideRequestCode code,
       FileRequestHandler<S, R> handler,
@@ -105,6 +113,25 @@ public sealed partial class Connection
     registerHandler(ServerSideRequestCode.SetPosition, SetPosition);
     registerHandler(ServerSideRequestCode.GetStreamSize, GetStreamSize);
     registerHandler(ServerSideRequestCode.GetStreamPosition, GetStreamPosition);
+    registerAuthenticatedHandler(ServerSideRequestCode.DidIAgree, DidIAgree);
+    registerAuthenticatedHandler(ServerSideRequestCode.Agree, Agree);
+    registerFileHandler(
+      ServerSideRequestCode.TrashFile,
+      TrashFile,
+      null,
+      FileAccessLevel.ReadWrite
+    );
+    registerFileHandler(
+      ServerSideRequestCode.UntrashFile,
+      UntrashFile,
+      null,
+      FileAccessLevel.ReadWrite
+    );
+    registerFileHandler(ServerSideRequestCode.MoveFile, MoveFile, null, FileAccessLevel.ReadWrite);
+    registerAdminHandler(ServerSideRequestCode.CreateUser, CreateUser);
+    registerHandler(ServerSideRequestCode.GetUsernameValidationFlags, GetUsernameValidationFlags);
+    registerHandler(ServerSideRequestCode.GetPasswordValidationFlags, GetPasswordValidationFlags);
+    registerFileHandler(ServerSideRequestCode.SetFileAccess, SetFileAccess);
   }
 }
 
@@ -160,4 +187,17 @@ public enum ServerSideRequestCode : byte
   CreateNews,
   DeleteNews,
   GetNews,
+
+  DidIAgree,
+  Agree,
+
+  TrashFile,
+  UntrashFile,
+  MoveFile,
+  CreateUser,
+
+  GetUsernameValidationFlags,
+  GetPasswordValidationFlags,
+
+  SetFileAccess
 }

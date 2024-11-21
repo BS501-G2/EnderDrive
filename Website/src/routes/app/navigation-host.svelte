@@ -154,7 +154,7 @@
     {/if}
 
     <Navigation
-      label="Me"
+      label="Profile"
       onclick={async () => goto(`/app/profile?id=${me.id}`)}
       icon={(isActive) => ({
         icon: 'user',

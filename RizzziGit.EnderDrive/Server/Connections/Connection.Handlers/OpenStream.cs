@@ -77,6 +77,15 @@ public sealed partial class Connection
         source
       );
 
+      await Resources.CreateFileLog(
+        transaction,
+        file,
+        me,
+        FileLogType.Read,
+        fileContent,
+        fileSnapshot
+      );
+
       return new() { StreamId = await source.Task };
     };
 }

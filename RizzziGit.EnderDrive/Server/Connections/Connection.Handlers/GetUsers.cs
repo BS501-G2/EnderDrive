@@ -49,40 +49,43 @@ public sealed partial class Connection
                 (user) =>
                   (
                     request.SearchString == null
+                    || request.SearchString.Length == 0
+                    || user.Username.Contains(
+                      request.SearchString,
+                      System.StringComparison.CurrentCultureIgnoreCase
+                    )
+                    || user.FirstName.Contains(
+                      request.SearchString,
+                      System.StringComparison.CurrentCultureIgnoreCase
+                    )
                     || (
-                      user.Username.Contains(
+                      user.MiddleName != null
+                      && user.MiddleName.Contains(
                         request.SearchString,
-                        System.StringComparison.OrdinalIgnoreCase
+                        System.StringComparison.CurrentCultureIgnoreCase
                       )
-                      || user.FirstName.Contains(
+                    )
+                    || user.LastName.Contains(
+                      request.SearchString,
+                      System.StringComparison.CurrentCultureIgnoreCase
+                    )
+                    || (
+                      user.DisplayName != null
+                      && user.DisplayName.Contains(
                         request.SearchString,
-                        System.StringComparison.OrdinalIgnoreCase
-                      )
-                      || (
-                        user.MiddleName == null
-                        || user.MiddleName.Contains(
-                          request.SearchString,
-                          System.StringComparison.OrdinalIgnoreCase
-                        )
-                      )
-                      || user.LastName.Contains(
-                        request.SearchString,
-                        System.StringComparison.OrdinalIgnoreCase
-                      )
-                      || (
-                        user.DisplayName == null
-                        || user.DisplayName.Contains(
-                          request.SearchString,
-                          System.StringComparison.OrdinalIgnoreCase
-                        )
+                        System.StringComparison.CurrentCultureIgnoreCase
                       )
                     )
                   )
                   && (
-                    request.IncludeRole == null || request.IncludeRole.Intersect(user.Roles).Any()
+                    request.IncludeRole == null
+                    || request.IncludeRole.Length == 0
+                    || request.IncludeRole.All((item) => user.Roles.Contains(item))
                   )
                   && (
-                    request.ExcludeRole == null || !request.ExcludeRole.Intersect(user.Roles).Any()
+                    request.ExcludeRole == null
+                    || request.ExcludeRole.Length == 0
+                    || !request.ExcludeRole.Intersect(user.Roles).Any()
                   )
                   && (
                     request.Username == null

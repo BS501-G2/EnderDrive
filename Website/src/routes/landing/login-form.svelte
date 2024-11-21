@@ -73,11 +73,9 @@
 
   const {
     authenticatePassword,
-    authenticateGoogle,
     resolveUsername,
     me,
     amILoggedIn,
-    getUser,
     deauthenticate
   } = useServerContext()
 
@@ -93,6 +91,10 @@
   }
 
   let click = $state(() => {})
+  let reset = $state(() => {})
+
+  onMount(() => username.subscribe(() => reset()))
+  onMount(() => password.subscribe(() => reset()))
 </script>
 
 <RequireClient>
@@ -131,19 +133,19 @@
           onsubmit={click}
         />
 
-        {#snippet background(view: Snippet)}
+        {#snippet loginBackground(view: Snippet)}
           <div class="submit-outer">
             {@render view()}
           </div>
         {/snippet}
 
-        {#snippet foreground(view: Snippet)}
+        {#snippet loginForeground(view: Snippet)}
           <div class="submit">
             {@render view()}
           </div>
         {/snippet}
 
-        <Button {background} {foreground} bind:click {onclick}>
+        <Button background={loginBackground} foreground={loginForeground} bind:reset bind:click {onclick}>
           <p>Login</p>
         </Button>
       </div>
@@ -156,20 +158,20 @@
         </div>
 
         <div class="actions">
-          {#snippet background(view: Snippet)}
+          {#snippet actionBackground(view: Snippet)}
             <div class="action-container-outer">
               {@render view()}
             </div>
           {/snippet}
 
-          {#snippet foreground(view: Snippet)}
+          {#snippet actionForeground(view: Snippet)}
             <div class="action-container">
               {@render view()}
             </div>
           {/snippet}
 
           {#each $actions as { id, name, icon, onclick } (id)}
-            <Button {background} {foreground} {onclick}>
+            <Button background={actionBackground} foreground={actionForeground} {onclick}>
               <div class="action">
                 <Icon {...icon} />
                 <p>

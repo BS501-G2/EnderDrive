@@ -138,7 +138,7 @@ public sealed partial class VirusScanner(Server server, string unixSocketPath)
     await StopServices([data.TcpForwarder]);
   }
 
-  public async Task<ScanResult> Scan(Stream stream, CancellationToken cancellationToken = default)
+  private async Task<ScanResult> Scan(Stream stream, CancellationToken cancellationToken = default)
   {
     VirusScannerContext context = GetContext();
 
@@ -161,6 +161,31 @@ public sealed partial class VirusScanner(Server server, string unixSocketPath)
       fileContent,
       fileSnapshot
     );
+
+    MimeDetective.Storage.Definition? definition = await server.MimeDetector.Inspect(
+      transaction,
+      file,
+      fileContent,
+      fileSnapshot
+    );
+
+    if (
+      definition != null
+      && definition.File.MimeType != null
+      && (
+        definition.File.MimeType.StartsWith("audio/")
+        || definition.File.MimeType.StartsWith("video/")
+        || definition.File.MimeType.StartsWith("image/")
+        || definition.File.MimeType == "application/pdf"
+        || definition.File.MimeType.StartsWith("font/")
+      )
+    )
+    {
+      virusReport.Data.Status = VirusReportStatus.Completed;
+      virusReport.Data.Viruses = [];
+
+      await virusReport.Save(transaction);
+    }
 
     if (forceRescan || virusReport.Data.Status == VirusReportStatus.Pending)
     {

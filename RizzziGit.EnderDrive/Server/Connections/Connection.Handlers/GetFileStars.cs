@@ -58,7 +58,6 @@ public sealed partial class Connection
               transaction,
               (query) => query.Where((item) => item.Id == request.FileId)
             )
-          // Resources.GetFiles(transaction, id: request.FileId)
           )
           : null;
 
@@ -82,6 +81,7 @@ public sealed partial class Connection
                 (item) =>
                   (file == null || item.FileId == file.Id)
                   && (user == null || item.UserId == user.Id)
+                  && item.Starred
               )
               .ApplyPagination(request.Pagination)
         )

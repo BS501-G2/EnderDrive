@@ -1,3 +1,3 @@
 <script lang="ts">
-  const { id, imageId }: { id?: string; imageId: string } = $props()
+  const { id, imageId }: { id: string | null; imageId: string } = $props()
 </script>

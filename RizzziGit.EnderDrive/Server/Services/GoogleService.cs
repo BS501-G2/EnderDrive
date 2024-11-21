@@ -36,8 +36,11 @@ public sealed partial class GoogleService(Server server)
     CancellationToken serviceCancellationToken
   )
   {
-    BaseClientService.Initializer baseClientService =
-      new() { ApiKey = "", ApplicationName = "EnderDrive" };
+    BaseClientService.Initializer baseClientService = new()
+    {
+      ApiKey = "",
+      ApplicationName = "EnderDrive",
+    };
 
     return Task.FromResult<GoogleContext>(new() { Feed = new() });
   }

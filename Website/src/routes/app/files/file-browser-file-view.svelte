@@ -41,7 +41,7 @@
         <div class="header">
           <div class="title">
             <p>
-              {file.name}
+              {file?.name}
             </p>
           </div>
 

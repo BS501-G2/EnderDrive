@@ -29,6 +29,11 @@ public sealed partial class Connection
   private FileRequestHandler<CreateFileRequest, CreateFileResponse> CreateFile =>
     async (transaction, request, userAuthentication, me, _, fileAccess) =>
     {
+      if (fileAccess.UnlockedFile.File.Data.Type != FileType.Folder)
+      {
+        throw new InvalidOperationException("Parent is not a folder.");
+      }
+
       if (
         await Resources
           .Query<File>(
@@ -36,6 +41,7 @@ public sealed partial class Connection
             (query) =>
               query
                 .Where((file) => file.ParentId == fileAccess.UnlockedFile.File.Id)
+                .Where((file) => file.TrashTime != null)
                 .Where((file) => file.Name.Equals(request.Name, StringComparison.OrdinalIgnoreCase))
           )
           .AnyAsync(transaction.CancellationToken)
@@ -71,6 +77,7 @@ public sealed partial class Connection
       TaskCompletionSource<ObjectId> source = new();
 
       RunStream(unlockedFile, fileContent, fileSnapshot, userAuthentication, source);
+      await Resources.CreateFileLog(transaction, unlockedFile.File, me, FileLogType.Create);
 
       return new() { StreamId = await source.Task };
     };

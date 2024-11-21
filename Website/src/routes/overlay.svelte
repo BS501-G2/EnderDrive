@@ -14,7 +14,8 @@
     notransition = false,
     noshadow = false,
     x,
-    y
+    y,
+    'disable-x': disableX = false
   }: {
     children: Snippet<[windowButtons: Snippet]>
     ondismiss?: () => void
@@ -23,6 +24,7 @@
     notransition?: boolean
     x?: number
     y?: number
+    'disable-x'?: boolean
   } = $props()
 
   let {
@@ -88,16 +90,24 @@
     context: { pushButton }
   } = createOverlayContext()
 
-  onMount(() =>
-    pushButton(
-      'test',
-      {
-        icon: 'xmark',
-        thickness: 'solid'
-      },
-      () => ondismiss?.()
-    )
-  )
+  $effect(() => {
+    const ondestroy: (() => void)[] = []
+
+    if (!disableX) {
+      ondestroy.push(
+        pushButton(
+          'test',
+          {
+            icon: 'xmark',
+            thickness: 'solid'
+          },
+          () => ondismiss?.()
+        )
+      )
+    }
+
+    return () => ondestroy.forEach((destroy) => destroy())
+  })
 </script>
 
 {#snippet windowButtons()}

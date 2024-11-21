@@ -42,16 +42,16 @@ public sealed partial class Connection
         throw new InvalidOperationException("Admin user already exists.");
       }
 
-      UsernameValidation usernameValidation = Resources.ValidateUsername(request.Username);
+      UsernameValidationFlags usernameValidation = Resources.ValidateUsername(request.Username);
 
-      if (usernameValidation != UsernameValidation.OK)
+      if (usernameValidation != UsernameValidationFlags.OK)
       {
         throw new InvalidOperationException($"Invalid Username: {usernameValidation}");
       }
 
-      PasswordVerification passwordVerification = Resources.VerifyPassword(request.Password);
+      PasswordValidationFlags passwordVerification = Resources.ValidatePassword(request.Password);
 
-      if (passwordVerification != PasswordVerification.OK)
+      if (passwordVerification != PasswordValidationFlags.OK)
       {
         throw new InvalidOperationException($"Invalid Password: {passwordVerification}");
       }

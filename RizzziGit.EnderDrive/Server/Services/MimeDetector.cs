@@ -8,10 +8,10 @@ using MimeDetective.Definitions;
 using MimeDetective.Definitions.Licensing;
 using MimeDetective.Engine;
 using MimeDetective.Storage;
+using System.Linq;
 
 namespace RizzziGit.EnderDrive.Server.Services;
 
-using System.Linq;
 using Commons.Collections;
 using Commons.Services;
 using Commons.Utilities;
@@ -97,7 +97,7 @@ public sealed partial class MimeDetector(Server server)
     }
   }
 
-  public async Task<Definition?> Inspect(Stream stream, CancellationToken cancellationToken)
+  private async Task<Definition?> Inspect(Stream stream, CancellationToken cancellationToken)
   {
     MimeDetectorContext context = GetContext();
     TaskCompletionSource<Definition?> output = new();
