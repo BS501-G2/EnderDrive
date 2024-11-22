@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { FileType, TrashOptions, useServerContext } from '$lib/client/client'
+  import { FileType, TrashOptions, useServerContext, type FileResource } from '$lib/client/client'
   import {
     FileBrowserResolveType,
     useFileBrowserContext,
@@ -8,7 +8,7 @@
     type FileBrowserResolve,
     type FileEntry
   } from '$lib/client/contexts/file-browser'
-  import { get, type Readable, type Writable } from 'svelte/store'
+  import { get, writable, type Readable, type Writable } from 'svelte/store'
   import { onMount, type Snippet } from 'svelte'
   import Banner from '$lib/client/ui/banner.svelte'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
@@ -29,11 +29,10 @@
     useServerContext()
   const { pushRefresh } = useFileBrowserContext()
 
-  async function load(
-    resolve: FileBrowserResolve,
-    offset?: number,
-    length?: number
-  ): Promise<void> {
+  const displayedFiles = writable<FileEntry[]>([])
+  const lastCurrentFile: Writable<CurrentFile | null> = writable(null)
+
+  async function load(resolve: FileBrowserResolve, offset?: number, count?: number): Promise<void> {
     const load = async (): Promise<CurrentFile> => {
       const self = await me()
 
@@ -47,20 +46,13 @@
           if (file.type === FileType.File) {
             return {
               type: 'file',
-              mime: 'application/octet-stream',
+              mime: await getFileMime(file.id, void 0, void 0),
               path,
-              file
+              file,
+              me: self
             }
           } else if (file.type === FileType.Folder) {
-            const files = await getFiles(
-              file.id,
-              void 0,
-              void 0,
-              self.id,
-              undefined,
-              offset,
-              length
-            )
+            const files = await getFiles(file.id, void 0, void 0, void 0, undefined, offset, count)
 
             return {
               type: 'folder',
@@ -82,7 +74,8 @@
                   }
                 })
               ),
-              file
+              file,
+              me: self
             }
           } else {
             throw new Error('Invalid file type.')
@@ -90,33 +83,25 @@
         }
 
         case FileBrowserResolveType.Shared: {
-          const fileAccesses = await getFileAccesses(
-            self.id,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            offset,
-            length
-          )
+          const fileAccesses = await getFileAccesses({ targetUserId: self.id, offset, count, includePublic: true })
           return {
             type: 'shared',
             files: await Promise.all(
               fileAccesses.map(async (fileAccess): Promise<FileEntry> => {
                 const file = await getFile(fileAccess.fileId)
-
                 return {
                   type: 'shared',
                   file,
                   fileAccess
                 }
               })
-            )
+            ),
+            me: self
           }
         }
 
         case FileBrowserResolveType.Starred: {
-          const fileStars = await getFileStars(undefined, self.id, offset, length)
+          const fileStars = await getFileStars(undefined, self.id, offset, count)
 
           return {
             type: 'starred',
@@ -130,7 +115,8 @@
                   fileStar
                 }
               })
-            )
+            ),
+            me: self
           }
         }
 
@@ -142,7 +128,7 @@
             self.id,
             TrashOptions.Exclusive,
             offset,
-            length
+            count
           )
 
           return {
@@ -154,7 +140,8 @@
                   file
                 }
               })
-            )
+            ),
+            me: self
           }
         }
       }
@@ -166,6 +153,19 @@
       })
       const result = await load()
 
+      if (
+        result.type === 'shared' ||
+        result.type === 'folder' ||
+        result.type === 'starred' ||
+        result.type === 'trash'
+      ) {
+        displayedFiles.update((files) => {
+          files.push(...result.files)
+          return files
+        })
+      }
+
+      lastCurrentFile.set(result)
       current.set(result)
     } catch (error: any) {
       console.error(error)
@@ -222,7 +222,7 @@
     <LoadingSpinner size="3em" />
   </div>
 {:else if $current.type === 'folder' || $current.type === 'shared' || $current.type === 'starred' || $current.type === 'trash'}
-  <FileBrowserFileList current={$current} />
+  <FileBrowserFileList displayedFiles={$displayedFiles} current={$current} />
 {:else if $current.type === 'file'}
   <FileBrowserFileView file={$current.file} {actions} />
 {/if}

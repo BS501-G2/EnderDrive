@@ -2,7 +2,7 @@
   import { useDashboardContext } from '$lib/client/contexts/dashboard'
   import Button from '$lib/client/ui/button.svelte'
   import { onMount, type Snippet } from 'svelte'
-  import type { Readable } from 'svelte/store'
+  import { writable, type Readable } from 'svelte/store'
   import Overlay from '../overlay.svelte'
   import Icon, { type IconOptions } from '$lib/client/ui/icon.svelte'
   import { useAppContext } from '$lib/client/contexts/app'
@@ -31,28 +31,28 @@
 
   onMount(() => pushMobileTopRight(content))
 
-  let showMenu: boolean = $state(false)
-  let element: HTMLButtonElement = $state(null as never)
+  const showMenu = writable(false)
+  const element = writable<HTMLButtonElement>(null as never)
 
-  let x: number = $state(null as never)
-  let y: number = $state(null as never)
+  const x = writable<number>(null as never)
+  const y = writable<number>(null as never)
 
   function onresize(element: HTMLButtonElement) {
     if (element) {
       const { height, top } = element.getBoundingClientRect()
 
-      x = -1
-      y = top + height
+      $x = -1
+      $y = top + height
     }
   }
 
   $effect(() => {
-    onresize(element)
+    onresize($element)
   })
 
   onMount(() =>
     isMobile.subscribe((value) => {
-      if (!value) showMenu = false
+      if (!value) $showMenu = false
     })
   )
 </script>
@@ -67,7 +67,7 @@
 
     {#each $mobileAppButtons as { id, show, icon, onclick } (id)}
       {#if show}
-        <Button bind:buttonElement={element} hint="Actions" {onclick} foreground={buttonForeground}>
+        <Button bind:buttonElement={$element} hint="Actions" {onclick} foreground={buttonForeground}>
           <Icon {...icon} size="1em" />
         </Button>
       {/if}
@@ -75,10 +75,10 @@
 
     {#if $mobileAppButtons.filter((entry) => !entry.show).length > 0}
       <Button
-        bind:buttonElement={element}
+        bind:buttonElement={$element}
         hint="Actions"
         onclick={() => {
-          showMenu = true
+          $showMenu = true
         }}
         foreground={buttonForeground}
       >
@@ -88,8 +88,8 @@
   </div>
 {/snippet}
 
-{#if showMenu}
-  <Overlay ondismiss={() => (showMenu = false)} nodim {x} {y}>
+{#if $showMenu}
+  <Overlay ondismiss={() => ($showMenu = false)} nodim x={$x} y={$y}>
     <div class="overlay">
       {#each $mobileAppButtons as { id, snippet, show }, index (id)}
         {#if !show}
@@ -97,7 +97,7 @@
             <Separator horizontal />
           {/if}
           {@render snippet(() => {
-            showMenu = false
+            $showMenu = false
           })}
         {/if}
       {/each}

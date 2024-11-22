@@ -27,6 +27,9 @@ public sealed partial class Connection
 
     [BsonElement("pagination")]
     public required PaginationOptions? Pagination;
+
+    [BsonElement("includePublic")]
+    public required bool? IncludePublic;
   };
 
   private sealed record class GetFileAccessesResponse
@@ -41,13 +44,7 @@ public sealed partial class Connection
   > GetFileAccesses =>
     async (transaction, request, userAuthentication, me, myAdminAccess) =>
     {
-      Resource<User>? targetUser;
-      if (request.TargetUserId != me.Id && myAdminAccess == null)
-      {
-        throw new InvalidOperationException("Target user must be set to self when not an admin.");
-      }
-
-      targetUser =
+      Resource<User>? targetUser =
         request.TargetUserId != null
           ? await Internal_EnsureFirst(
             transaction,
@@ -63,43 +60,72 @@ public sealed partial class Connection
           ? await Internal_GetFile(transaction, me, userAuthentication, request.TargetFileId)
           : null;
 
-      Resource<User>? authorUser = null;
+      FileAccessResult? unlockedTargetFile =
+        targetFile != null
+          ? await Internal_UnlockFile(
+            transaction,
+            targetFile,
+            me,
+            userAuthentication,
+            FileAccessLevel.Manage
+          )
+          : null;
 
-      if (request.TargetUserId != null)
-      {
-        targetUser = Internal_EnsureExists(
-          await Resources
-            .Query<User>(
-              transaction,
-              (query) => query.Where((item) => item.Id == request.TargetUserId)
-            )
-            .FirstOrDefaultAsync(transaction.CancellationToken)
-        );
-      }
-
-      if (request.AuthorUserId != null)
-      {
-        if (
-          targetUser == null
-          && !await Resources
-            .Query<AdminAccess>(
-              transaction,
-              (query) => query.Where((item) => item.UserId == request.AuthorUserId)
-            )
-            .AnyAsync(transaction.CancellationToken)
-        )
-        {
-          throw new InvalidOperationException("Target user must be set if not an admin.");
-        }
-
-        authorUser = Internal_EnsureExists(
-          await Resources
-            .Query<User>(
+      Resource<User>? authorUser =
+        request.AuthorUserId != null
+          ? await Internal_EnsureFirst(
+            transaction,
+            Resources.Query<User>(
               transaction,
               (query) => query.Where((item) => item.Id == request.AuthorUserId)
             )
-            .FirstOrDefaultAsync(transaction.CancellationToken)
-        );
+          )
+          : null;
+
+      if (myAdminAccess == null)
+      {
+        if (targetUser != null && targetUser.Id != me.Id)
+        {
+          throw new InvalidOperationException(
+            "Target User ID must be set to self when not an admin."
+          );
+        }
+        else if (
+          targetFile != null
+          && (
+            await Internal_GetFirst(
+              transaction,
+              Resources.Query<FileAccess>(
+                transaction,
+                (query) =>
+                  query.Where(
+                    (item) =>
+                      item.FileId == targetFile.Id
+                      && item.TargetUserId == me.Id
+                      && item.Level >= FileAccessLevel.Manage
+                  )
+              )
+            ) == null
+            && targetFile.Data.OwnerUserId != me.Id
+          )
+        )
+        {
+          throw new InvalidOperationException(
+            "Target File must be owned by self or have manage accsess when not an admin."
+          );
+        }
+        else if (authorUser != null && authorUser.Id != me.Id)
+        {
+          throw new InvalidOperationException(
+            "Author User ID must be set to self when not an admin."
+          );
+        }
+        else if (targetUser == null && targetFile == null && authorUser == null)
+        {
+          throw new InvalidOperationException(
+            "Not enough permissions when trying to get all file accesses."
+          );
+        }
       }
 
       Resource<FileAccess>[] fileAccesses = await Resources
@@ -108,20 +134,32 @@ public sealed partial class Connection
           (query) =>
             query
               .Where(
-                (item) =>
-                  (request.TargetFileId == null || item.FileId == request.TargetFileId)
+                (fileAccess) =>
+                  (request.TargetFileId == null || (fileAccess.FileId == request.TargetFileId))
                   && (
-                    request.TargetUserId == null
-                    || (
-                      item.TargetEntity != null
-                      && item.TargetEntity.EntityType == FileAccessTargetEntityType.User
-                      && item.TargetEntity.EntityId == request.TargetUserId
-                    )
+                    ((request.IncludePublic ?? false) && fileAccess.TargetUserId == null)
+                    || request.TargetUserId == null
+                    || (fileAccess.TargetUserId == request.TargetUserId)
                   )
-                  && (request.AuthorUserId == null || item.AuthorUserId == request.AuthorUserId)
-                  && (request.Level == null || item.Level >= request.Level)
+                  && (
+                    request.AuthorUserId == null
+                    || (fileAccess.AuthorUserId == request.AuthorUserId)
+                  )
+                  && (request.Level == null || fileAccess.Level >= request.Level)
               )
               .ApplyPagination(request.Pagination)
+        )
+        .IfAwait(
+          () => !(request.IncludePublic ?? false),
+          (query) =>
+            query
+              .GroupBy((fileAccess) => fileAccess.Data.FileId)
+              .SelectAwait(
+                (fileAccess) =>
+                  fileAccess
+                    .OrderByDescending((fileAccess) => fileAccess.Data.Level)
+                    .FirstAsync(transaction.CancellationToken)
+              )
         )
         .WhereAwait(
           async (fileAccess) =>

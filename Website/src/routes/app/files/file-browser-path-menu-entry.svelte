@@ -2,6 +2,7 @@
   import { FileType, type FileResource } from '$lib/client/client'
   import Icon from '$lib/client/ui/icon.svelte'
   import Separator from '$lib/client/ui/separator.svelte'
+  import { writable } from 'svelte/store'
   import FileBrowserPathMenu from './file-browser-path-menu.svelte'
 
   const {
@@ -10,8 +11,8 @@
     file: FileResource
   } = $props()
 
-  let button: HTMLButtonElement = $state(null as never)
-  let show: boolean = $state(false)
+  const button = writable<HTMLButtonElement>(null as never)
+  const show = writable<boolean>(false)
 </script>
 
 <div class="list-entry">
@@ -31,10 +32,10 @@
     <Separator vertical />
 
     <button
-      bind:this={button}
+      bind:this={$button}
       class="expand"
       onclick={() => {
-        show = true
+        $show = true
       }}
     >
       <Icon icon="chevron-right" thickness="solid" size="1em" />
@@ -42,8 +43,8 @@
   {/if}
 </div>
 
-{#if show}
-  <FileBrowserPathMenu {file} {button} ondismiss={() => (show = false)} cascade />
+{#if $show}
+  <FileBrowserPathMenu {file} button={$button} ondismiss={() => ($show = false)} cascade />
 {/if}
 
 <style lang="scss">

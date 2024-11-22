@@ -12,9 +12,11 @@ public sealed partial class Connection
     DeauthenticateRequest,
     DeauthenticateResponse
   > Deauthenticate =>
-    (_, _, _, _, _) =>
+    async (_, _, _, _, _) =>
     {
+      await Internal_CloseAllStreams();
+
       GetContext().CurrentUser = null;
-      return Task.FromResult<DeauthenticateResponse>(new());
+      return new();
     };
 }

@@ -7,6 +7,7 @@
     FileAccessTargetEntityType,
     useServerContext,
     type FileAccessResource,
+    type FileResource,
     type UserResource
   } from '$lib/client/client'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
@@ -15,9 +16,10 @@
   import Icon from '$lib/client/ui/icon.svelte'
   import FileBrowserPropertiesAccessTabAdd from './file-browser-properties-access-tab-add.svelte'
   import FileBrowserPropertiesAccessTabEdit from './file-browser-properties-access-tab-edit.svelte'
+  import Overlay from '../../overlay.svelte'
 
   const { file }: { file: FileProperties } = $props()
-  const { getFileAccesses, getUser } = useServerContext()
+  const { getFileAccesses, getUser, me } = useServerContext()
 
   interface FileAccessEntry {
     access: FileAccessResource
@@ -25,13 +27,11 @@
   }
 
   async function load(): Promise<FileAccessEntry[]> {
-    const fileAccesses = await getFileAccesses(
-      void 0,
-      file.file.id,
-      void 0,
-      FileAccessLevel.Read,
-      void 0
-    )
+    const fileAccesses = await getFileAccesses({
+      targetFileId: file.file.id,
+      level: FileAccessLevel.Read,
+      includePublic: true
+    })
 
     return await Promise.all(
       fileAccesses.map(async (access): Promise<FileAccessEntry> => {
@@ -48,9 +48,13 @@
     )
   }
 
+  const addButton: Writable<HTMLButtonElement> = writable(null as never)
+
   const promise: Writable<Promise<FileAccessEntry[]>> = writable(load())
+  const showAddMenu = writable(false)
   const addDialog = writable<boolean>(false)
-  const editDialog = writable<[user: UserResource] | null>(null)
+  const showEditDialog = writable<boolean>(false)
+  const editDialog = writable<[user: UserResource | null, file: FileResource] | null>(null)
 </script>
 
 {#if $addDialog}
@@ -59,17 +63,27 @@
       $addDialog = false
     }}
     onresult={(user) => {
-      $editDialog = [user]
+      $editDialog = [user, file.file]
+      $showEditDialog = true
       $addDialog = false
     }}
   />
 {/if}
 
-{#if $editDialog != null}
-  {@const [user] = $editDialog ?? []}
-  {#if user != null}
-    <FileBrowserPropertiesAccessTabEdit {user} ondismiss={() => ($editDialog = null)} />
-  {/if}
+{#if $showEditDialog && $editDialog != null}
+  {console.log($editDialog)}
+  {@const [user, file] = $editDialog}
+
+  <FileBrowserPropertiesAccessTabEdit
+    {user}
+    {file}
+    ondismiss={() => {
+      $showEditDialog = false
+    }}
+    refresh={() => {
+      $promise = load()
+    }}
+  />
 {/if}
 
 <FileBrowserPropertiesTab label="Access" icon={{ icon: 'lock', thickness: 'solid' }}>
@@ -86,8 +100,9 @@
         <Button
           {foreground}
           onclick={async () => {
-            $addDialog = true
+            $showAddMenu = true
           }}
+          bind:buttonElement={$addButton}
         >
           <Icon icon="add" thickness="solid" />
         </Button>
@@ -97,13 +112,48 @@
       {#await $promise}
         <LoadingSpinner size="3em" />
       {:then accesses}
-        {#each accesses as access}
-          <p>{JSON.stringify(access)}</p>
-        {/each}
+        <p>{JSON.stringify(accesses)}</p>
+        {#each accesses as access}{/each}
       {/await}
     </div>
   </div>
 </FileBrowserPropertiesTab>
+
+{#if $showAddMenu}
+  <Overlay
+    ondismiss={() => {
+      $showAddMenu = false
+    }}
+    x={-8}
+    y={$addButton.getBoundingClientRect().y + $addButton.getBoundingClientRect().height}
+    nodim
+  >
+    <div class="add-menu">
+      {#snippet button(name: string, onclick: () => void)}
+        {#snippet foreground(view: Snippet)}
+          <div class="add-menu-foreground">
+            {@render view()}
+          </div>
+        {/snippet}
+
+        <Button {foreground} {onclick}>
+          <p>{name}</p>
+        </Button>
+      {/snippet}
+
+      {@render button('Add User', () => {
+        $showAddMenu = false
+        $addDialog = true
+      })}
+
+      {@render button('Add Public', () => {
+        $showAddMenu = false
+        $editDialog = [null, file.file]
+        $showEditDialog = true
+      })}
+    </div>
+  </Overlay>
+{/if}
 
 <style lang="scss">
   div.accesses {
@@ -135,6 +185,19 @@
       flex-grow: 1;
 
       overflow: hidden auto;
+    }
+  }
+
+  div.add-menu {
+    background-color: var(--color-9);
+    color: var(--color-1);
+
+    div.add-menu-foreground {
+      flex-grow: 1;
+
+      padding: 8px;
+
+      text-align: start;
     }
   }
 </style>

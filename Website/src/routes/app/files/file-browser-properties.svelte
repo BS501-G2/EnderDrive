@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useServerContext } from '$lib/client/client'
+  import { FileAccessLevel, useServerContext } from '$lib/client/client'
   import type { FileProperties } from '$lib/client/contexts/file-browser'
   import Icon from '$lib/client/ui/icon.svelte'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
@@ -12,6 +12,7 @@
   import { useAppContext } from '$lib/client/contexts/app'
   import FileBrowserPropertiesDetailsTab from './file-browser-properties-details-tab.svelte'
   import FileBrowserPropertiesAccessTab from './file-browser-properties-access-tab.svelte'
+  import { writable } from 'svelte/store'
 
   const {
     selectedFileIds
@@ -25,18 +26,26 @@
     getOldestFileSnapshot,
     getLatestFileSnapshot,
     getFileMime,
-    getFileSize
+    getFileSize,
+    getFileAccessLevel
   } = useServerContext()
 
-  let promises: Promise<FileProperties[]> = $state(null as never)
+  const promises = writable<Promise<FileProperties[]>>(null as never)
   const { currentTab, tabs } = createFileBrowserPropertiesContext()
   const { isMobile } = useAppContext()
 
+  $effect(() => currentTab.subscribe((tabIndex) => {
+    if (!(tabIndex in $tabs)) {
+      currentTab.set(0)
+    }
+  }))
+
   $effect(() => {
-    promises = (() =>
+    $promises = (() =>
       Promise.all(
         selectedFileIds.map(async (fileId): Promise<FileProperties> => {
           const file = await getFile(fileId)
+          const fileAccessLevel = await getFileAccessLevel(file.id)
           const fileContent = await getMainFileContent(file.id)
           const fileOldestSnapshot = await getOldestFileSnapshot(file.id, fileContent.id)
           const fileLatestSnapshot = await getLatestFileSnapshot(file.id, fileContent.id)
@@ -57,8 +66,9 @@
               ? new Date(fileOldestSnapshot.createTime)
               : new Date()
 
-          return {
+              return {
             file,
+            fileAccessLevel,
             viruses,
 
             created,
@@ -78,8 +88,8 @@
     duration: 150
   }}
 >
-  {#if promises != null}
-    {#await promises}
+  {#if $promises != null}
+    {#await $promises}
       <div class="loading" in:fly|global={{ x: 16 }}>
         <LoadingSpinner size="3rem" />
       </div>
@@ -149,12 +159,11 @@
         <FileBrowserPropertiesDetailsTab {files} />
       {/if}
 
-      {#if files.length === 1 && files[0].file.parentId != null}
+      {#if files.length === 1 && files[0].file.parentId != null && files[0].fileAccessLevel >= FileAccessLevel.Manage}
         <FileBrowserPropertiesAccessTab file={files[0]} />
       {/if}
 
-      {#if files.length === 1}
-      {/if}
+      {#if files.length === 1}{/if}
     {/await}
   {/if}
 </div>

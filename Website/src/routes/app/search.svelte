@@ -7,17 +7,18 @@
   import Button from '$lib/client/ui/button.svelte'
   import AppButton from './app-button.svelte'
   import { loremIpsum } from 'lorem-ipsum'
+  import { writable } from 'svelte/store'
 
   const { pushDesktopTopMiddle } = useDashboardContext()
 
-  let searchOverlay: boolean = $state(false)
+  const searchOverlay= writable(false)
 
   onMount(() => pushDesktopTopMiddle(desktopContent))
 </script>
 
 <AppButton
   label="Search"
-  onclick={() => (searchOverlay = true)}
+  onclick={() => ($searchOverlay = true)}
   icon={{
     icon: 'magnifying-glass',
     thickness: 'solid'
@@ -30,7 +31,7 @@
     class="search"
     aria-label="Search"
     onclick={() => {
-      searchOverlay = true
+      $searchOverlay = true
     }}
   >
     <div class="icon">
@@ -40,17 +41,17 @@
   </button>
 {/snippet}
 
-{#if searchOverlay}
+{#if $searchOverlay}
   <Overlay
     ondismiss={() => {
-      searchOverlay = false
+      $searchOverlay = false
     }}
   >
     {#snippet children(windowButtons)}
       <SearchOverlay
         {windowButtons}
         ondismiss={() => {
-          searchOverlay = false
+          $searchOverlay = false
         }}
       />
     {/snippet}

@@ -1,9 +1,10 @@
 <script lang="ts">
   import type { Snippet } from 'svelte'
   import LoadingSpinner from './loading-spinner.svelte'
+  import { writable } from 'svelte/store'
 
   const clickButton = () => {
-    button.click()
+    $button.click()
   }
 
   let {
@@ -34,12 +35,12 @@
     reset?: () => void
   } = $props()
 
-  let promise: Promise<void> | null = $state(null)
-  let error: Error | null = $state(null)
+  const promise = writable<Promise<void> | null>(null)
+  const error= writable<Error | null >(null)
 
   $effect(() => {
     reset = () => {
-      error = null
+      $error = null
     }
   })
 
@@ -48,58 +49,58 @@
   })
 
   $effect(() => {
-    buttonElement = button
+    buttonElement = $button
   })
 
   $effect(() => {
-    if (error != null) {
-      console.log(error)
+    if ($error != null) {
+      console.log($error)
     }
   })
 
-  let button: HTMLButtonElement = $state(null as never)
+  const button = writable<HTMLButtonElement>(null as never)
 </script>
 
 <button
-  bind:this={button}
+  bind:this={$button}
   class:disabled
   title={hint}
   {disabled}
   onclick={(event) => {
     try {
-      if (promise != null) {
+      if ($promise != null) {
         return
       }
 
-      error = null
+      $error = null
       const resultPromise = onclick(event)
 
       if (resultPromise instanceof Promise) {
-        promise = resultPromise
+        $promise = resultPromise
 
         void (async () => {
           try {
-            await promise
+            await $promise
           } catch (e: any) {
-            error = e
+            $error = e
           } finally {
-            promise = null
+            $promise = null
           }
         })()
       }
     } catch (e: any) {
-      error = e
-      onerror?.(error!)
+      $error = e
+      onerror?.($error!)
     }
   }}
 >
   {#snippet backgroundContent()}
-    <div class="background" class:error={error != null} class:busy={promise != null}>
+    <div class="background" class:error={$error != null} class:busy={$promise != null}>
       {#snippet foregroundContent()}
-        {#if error != null}
-          {error.message}
-        {:else if promise != null}
-        
+        {#if $error != null}
+          {$error.message}
+        {:else if $promise != null}
+
           <LoadingSpinner size="1em" />
         {:else}
           {@render children()}
@@ -107,7 +108,7 @@
       {/snippet}
 
       {#if foreground != null}
-        {@render foreground(foregroundContent, error != null)}
+        {@render foreground(foregroundContent, $error != null)}
       {:else}
         {@render foregroundContent()}
       {/if}

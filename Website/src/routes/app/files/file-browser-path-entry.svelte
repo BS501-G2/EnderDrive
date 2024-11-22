@@ -1,6 +1,7 @@
 <script lang="ts">
   import { FileType, type FileResource } from '$lib/client/client'
   import Icon from '$lib/client/ui/icon.svelte'
+  import { writable } from 'svelte/store'
   import FileBrowserPathMenu from './file-browser-path-menu.svelte'
 
   const {
@@ -9,8 +10,8 @@
     file: FileResource
   } = $props()
 
-  let button: HTMLButtonElement = $state(null as never)
-  let show: boolean = $state(false)
+  const button = writable<HTMLButtonElement>(null as never)
+  const show = writable<boolean>(false)
 </script>
 
 <div class="file-entry">
@@ -19,10 +20,10 @@
   </div>
 
   <button
-    bind:this={button}
+    bind:this={$button}
     class="file"
     onclick={() => {
-      show = true
+      $show = true
     }}
   >
     {#if file.type === FileType.Folder}
@@ -37,12 +38,12 @@
   </button>
 </div>
 
-{#if show}
+{#if $show}
   <FileBrowserPathMenu
     {file}
-    {button}
+    button={$button}
     ondismiss={() => {
-      show = false
+      $show = false
     }}
   />
 {/if}

@@ -11,7 +11,7 @@
   const { pushTitle, pushSidePanel } = useAdminContext()
   onMount(() => pushTitle('News'))
 
-  let createDialog: [newsId?: number] | null = $state(null)
+  const createDialog = writable<[newsId?: number] | null>(null)
   const editDialog: Writable<{ imageId: string; id: string | null } | null> = writable(null)
 </script>
 
@@ -19,22 +19,22 @@
 
 <CreateNewsButton
   onopen={() => {
-    createDialog = []
+    $createDialog = []
   }}
 />
 
-{#if createDialog != null}
-  {@const [newsId] = createDialog}
+{#if $createDialog != null}
+  {@const [newsId] = $createDialog}
 
   <CreateNewsDialog
     {newsId}
     onresult={(file) => {
       $editDialog = { imageId: file.id, id: null }
 
-      createDialog = null
+      $createDialog = null
     }}
     oncancel={() => {
-      createDialog = null
+      $createDialog = null
     }}
   />
 {/if}

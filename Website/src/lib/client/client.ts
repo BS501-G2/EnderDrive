@@ -291,27 +291,31 @@ export function createClientContext() {
       const request = async (): Promise<any> => {
         const id = nextRequestId++
 
-        return new Promise<any>((resolve, reject) => {
-          incomingResponses.set(id, {
-            resolve: (value: Payload<ResponseCode>) => {
-              if (value.Code === ResponseCode.OK) {
-                resolve(value.Data)
-              } else {
-                reject(new ClientResponseError(code, value.Code))
-              }
-            },
-            reject
-          })
+        try {
+          return await new Promise<any>((resolve, reject) => {
+            incomingResponses.set(id, {
+              resolve: (value: Payload<ResponseCode>) => {
+                if (value.Code === ResponseCode.OK) {
+                  resolve(value.Data)
+                } else {
+                  reject(new ClientResponseError(code, value.Code))
+                }
+              },
+              reject
+            })
 
-          send({
-            type: PacketType.Request,
-            id,
-            data: {
-              Code: code,
-              Data: data
-            }
+            send({
+              type: PacketType.Request,
+              id,
+              data: {
+                Code: code,
+                Data: data
+              }
+            })
           })
-        })
+        } catch (error: any) {
+          throw new Error(error.message, { cause: error })
+        }
       }
 
       if (get(state)[0] === ClientState.Connected) {
@@ -712,15 +716,25 @@ function getServerFunctions(
       return files.map((file: any) => JSON.parse(file)) as FileResource[]
     },
 
-    getFileAccesses: async (
-      targetUserId?: string,
-      targetFileId?: string,
-      authorUserId?: string,
-      level?: FileAccessLevel,
-      id?: string,
-      offset?: number,
+    getFileAccesses: async ({
+      targetFileId,
+      targetUserId,
+      authorUserId,
+      level,
+      id,
+      offset,
+      count,
+      includePublic
+    }: {
+      targetUserId?: string
+      targetFileId?: string
+      authorUserId?: string
+      level?: FileAccessLevel
+      id?: string
+      offset?: number
       count?: number
-    ) => {
+      includePublic?: boolean
+    }) => {
       const { fileAccesses } = await request(ServerSideRequestCode.GetFileAccesses, {
         targetUserId,
         targetFileId,
@@ -730,7 +744,8 @@ function getServerFunctions(
         pagination: {
           offset,
           count
-        }
+        },
+        includePublic
       })
 
       return fileAccesses.map((fileAccess: any) => JSON.parse(fileAccess)) as FileAccessResource[]
@@ -1070,10 +1085,55 @@ function getServerFunctions(
         targetUserId,
         level
       })
+    },
+
+    getFileAccessLevel: async (fileId: string) => {
+      const { fileAccessLevel } = await request(ServerSideRequestCode.GetFileAccessLevel, {
+        fileId
+      })
+
+      return fileAccessLevel as FileAccessLevel
+    },
+
+    requestPasswordReset: async (username: string) => {
+      await request(ServerSideRequestCode.RequestPasswordReset, { username })
+    },
+
+    getPasswordResetRequests: async ({
+      status,
+      offset,
+      count
+    }: {
+      status: PasswordResetRequestStatus
+      offset?: number
+      count?: string
+    }) => {
+      const { requests } = await request(ServerSideRequestCode.GetPasswordResetRequests, {
+        status,
+        pagination: { offset, count }
+      })
+
+      return requests.map((data: any) => JSON.parse(data)) as PasswordResetRequestResource[]
+    },
+
+    declinePasswordResetRequest: async (passwordResetRequestId: string) => {
+      await request(ServerSideRequestCode.DeclinePasswordResetRequest, { passwordResetRequestId })
+    },
+
+    acceptPasswordResetRequest: async (passwordResetRequestId: string, newPassword: string) => {
+      await request(ServerSideRequestCode.AcceptPasswordResetRequest, {
+        passwordResetRequestId,
+        password: newPassword
+      })
     }
   }
 
   return functions
+}
+
+export interface PasswordResetRequestResource extends ResourceData {
+  userId: string
+  status: PasswordResetRequestStatus
 }
 
 export interface VirusReportResource extends ResourceData {
@@ -1167,7 +1227,19 @@ export enum ServerSideRequestCode {
   GetUsernameValidationFlags,
   GetPasswordValidationFlags,
 
-  SetFileAccess
+  SetFileAccess,
+  GetFileAccessLevel,
+
+  RequestPasswordReset,
+  GetPasswordResetRequests,
+  DeclinePasswordResetRequest,
+  AcceptPasswordResetRequest
+}
+
+export enum PasswordResetRequestStatus {
+  Pending,
+  Accepted,
+  Declined
 }
 
 export enum UsernameValidationFlags {

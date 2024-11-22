@@ -20,11 +20,17 @@ export interface BackgroundTaskState {
   status: [type: 'pending'] | [type: 'done'] | [type: 'error', error: Error]
   progress: [current: number, total: number] | null
   message: string | null
+  title: string
+  footerLeft: string | null
+  footerRight: string | null
 }
 
 export interface BackgroundTaskContext {
+  setTitle: (title: string) => void
   setMessage: (message: string) => void
   setProgress: (progress: [current: number, total: number] | null) => void
+  setFooterLeft: (footerLeft: string | null) => void
+  setFooterRight: (footerRight: string | null) => void
 }
 
 export function createDashboardContext() {
@@ -205,13 +211,17 @@ export function createDashboardContext() {
     },
 
     executeBackgroundTask: async <T>(
+      title: string,
       run: (context: BackgroundTaskContext) => Promise<T>
     ): Promise<T> => {
       const id = Math.random()
       const state = writable<BackgroundTaskState>({
         status: ['pending'],
         progress: null,
-        message: null
+        message: null,
+        title,
+        footerLeft: null,
+        footerRight: null
       })
 
       const context: BackgroundTaskContext = {
@@ -229,6 +239,30 @@ export function createDashboardContext() {
 
             return value
           })
+        },
+
+        setTitle: (title) => {
+          state.update((value) => {
+            value.title = title
+
+            return value
+          })
+        },
+
+        setFooterLeft: (footerLeft) => {
+          state.update((value) => {
+            value.footerLeft = footerLeft
+
+            return value
+          })
+        },
+
+        setFooterRight: (footerRight) => {
+          state.update((value) => {
+            value.footerRight = footerRight
+
+            return value
+          })
         }
       }
 
@@ -243,13 +277,34 @@ export function createDashboardContext() {
       })
 
       try {
-        return await run(context)
-      } finally {
+        const result = await run(context)
         state.update((value) => {
           value.status = ['done']
+          value.title = title
+
+          value.progress = null
+          value.message = null
+          value.footerLeft = null
+          value.footerRight = null
 
           return value
         })
+
+        return result
+      } catch (error: unknown) {
+        state.update((value) => {
+          value.status = ['error', error as never]
+          value.title = title
+
+          value.progress = null
+          value.message = null
+          value.footerLeft = null
+          value.footerRight = null
+
+          return value
+        })
+
+        throw error
       }
     }
   })

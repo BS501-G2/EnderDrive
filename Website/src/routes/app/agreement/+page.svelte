@@ -23,7 +23,7 @@
   })
 
   const promise: Writable<Promise<void>> = writable(load())
-  let checked: boolean = $state(false)
+  const checked = writable<boolean>(false)
 </script>
 
 <Window ondismiss={() => {}} title="Privacy Policy Agreement for EnderDrive">
@@ -36,24 +36,26 @@
       </div>
       <div class="footer">
         <div class="field">
-          <input id="agree" type="checkbox" bind:checked />
+          <input id="agree" type="checkbox" bind:checked={$checked} />
           <label for="agree" class="label">I agree to the privacy policy stated above.</label>
         </div>
 
         {#snippet foreground(view: Snippet)}
-          <div class="foreground" class:disabled={!checked}>
+          <div class="foreground" class:disabled={!$checked}>
             {@render view()}
           </div>
         {/snippet}
 
         <Button
-          disabled={!checked}
+          disabled={!$checked}
           {foreground}
           onclick={async () => {
             await agree()
             await ($promise = load())
-          }}>Proceed</Button
+          }}
         >
+          Proceed
+        </Button>
       </div>
     </div>
   {/key}

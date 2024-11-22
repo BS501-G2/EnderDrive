@@ -17,6 +17,7 @@
   import ProgressHost from './progress-host.svelte'
   import User from './user.svelte'
   import LogoutConfirmation from './logout-confirmation.svelte'
+  import { writable } from 'svelte/store'
 
   const {
     mobileAppButtons,
@@ -40,7 +41,7 @@
     children: Snippet
   } = $props()
 
-  let logoutConfirmation: boolean = $state(false)
+  const logoutConfirmation = writable(false)
 
   onMount(() =>
     authentication.subscribe(async (authentication) => {
@@ -102,6 +103,7 @@
           </p>
         </div>
       {/if}
+
       <div class="left">
         {#if $isDesktop}
           {#each $desktopTopLeft as { id, snippet } (id)}
@@ -176,15 +178,15 @@
 
     {#await me() then user}
       {#if user != null}
-        <User bind:logoutConfirmation {user} />
+        <User bind:logoutConfirmation={$logoutConfirmation} {user} />
       {/if}
     {/await}
   {/if}
 
-  {#if logoutConfirmation}
+  {#if $logoutConfirmation}
     <LogoutConfirmation
       ondismiss={() => {
-        logoutConfirmation = false
+        $logoutConfirmation = false
       }}
     />
   {/if}

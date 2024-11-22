@@ -4,6 +4,7 @@
   import { type Snippet } from 'svelte'
   import AppButton from '../app-button.svelte'
   import Window from '$lib/client/ui/window.svelte'
+  import { writable } from 'svelte/store'
 
   const {
     name,
@@ -16,23 +17,23 @@
   } = $props()
 
   const { pushMobileAppButton } = useDashboardContext()
-  let show: boolean = $state(false)
+  const show = writable(false)
 </script>
 
 <AppButton
   label={name}
   {icon}
   onclick={() => {
-    show = true
+    $show = true
   }}
 />
 
-{#if show}
+{#if $show}
   <Window
-  titleIcon={icon}
+    titleIcon={icon}
     title={name}
     ondismiss={() => {
-      show = false
+      $show = false
     }}
   >
     <div class="admin">

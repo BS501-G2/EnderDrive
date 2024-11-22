@@ -19,12 +19,15 @@
     getLatestFileSnapshot,
     getFile,
     scanFile,
-    getFileMime
+    getFileMime,
+    me
   } = useServerContext()
   const { isDesktop } = useAppContext()
 
   async function load(customSnapshotId?: string) {
     const file = await getFile(fileId)
+    const self = await me()
+
     const mime = await getFileMime(fileId)
     const fileContent = (await getFileContents(fileId, void 0, 0, 1))[0]
     const fileSnapshot =
@@ -39,7 +42,8 @@
       mime,
       fileContent,
       fileSnapshot,
-      virusResult
+      virusResult,
+      me: self
     }
   }
 
@@ -54,9 +58,9 @@
 
 {#await $promise}
   {@render loading()}
-{:then { file, mime, fileContent, fileSnapshot, virusResult }}
+{:then { file, mime, fileContent, fileSnapshot, virusResult, me }}
   {#if $isDesktop}
-    <FileBrowserActions current={{ type: 'file', file, path: [], mime }} {selectedFileIds} />
+    <FileBrowserActions current={{ type: 'file', file, path: [], mime, me }} {selectedFileIds} />
   {/if}
 
   {#if virusResult.viruses.length > 0}

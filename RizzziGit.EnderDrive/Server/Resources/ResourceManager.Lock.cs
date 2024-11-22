@@ -175,7 +175,7 @@ public record class UnlockedFileAccess(Resource<FileAccess> FileAccess)
     return new(fileAccess)
     {
       AesKey =
-        fileAccess.Data.TargetEntity != null
+        fileAccess.Data.TargetUserId != null
           ? KeyManager.Decrypt(userAuthentication, fileAccess.Data.EncryptedAesKey)
           : fileAccess.Data.EncryptedAesKey,
     };
@@ -216,7 +216,7 @@ public record class UnlockedGroupMembership(Resource<GroupMembership> GroupMembe
 public record class UnlockedUserAdminBackdoor(Resource<UserAdminBackdoor> UserAdminBackdoor)
   : UnlockedResource<UserAdminBackdoor>(UserAdminBackdoor)
 {
-  public static UnlockedUserAdminBackdoor Unlocked(
+  public static UnlockedUserAdminBackdoor Unlock(
     Resource<UserAdminBackdoor> adminBackdoor,
     UnlockedAdminAccess adminAccess
   )

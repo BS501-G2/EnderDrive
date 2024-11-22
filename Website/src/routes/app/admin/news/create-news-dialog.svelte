@@ -5,6 +5,7 @@
   import Icon from '$lib/client/ui/icon.svelte'
   import FileSelector from '../../files/file-selector.svelte'
   import { useServerContext, type FileResource } from '$lib/client/client'
+  import { writable } from 'svelte/store'
 
   const {
     newsId,
@@ -17,13 +18,13 @@
   } = $props()
 
   const { getFileMime, createNews, getNews } = useServerContext()
-  let browse: [fileId: string | null] | null = $state(null)
+  const browse = writable<[fileId: string | null] | null>(null)
 </script>
 
-{#if browse != null}
+{#if $browse != null}
   <Overlay
     ondismiss={() => {
-      browse = null
+      $browse = null
     }}
   >
     {#snippet children(windowButtons: Snippet)}
@@ -44,10 +45,10 @@
 
               onresult(files[0])
 
-              browse = null
+              $browse = null
             }}
             oncancel={() => {
-              browse = null
+              $browse = null
             }}
             mimeTypes={[new RegExp('^image/.*$')]}
           />
@@ -82,7 +83,7 @@
           <Button
             {foreground}
             onclick={() => {
-              browse = [null]
+              $browse = [null]
             }}
           >
             <Icon icon="file" thickness="solid" />

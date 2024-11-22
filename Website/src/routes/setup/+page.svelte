@@ -7,6 +7,7 @@
   import Icon from '$lib/client/ui/icon.svelte'
   import Input from '$lib/client/ui/input.svelte'
   import { onMount, type Snippet } from 'svelte'
+  import { writable } from 'svelte/store'
 
   const { getSetupRequirements, createAdmin } = useServerContext()
   const { isMobile } = useAppContext()
@@ -19,25 +20,27 @@
     }
   })
 
-  let pages: {
-    id: number
-    title: string
-    snippet: Snippet
-  }[] = $state([])
-  let setup: number = $state(0)
+  const pages = writable<
+    {
+      id: number
+      title: string
+      snippet: Snippet
+    }[]
+  >([])
+  const setup = writable<number>(0)
 
-  let username: string = $state('')
-  let password: string = $state('')
-  let confirmPassword: string = $state('')
-  let firstName: string = $state('')
-  let middleName: string = $state('')
-  let lastName: string = $state('')
-  let displayName: string = $state('')
+  const username = writable<string>('')
+  const password = writable<string>('')
+  const confirmPassword = writable<string>('')
+  const firstName = writable<string>('')
+  const middleName = writable<string>('')
+  const lastName = writable<string>('')
+  const displayName = writable<string>('')
 
   function pushPage(title: string, snippet: Snippet) {
     const id = Date.now()
-    pages = [
-      ...pages,
+    $pages = [
+      ...$pages,
       {
         id,
         title,
@@ -46,19 +49,19 @@
     ]
 
     return () => {
-      pages = pages.filter((page) => page.id !== id)
+      $pages = $pages.filter((page) => page.id !== id)
     }
   }
 
   async function finalize() {
     await createAdmin(
-      username,
-      password,
-      confirmPassword,
-      firstName,
-      middleName || null,
-      lastName,
-      displayName || null
+      $username,
+      $password,
+      $confirmPassword,
+      $firstName,
+      $middleName || null,
+      $lastName,
+      $displayName || null
     )
 
     await goto($page.url.searchParams.get('return') ?? '/')
@@ -88,10 +91,10 @@
 <div class="page-container">
   <div class="page">
     <div class="header">
-      {#if $isMobile && pages[setup - 1] != null}
+      {#if $isMobile && $pages[$setup - 1] != null}
         <Button
           onclick={() => {
-            setup--
+            $setup--
           }}
           background={backgroundSecondary}
           {foreground}
@@ -100,14 +103,14 @@
         </Button>
       {/if}
       <h2>
-        {#if pages[setup] != null}
-          {pages[setup].title}
+        {#if $pages[$setup] != null}
+          {$pages[$setup].title}
         {/if}
       </h2>
-      {#if $isMobile && pages[setup + 1] != null}
+      {#if $isMobile && $pages[$setup + 1] != null}
         <Button
           onclick={() => {
-            setup++
+            $setup++
           }}
           {background}
           {foreground}
@@ -120,8 +123,8 @@
     <div class="separator"></div>
 
     <div class="body">
-      {#if pages[setup] != null}
-        {@render pages[setup].snippet()}
+      {#if $pages[$setup] != null}
+        {@render $pages[$setup].snippet()}
       {/if}
     </div>
 
@@ -131,20 +134,20 @@
       <div class="bottom">
         <div class="steps">
           <p>
-            {pages[setup]?.title}
+            {$pages[$setup]?.title}
           </p>
 
           <div class="lines">
-            {#each Array(pages.length) as { }, index (index)}
-              <div class="line" class:active={index == setup}></div>
+            {#each Array($pages.length) as { }, index (index)}
+              <div class="line" class:active={index == $setup}></div>
             {/each}
           </div>
         </div>
         <div class="buttons">
-          {#if pages[setup - 1] != null}
+          {#if $pages[$setup - 1] != null}
             <Button
               onclick={() => {
-                setup--
+                $setup--
               }}
               background={backgroundSecondary}
               {foreground}
@@ -153,14 +156,14 @@
             </Button>
           {/if}
 
-          {#if pages[setup + 1] == null}
+          {#if $pages[$setup + 1] == null}
             <Button onclick={() => finalize()} {background} {foreground}>Finalize</Button>
           {:else}
             <Button
               onclick={() => {
-                setup++
+                $setup++
               }}
-              disabled={pages[setup + 1] == null}
+              disabled={$pages[$setup + 1] == null}
               {background}
               {foreground}
             >
@@ -189,20 +192,20 @@
   <h2 class="field-header">Credentials</h2>
   <div class="fields">
     <div class="padding">
-      <Input id="username" type="text" name="Username" bind:value={username} />
+      <Input id="username" type="text" name="Username" bind:value={$username} />
     </div>
     <div class="padding">
-      <Input id="display-name" type="text" name="Display Name" bind:value={displayName} />
+      <Input id="display-name" type="text" name="Display Name" bind:value={$displayName} />
     </div>
     <div class="padding">
-      <Input id="password" type="password" name="Password" bind:value={password} />
+      <Input id="password" type="password" name="Password" bind:value={$password} />
     </div>
     <div class="padding">
       <Input
         id="confirm-password"
         type="password"
         name="Confirm Password"
-        bind:value={confirmPassword}
+        bind:value={$confirmPassword}
       />
     </div>
   </div>
@@ -210,13 +213,13 @@
   <h2 class="field-header">Personal Information</h2>
   <div class="fields">
     <div class="padding">
-      <Input id="first-name" type="text" name="First Name" bind:value={firstName} />
+      <Input id="first-name" type="text" name="First Name" bind:value={$firstName} />
     </div>
     <div class="padding">
-      <Input id="middlen-name" type="text" name="Middle Name" bind:value={middleName} />
+      <Input id="middlen-name" type="text" name="Middle Name" bind:value={$middleName} />
     </div>
     <div class="padding">
-      <Input id="last-name" type="text" name="Last Name" bind:value={lastName} />
+      <Input id="last-name" type="text" name="Last Name" bind:value={$lastName} />
     </div>
   </div>
 {/snippet}

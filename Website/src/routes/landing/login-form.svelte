@@ -18,8 +18,6 @@
     password: Writable<string>
   } = $props()
 
-  // let clickButton: () => void = $state(() => {});
-
   interface AlternativeAction {
     id: number
     name: string
@@ -90,11 +88,11 @@
     await redirect()
   }
 
-  let click = $state(() => {})
-  let reset = $state(() => {})
+  const click = writable(() => {})
+  const reset = writable(() => {})
 
-  onMount(() => username.subscribe(() => reset()))
-  onMount(() => password.subscribe(() => reset()))
+  onMount(() => username.subscribe(() => $reset()))
+  onMount(() => password.subscribe(() => $reset()))
 </script>
 
 <RequireClient>
@@ -118,7 +116,7 @@
           type="text"
           name="Username"
           bind:value={$username}
-          onsubmit={click}
+          onsubmit={$click}
         />
 
         <Input
@@ -130,7 +128,7 @@
           type="password"
           name="Password"
           bind:value={$password}
-          onsubmit={click}
+          onsubmit={$click}
         />
 
         {#snippet loginBackground(view: Snippet)}
@@ -145,7 +143,7 @@
           </div>
         {/snippet}
 
-        <Button background={loginBackground} foreground={loginForeground} bind:reset bind:click {onclick}>
+        <Button background={loginBackground} foreground={loginForeground} bind:reset={$reset} bind:click={$click} {onclick}>
           <p>Login</p>
         </Button>
       </div>

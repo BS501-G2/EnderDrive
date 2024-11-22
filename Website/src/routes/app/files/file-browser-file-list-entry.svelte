@@ -9,7 +9,7 @@
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import { toReadableSize } from '$lib/client/utils'
   import { onMount, type Snippet } from 'svelte'
-  import { get } from 'svelte/store'
+  import { get, writable } from 'svelte/store'
   import { fly } from 'svelte/transition'
   import moment, * as Moment from 'moment'
   import FileBrowserFileIcon from './file-browser-file-icon.svelte'
@@ -33,10 +33,10 @@
   const { isMobile, isDesktop } = useAppContext()
   const { onFileId } = useFileBrowserContext()
 
-  let fileElement: HTMLElement = $state(null as never)
-  let hover: boolean = $state(false)
+  const fileElement = writable<HTMLElement>(null as never)
+  const hover = writable<boolean>(false)
 
-  onMount(() => pushFile(file, fileElement))
+  onMount(() => pushFile(file, $fileElement))
 
   const getModified = async () => {
     const fileContent = await getMainFileContent(file.file.id)
@@ -87,7 +87,7 @@
 <!-- svelte-ignore a11y_interactive_supports_focus -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-  bind:this={fileElement}
+  bind:this={$fileElement}
   oncontextmenu={(event) => {
     if (get(isMobile)) {
       event.preventDefault()
@@ -109,10 +109,10 @@
   class="file"
   class:mobile={$isMobile}
   onmouseenter={() => {
-    hover = true
+    $hover = true
   }}
   onmouseleave={() => {
-    hover = false
+    $hover = false
   }}
   onkeypress={() => {}}
 >
@@ -124,7 +124,7 @@
         duration: 150
       }}
     >
-      {#if hover || $selectedFileIds.includes(file.file.id)}
+      {#if $hover || $selectedFileIds.includes(file.file.id)}
         <button
           class="check"
           onclick={() => {
@@ -144,7 +144,7 @@
   {/if}
 
   <div class="preview">
-    {#if file.type === 'folder'}
+    {#if file.file.type !== FileType.File}
       <Icon icon="folder" size="32px" />
     {:else}
       {#await getFileMime(file.file.id)}

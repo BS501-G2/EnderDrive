@@ -6,12 +6,13 @@
   } from '$lib/client/contexts/dashboard'
   import Button from '$lib/client/ui/button.svelte'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
-  import { type Snippet } from 'svelte'
+  import { onMount, type Snippet } from 'svelte'
   import Overlay from '../overlay.svelte'
   import { fly } from 'svelte/transition'
   import Separator from '$lib/client/ui/separator.svelte'
   import { derived, get, writable, type Readable, type Writable } from 'svelte/store'
   import Icon from '$lib/client/ui/icon.svelte'
+  import ProgressHostEntry from './progress-host-entry.svelte'
 
   const {
     tasks
@@ -29,24 +30,14 @@
     state: BackgroundTaskState
   }
 
-  let showOverlay: boolean = $state(false)
+  const showOverlay = writable<boolean>(false)
   const flattenedTasks: Writable<FlattenedBackgroundTask[]> = writable([])
-
-  const { executeBackgroundTask } = useDashboardContext()
 
   const activeTasks: Readable<FlattenedBackgroundTask[]> = derived(
     flattenedTasks,
     (flattenedArray) =>
       flattenedArray.filter((flattenedEntry) => flattenedEntry.state.status[0] === 'pending')
   )
-
-  executeBackgroundTask(async (context) => {
-    for (let i = 0; i < 100; i++) {
-      context.setProgress([i, 100])
-
-      await new Promise<void>((resolve) => setTimeout(resolve, 10))
-    }
-  })
 
   {
     const onDestroy: (() => void)[] = []
@@ -95,7 +86,7 @@
     {#if $flattenedTasks.length > 0}
       <Button
         onclick={() => {
-          showOverlay = true
+          $showOverlay = true
         }}
         {foreground}
       >
@@ -109,10 +100,10 @@
   </div>
 {/snippet}
 
-{#if showOverlay}
+{#if $showOverlay}
   <Overlay
     ondismiss={() => {
-      showOverlay = false
+      $showOverlay = false
     }}
     x={0}
     y={0}
@@ -133,7 +124,15 @@
 
         <Separator horizontal />
 
-        <div class="main"></div>
+        <div class="main">
+          {#each $flattenedTasks as { id, task, state }, index (id)}
+            {#if index === 0}
+              <Separator horizontal />
+            {/if}
+
+            <ProgressHostEntry {task} />
+          {/each}
+        </div>
       </div>
     {/snippet}
   </Overlay>
@@ -171,6 +170,12 @@
         font-size: 1.5em;
         flex-grow: 1;
       }
+    }
+
+    > div.main {
+      gap: 8px;
+
+      overflow: hidden auto;
     }
   }
 </style>

@@ -155,7 +155,7 @@ public sealed partial class ResourceManager
               (item) =>
                 item.FileId == file.Id
                 && item.Level >= minLevel
-                && item.AuthorUserId == userAuthentication.UserAuthentication.Data.UserId
+                && item.TargetUserId == userAuthentication.UserAuthentication.Data.UserId
             )
             .OrderByDescending((item) => item.Level)
       )

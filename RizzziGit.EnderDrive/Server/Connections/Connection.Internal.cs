@@ -6,6 +6,7 @@ using MongoDB.Bson;
 namespace RizzziGit.EnderDrive.Server.Connections;
 
 using System.Collections.Generic;
+using System.Threading;
 using Resources;
 
 public sealed partial class Connection
@@ -74,4 +75,14 @@ public sealed partial class Connection
       ResponseCode.Forbidden,
       new ConnectionResponseExceptionData.Forbidden() { FileId = file.Id }
     );
+
+  private async Task Internal_CloseAllStreams()
+  {
+    ConnectionContext context = GetContext();
+
+    foreach ((_, ConnectionByteStream stream) in context.FileStreams)
+    {
+      await stream.Close(CancellationToken.None);
+    }
+  }
 }

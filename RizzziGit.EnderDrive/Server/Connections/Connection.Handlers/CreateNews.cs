@@ -51,7 +51,7 @@ public sealed partial class Connection
                 .Query<FileAccess>(
                   transaction,
                   (query) =>
-                    query.Where((item) => item.FileId == file.Id && item.TargetEntity == null)
+                    query.Where((item) => item.FileId == file.Id && item.TargetUserId == null)
                 )
                 .FirstOrDefaultAsync(transaction)
               ?? throw new InvalidOperationException("The image must be public.");

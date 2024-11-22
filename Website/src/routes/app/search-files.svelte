@@ -24,7 +24,6 @@
 {#snippet main()}
   {#await (async () => {
     const files = getFiles(void 0, void 0, searchString, (await me()).id, void 0, 0, 10)
-
     return files
   })()}
     <LoadingSpinner size="1em" />

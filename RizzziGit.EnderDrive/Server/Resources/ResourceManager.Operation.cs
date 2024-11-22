@@ -45,6 +45,12 @@ public record class Resource<T>
     return Save(transaction);
   }
 
+  public ValueTask Update(Action<T> callback, ResourceTransaction transaction)
+  {
+    callback(Data);
+    return Save(transaction);
+  }
+
   public string ToJson() => Data.ToJson();
 }
 

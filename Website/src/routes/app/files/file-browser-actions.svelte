@@ -1,9 +1,11 @@
 <script lang="ts">
   import { useServerContext } from '$lib/client/client'
   import { useFileBrowserContext, type CurrentFile } from '$lib/client/contexts/file-browser'
-  import type { Writable } from 'svelte/store'
+  import { writable, type Writable } from 'svelte/store'
   import FileBrowserAction from './file-browser-action.svelte'
   import FileBrowserCreateFolder from './file-browser-create-folder.svelte'
+  import { useDashboardContext } from '$lib/client/contexts/dashboard'
+  import { toReadableSize } from '$lib/client/utils'
 
   const {
     current,
@@ -13,15 +15,18 @@
     selectedFileIds: Writable<string[]>
   } = $props()
   const { refresh, selectMode } = useFileBrowserContext()
+  const { executeBackgroundTask } = useDashboardContext()
   const { createFile, writeStream, closeStream, getFileStar, setFileStar } = useServerContext()
 
-  let newFolder: boolean = $state(false)
-  let uploadElement: HTMLInputElement & {
-    type: 'file'
-  } = $state(null as never)
-  let uploadPromise: {
+  const newFolder = writable(false)
+  const uploadElement = writable<
+    HTMLInputElement & {
+      type: 'file'
+    }
+  >(null as never)
+  const uploadPromise = writable<{
     resolve: (data: File[]) => void
-  } | null = $state(null)
+  } | null>(null)
 </script>
 
 {#if current.type === 'folder' && selectMode == null}
@@ -33,7 +38,7 @@
     }}
     label="New Folder"
     onclick={() => {
-      newFolder = true
+      $newFolder = true
     }}
   />
 
@@ -45,38 +50,59 @@
     }}
     label="Upload"
     onclick={async () => {
-      uploadElement.click()
+      $uploadElement.click()
 
-      let files: File[]
+      await executeBackgroundTask(
+        'File Upload',
+        async ({ setMessage, setFooterLeft, setFooterRight, setProgress, setTitle }) => {
+          try {
+            const files: File[] = await new Promise<File[]>((resolve) => {
+              $uploadPromise = {
+                resolve
+              }
+            })
 
-      try {
-        files = await new Promise((resolve) => {
-          uploadPromise = {
-            resolve
+            const totalLength = files.reduce((total, file) => total + file.size, 0)
+            let uploadedLength: number = 0
+
+            if (files.length === 0) {
+              return
+            }
+
+            for (const file of files) {
+              const streamId = await createFile(current.file.id, file.name)
+              const bufferSize = 1024 * 256
+
+              setMessage(`${Math.round((uploadedLength / totalLength) * 10000) / 100}%`)
+              setFooterLeft(file.name)
+              setFooterRight(null)
+
+              for (let index = 0; index < file.size; ) {
+                const buffer = file.slice(index, index + bufferSize)
+
+                await writeStream(streamId, buffer)
+
+                uploadedLength += buffer.size
+                index += bufferSize
+
+                setProgress([uploadedLength, totalLength])
+                setMessage(`${Math.round((uploadedLength / totalLength) * 10000) / 100}%`)
+                setFooterRight(
+                  // `${Math.round((Math.min(index, file.size) / file.size) * 10000) / 100}%`
+
+                  `${toReadableSize(Math.min(index, file.size))}/${toReadableSize(file.size)}`
+                )
+              }
+
+              await closeStream(streamId)
+            }
+
+            refresh()
+          } finally {
+            $uploadPromise = null
           }
-        })
-
-        if (files.length === 0) {
-          return
         }
-
-        for (const file of files) {
-          const streamId = await createFile(current.file.id, file.name)
-          const bufferSize = 1024 * 256
-
-          for (let index = 0; index < file.size; index += bufferSize) {
-            const buffer = file.slice(index, index + bufferSize)
-
-            await writeStream(streamId, buffer)
-          }
-
-          await closeStream(streamId)
-        }
-
-        refresh()
-      } finally {
-        uploadPromise = null
-      }
+      )
     }}
   />
 
@@ -84,7 +110,7 @@
     type="file"
     hidden
     multiple
-    bind:this={uploadElement as never}
+    bind:this={$uploadElement as never}
     onchange={({ currentTarget }) => {
       const files = Array.from(currentTarget.files ?? [])
 
@@ -92,18 +118,18 @@
         return
       }
 
-      uploadPromise?.resolve(files)
+      $uploadPromise?.resolve(files)
     }}
     oncancel={() => {
-      uploadPromise?.resolve([])
+      $uploadPromise?.resolve([])
     }}
   />
 
-  {#if newFolder}
+  {#if $newFolder}
     <FileBrowserCreateFolder
       parentFolder={current.file}
       ondismiss={() => {
-        newFolder = false
+        $newFolder = false
       }}
     />
   {/if}
@@ -140,7 +166,6 @@
     onclick={() => {}}
   />
 {/if}
-
 
 {#if $selectedFileIds.length > 0}
   {#await Promise.all($selectedFileIds.map(async (fileId) => {

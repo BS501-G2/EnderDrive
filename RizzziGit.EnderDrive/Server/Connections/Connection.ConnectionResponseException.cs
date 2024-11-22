@@ -19,6 +19,8 @@ public enum ResponseCode : byte
   ResourceNotFound,
   Forbidden,
   FileNameConflict,
+  PasswordResetExists,
+  InvalidOperation
 }
 
 public abstract class ConnectionException(string? message = null, Exception? inner = null)
@@ -26,8 +28,9 @@ public abstract class ConnectionException(string? message = null, Exception? inn
 
 public sealed class ConnectionResponseException(
   ResponseCode code,
-  ConnectionResponseExceptionData data
-) : ConnectionException($"Server returned error response: {code}")
+  ConnectionResponseExceptionData data,
+  string? message = null
+) : ConnectionException(message ?? $"Server returned error response: {code}")
 {
   public readonly ResponseCode Code = code;
   public new readonly ConnectionResponseExceptionData Data = data;
@@ -36,6 +39,9 @@ public sealed class ConnectionResponseException(
 public abstract record class ConnectionResponseExceptionData
 {
   private ConnectionResponseExceptionData() { }
+
+  public sealed record class InvalidParameters : ConnectionResponseExceptionData { }
+  public sealed record class InvalidOperation : ConnectionResponseExceptionData { }
 
   public sealed record class AuthenticationRequired : ConnectionResponseExceptionData { }
 

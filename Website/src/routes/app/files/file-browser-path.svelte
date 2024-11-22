@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useServerContext } from '$lib/client/client'
+  import { FileType, useServerContext } from '$lib/client/client'
   import { useFileBrowserContext, type CurrentFile } from '$lib/client/contexts/file-browser'
   import Button from '$lib/client/ui/button.svelte'
   import Icon from '$lib/client/ui/icon.svelte'
@@ -33,6 +33,7 @@
       {@render loading()}
     {:else if current.path != null}
       {@const root = current.path[0]}
+      {@const me = current.me}
 
       {#snippet rootForeground(view: Snippet)}
         <div class="root">
@@ -53,12 +54,18 @@
           onFileId?.(event, root.id)
         }}
       >
-        {#if root.ownerUserId}
+
+        {#if root.type === FileType.File}
+          <Icon icon="file" />
+        {:else}
           <Icon icon="folder" />
+        {/if}
+
+        {#if root.ownerUserId == me.id}
           <p>My Files</p>
         {:else}
-          <Icon icon="user" />
-          <p>Root</p>
+          <Icon icon="users" thickness="solid" />
+          <p>{root.name}</p>
         {/if}
       </Button>
 

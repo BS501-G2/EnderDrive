@@ -4,12 +4,13 @@
   import { onMount } from 'svelte'
   import LandingAction from './landing-action.svelte'
   import LandingEntry from './landing-entry.svelte'
+  import { writable } from 'svelte/store'
 
   const { isDesktop, isMobile } = useAppContext()
   const { pushButton } = useLandingContext()
 
-  let scrollHeight: number = $state(0)
-  let imageHeight: number = $state(0)
+  const scrollHeight = writable<number>(0)
+  const imageHeight = writable<number>(0)
 
   onMount(() =>
     pushButton(
@@ -23,11 +24,11 @@
   )
 </script>
 
-<svelte:window bind:scrollY={scrollHeight} />
+<svelte:window bind:scrollY={$scrollHeight} />
 
 <LandingEntry name="Home" hideHeader>
-  <div class="img" class:mobile={$isMobile} bind:offsetHeight={imageHeight}>
-    <img src="/school-building.jpg" alt="School Building" style:min-height="{imageHeight}px" />
+  <div class="img" class:mobile={$isMobile} bind:offsetHeight={$imageHeight}>
+    <img src="/school-building.jpg" alt="School Building" style:min-height="{$imageHeight}px" />
   </div>
 
   <div class="header-container" class:mobile={$isMobile}>
@@ -43,7 +44,22 @@
   </div>
 </LandingEntry>
 
-<LandingEntry name="About" contain>//</LandingEntry>
+<LandingEntry name="About" contain>
+  <div class="firstGrid-Container" id="home">
+    <div class="gridInfo1">
+      <h1>Store, share, and collaborate <br>on files and folders across <br>your phone, tablet, or computer.</h1>
+      <p>Secure and Private File Storage and Sharing Website <br> for Melchora Aquino Elementary School.</p>
+
+      <div class="button-container1">
+        <button class="btn btn-primary">Download</button>
+        <button class="btn btn-secondary">Go to Dashboard</button>
+      </div>
+    </div>
+    <div class="gridImage1">
+      <img src="first.png" alt="first">
+    </div>
+  </div>
+</LandingEntry>
 
 <LandingEntry name="Why EnderDrive?" contain
   >The employees of Melchora Aquino Elementary School have been using traditional methods of storing
@@ -154,5 +170,12 @@
     div.footer {
       @include force-size(min(1280px, 100%), &);
     }
+  }
+   div.firstGrid-Container{
+    display:grid;
+    place-items: center;
+    grid-template-columns: auto auto;
+    padding:200px;
+    gap: 20px;
   }
 </style>

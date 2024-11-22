@@ -14,6 +14,7 @@
   import { fly } from 'svelte/transition'
   import { onMount } from 'svelte'
   import FileBrowserPropertiesMobile from './file-browser-properties-mobile.svelte'
+  import { writable } from 'svelte/store'
 
   const { resolve, onFileId, selectMode, customContext }: FileBrowserOptions = $props()
   const { actions, top, current, middle, bottom } =
@@ -21,13 +22,13 @@
   const { showDetails, fileListContext } = useFileBrowserContext()
   const { isMobile, isDesktop } = useAppContext()
 
-  let flattenedSelectedIds: string[] = $state([])
+  const flattenedSelectedIds = writable<string[]>([])
 
   onMount(() =>
     fileListContext.subscribe((fileListContext) => {
       if (fileListContext != null) {
         fileListContext.selectedFileIds.subscribe((selectedFileIds) => {
-          flattenedSelectedIds = selectedFileIds
+          $flattenedSelectedIds = selectedFileIds
         })
       }
     })
@@ -96,10 +97,10 @@
         selectedFileIds={$current.type === 'file'
           ? [$current.file.id]
           : $current.type === 'folder'
-            ? flattenedSelectedIds.length
-              ? flattenedSelectedIds
+            ? $flattenedSelectedIds.length
+              ? $flattenedSelectedIds
               : [$current.file.id]
-            : flattenedSelectedIds}
+            : $flattenedSelectedIds}
       />
     </div>
   {/if}
@@ -111,7 +112,7 @@
 
 <FileManagerActionHost {actions} />
 
-{#if $current.type !== 'loading' && ($isDesktop || ($isMobile && flattenedSelectedIds.length))}
+{#if $current.type !== 'loading' && ($isDesktop || ($isMobile && $flattenedSelectedIds.length))}
   <FileBrowserAction
     label="Details"
     icon={{
@@ -123,8 +124,8 @@
   />
 {/if}
 
-{#if $isMobile && $showDetails && $fileListContext != null && flattenedSelectedIds.length > 0}
-  <FileBrowserPropertiesMobile selectedFileIds={flattenedSelectedIds} />
+{#if $isMobile && $showDetails && $fileListContext != null && $flattenedSelectedIds.length > 0}
+  <FileBrowserPropertiesMobile selectedFileIds={$flattenedSelectedIds} />
 {/if}
 
 <style lang="scss">

@@ -9,6 +9,7 @@
   import { goto } from '$app/navigation'
   import Separator from '$lib/client/ui/separator.svelte'
   import { fly } from 'svelte/transition'
+  import { writable } from 'svelte/store'
 
   const { pushDesktopTopRight } = useDashboardContext()
 
@@ -22,13 +23,13 @@
 
   $effect(() => pushDesktopTopRight(desktop))
 
-  let showUserMenu: boolean = $state(false)
-  let buttonElement: HTMLDivElement = $state(null as never)
+  const showUserMenu = writable<boolean>(false)
+  const buttonElement = writable<HTMLDivElement>(null as never)
 </script>
 
 {#snippet desktop()}
   {#snippet background(view: Snippet)}
-    <div class="background" bind:this={buttonElement}>
+    <div class="background" bind:this={$buttonElement}>
       {@render view()}
     </div>
   {/snippet}
@@ -44,7 +45,7 @@
       {background}
       {foreground}
       onclick={() => {
-        showUserMenu = true
+        $showUserMenu = true
       }}
     >
       <Icon icon="user-circle" size="2rem" />
@@ -54,19 +55,19 @@
   </div>
 {/snippet}
 
-{#if showUserMenu}
+{#if $showUserMenu}
   <Overlay
     ondismiss={() => {
-      showUserMenu = false
+      $showUserMenu = false
     }}
     nodim
     notransition
     x={-(
       1 +
       window.innerWidth -
-      (buttonElement.getBoundingClientRect().x + buttonElement.getBoundingClientRect().width)
+      ($buttonElement.getBoundingClientRect().x + $buttonElement.getBoundingClientRect().width)
     )}
-    y={buttonElement.getBoundingClientRect().y + buttonElement.getBoundingClientRect().height}
+    y={$buttonElement.getBoundingClientRect().y + $buttonElement.getBoundingClientRect().height}
   >
     <div
       class="user-menu"
@@ -83,7 +84,7 @@
         {foreground}
         onclick={() => {
           goto(`/app/profile?id=${user.id}`)
-          showUserMenu = false
+          $showUserMenu = false
         }}
         hint="Go to your profile"
       >
@@ -108,7 +109,7 @@
         {user}
         bind:logoutConfirmation
         ondismiss={() => {
-          showUserMenu = false
+          $showUserMenu = false
         }}
       />
     </div>

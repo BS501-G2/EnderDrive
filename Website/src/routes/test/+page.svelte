@@ -4,20 +4,23 @@
   import Button from '$lib/client/ui/button.svelte'
   import RequireClient from '$lib/client/ui/require-client.svelte'
   import { onMount, type Snippet } from 'svelte'
+  import { writable } from 'svelte/store'
 
-  let actions: {
-    id: number
-    name: string
-    onClick: () => Promise<any>
-  }[] = $state([])
+  const actions = writable<
+    {
+      id: number
+      name: string
+      onClick: () => Promise<any>
+    }[]
+  >([])
 
-  let output: any = $state(null)
+  const output = writable<any>(null)
 
   const pushAction = (name: string, onClick: () => Promise<any>) => {
     const id = Math.random()
 
-    actions = [
-      ...actions,
+    $actions = [
+      ...$actions,
       {
         id,
         name,
@@ -25,9 +28,9 @@
           try {
             const result = await onClick()
 
-            return (output = typeof result === 'string' ? result : JSON.stringify(result))
+            return ($output = typeof result === 'string' ? result : JSON.stringify(result))
           } catch (error: any) {
-            output = `${error.stack}`
+            $output = `${error.stack}`
 
             throw error
           }
@@ -36,7 +39,7 @@
     ]
 
     return () => {
-      actions = actions.filter((action) => action.id !== id)
+      $actions = $actions.filter((action) => action.id !== id)
     }
   }
 
@@ -149,7 +152,7 @@
     </div>
     <div class="separator"></div>
     <div class="body actions">
-      {#each actions as { id, name, onClick } (id)}
+      {#each $actions as { id, name, onClick } (id)}
         <Button {background} onclick={onClick} {foreground}>{name}</Button>
       {/each}
     </div>

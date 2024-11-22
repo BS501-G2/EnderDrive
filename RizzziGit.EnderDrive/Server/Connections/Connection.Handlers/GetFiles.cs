@@ -67,14 +67,14 @@ public sealed partial class Connection
 
       if (
         (
-          request.OwnerUserId != me.Id
+          request.OwnerUserId != null && request.OwnerUserId!= me.Id
           && !await Resources
             .Query<AdminAccess>(transaction, (query) => query.Where((item) => item.UserId == me.Id))
             .AnyAsync(transaction.CancellationToken)
         )
       )
       {
-        throw new InvalidOperationException("Owner user is required for non-admin users");
+        throw new InvalidOperationException("Owner User ID must be set to self when not an admin.");
       }
 
       Resource<User>? ownerUser =

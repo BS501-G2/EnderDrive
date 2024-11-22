@@ -4,6 +4,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
+using System;
 using Resources;
 
 public sealed partial class Connection
@@ -25,7 +26,12 @@ public sealed partial class Connection
       Resource<FileAccess>? fileaccess = await Resources
         .Query<FileAccess>(
           transaction,
-          (query) => query.Where((fileAccess) => fileAccess.TargetUserId == request.TargetUserId)
+          (query) =>
+            query.Where(
+              (fileAccess) =>
+                fileAccess.TargetUserId == request.TargetUserId
+                && fileAccess.FileId == request.FileId
+            )
         )
         .FirstOrDefaultAsync(transaction.CancellationToken);
 
@@ -42,7 +48,7 @@ public sealed partial class Connection
         }
         else
         {
-          Resource<User> resource = await Internal_EnsureFirst(
+          Resource<User> targetUser = await Internal_EnsureFirst(
             transaction,
             Resources.Query<User>(
               transaction,
@@ -50,12 +56,14 @@ public sealed partial class Connection
             )
           );
 
+          Console.WriteLine(targetUser);
+
           await Resources.CreateFileAccess(
             transaction,
-            fileAccess.UnlockedFile,
-            resource,
-            me,
-            request.Level
+            file: fileAccess.UnlockedFile,
+            level: request.Level,
+            targetUser: targetUser,
+            authorUser: me
           );
         }
       }

@@ -8,6 +8,8 @@
   import { useAppContext } from '$lib/client/contexts/app'
   import { useServerContext, type FileResource } from '$lib/client/client'
   import { useFileBrowserContext } from '$lib/client/contexts/file-browser'
+  import { useDashboardContext } from '$lib/client/contexts/dashboard'
+  import { writable } from 'svelte/store'
 
   const {
     parentFolder,
@@ -19,19 +21,23 @@
   const { isMobile } = useAppContext()
   const { createFolder } = useServerContext()
   const { onFileId } = useFileBrowserContext()
+  const { executeBackgroundTask } = useDashboardContext()
 
-  let name: string = $state('')
+  const name = writable<string>('')
 
   async function onclick(
     event: MouseEvent & {
       currentTarget: EventTarget & HTMLButtonElement
     }
   ): Promise<void> {
-    const folder = await createFolder(parentFolder.id, name)
+    await executeBackgroundTask('name', async ({ setProgress, setMessage, setTitle }) => {
+      setMessage('Creating folder...')
+      const folder = await createFolder(parentFolder.id, $name)
 
-    ondismiss()
-
-    onFileId?.(event, folder.id)
+      setMessage('Folder successfully created..')
+      ondismiss()
+      onFileId?.(event, folder.id)
+    })
   }
 </script>
 
@@ -52,11 +58,11 @@
         <div class="body">
           <p>
             Creating a new folder named
-            <b class="folder-name">{name}</b>
+            <b class="folder-name">{$name}</b>
             will automatically redirect you inside it.
           </p>
 
-          <Input id="folder-name" type="text" name="Folder Name" bind:value={name} />
+          <Input id="folder-name" type="text" name="Folder Name" bind:value={$name} />
         </div>
 
         <Separator horizontal />

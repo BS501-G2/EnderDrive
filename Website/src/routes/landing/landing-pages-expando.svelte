@@ -2,7 +2,7 @@
   import type { LandingPageEntry } from '$lib/client/contexts/landing'
   import Icon from '$lib/client/ui/icon.svelte'
   import Overlay from '../overlay.svelte'
-  import type { Readable, Writable } from 'svelte/store'
+  import { writable, type Readable, type Writable } from 'svelte/store'
   import { fly } from 'svelte/transition'
 
   const {
@@ -13,19 +13,19 @@
     currentPage: Readable<number>
   } = $props()
 
-  let expanded: boolean = $state(false)
+  const expanded = writable<boolean>(false)
 </script>
 
 <button
   class="open"
   onclick={() => {
-    expanded = true
+    $expanded = true
   }}
 >
   <Icon icon="bars" thickness="solid" />
 </button>
 
-{#if expanded}
+{#if $expanded}
   <Overlay>
     <div
       class="test"
@@ -37,7 +37,7 @@
       <button
         class="dismiss begin"
         onclick={() => {
-          expanded = false
+          $expanded = false
         }}
         aria-label="Close Menu"
       ></button>
@@ -47,7 +47,7 @@
           <button
             onclick={() => {
               $currentPage = index
-              expanded = false
+              $expanded = false
             }}
             class:active={$currentPage === index}
           >
@@ -60,7 +60,7 @@
       <button
         class="dismiss"
         onclick={() => {
-          expanded = false
+          $expanded = false
         }}
         aria-label="Close Menu"
       ></button>

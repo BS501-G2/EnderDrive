@@ -132,6 +132,17 @@ public sealed partial class Connection
     registerHandler(ServerSideRequestCode.GetUsernameValidationFlags, GetUsernameValidationFlags);
     registerHandler(ServerSideRequestCode.GetPasswordValidationFlags, GetPasswordValidationFlags);
     registerFileHandler(ServerSideRequestCode.SetFileAccess, SetFileAccess);
+    registerAuthenticatedHandler(ServerSideRequestCode.GetFileAccessLevel, GetFileAccessLevel);
+    registerTransactedHandler(ServerSideRequestCode.RequestPasswordReset, RequestPasswordReset);
+    registerAdminHandler(ServerSideRequestCode.GetPasswordResetRequests, GetPasswordResetRequests);
+    registerAdminHandler(
+      ServerSideRequestCode.AcceptPasswordResetRequest,
+      AcceptPasswordResetRequest
+    );
+    registerAdminHandler(
+      ServerSideRequestCode.DeclinePasswordResetRequest,
+      DeclinePasswordResetRequest
+    );
   }
 }
 
@@ -199,5 +210,11 @@ public enum ServerSideRequestCode : byte
   GetUsernameValidationFlags,
   GetPasswordValidationFlags,
 
-  SetFileAccess
+  SetFileAccess,
+  GetFileAccessLevel,
+
+  RequestPasswordReset,
+  GetPasswordResetRequests,
+  DeclinePasswordResetRequest,
+  AcceptPasswordResetRequest,
 }

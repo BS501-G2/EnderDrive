@@ -39,10 +39,12 @@ public sealed partial class Connection
           .Query<File>(
             transaction,
             (query) =>
-              query
-                .Where((file) => file.ParentId == fileAccess.UnlockedFile.File.Id)
-                .Where((file) => file.TrashTime != null)
-                .Where((file) => file.Name.Equals(request.Name, StringComparison.OrdinalIgnoreCase))
+              query.Where(
+                (file) =>
+                  file.ParentId == fileAccess.UnlockedFile.File.Data.Id
+                  && file.TrashTime == null
+                  && file.Name.Equals(request.Name, StringComparison.OrdinalIgnoreCase)
+              )
           )
           .AnyAsync(transaction.CancellationToken)
       )

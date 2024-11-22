@@ -32,11 +32,26 @@ public sealed partial class Connection
           ? result.UnlockedFile
           : await Resources.GetRootFolder(transaction, me, userAuthentication);
 
-      Resource<File> currentFile = rootFile.File;
-      List<Resource<File>> path = [rootFile.File];
+      Resource<File> currentFile = result.UnlockedFile.File;
+      List<Resource<File>> path = [];
 
       while (true)
       {
+        FileAccessResult? fileAccess = await Resources.FindFileAccess(
+          transaction,
+          currentFile,
+          me,
+          userAuthentication,
+          FileAccessLevel.Read
+        );
+
+        if (fileAccess == null)
+        {
+          break;
+        }
+
+        path.Add(currentFile);
+
         if (currentFile.Data.ParentId == null)
         {
           break;
@@ -48,16 +63,6 @@ public sealed partial class Connection
           userAuthentication,
           currentFile.Data.ParentId
         );
-
-        if (path.Last().Id != currentFile.Id)
-        {
-          path.Add(currentFile);
-        }
-
-        if (currentFile.Id == rootFile.File.Data.Id)
-        {
-          break;
-        }
       }
 
       return new() { Path = [.. path.Reverse<Resource<File>>().ToJson()] };

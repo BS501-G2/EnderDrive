@@ -6,7 +6,9 @@ import type {
   FileAccessResource,
   FileStarResource,
   FileType,
-  VirusReportResource
+  VirusReportResource,
+  FileAccessLevel,
+  UserResource
 } from '../client'
 import type { IconOptions } from '../ui/icon.svelte'
 import type { FileBrowserListContext } from './file-browser-list'
@@ -253,22 +255,26 @@ export type FileEntry = {
 
 export type CurrentFile =
   | ((
+      | ((
+          | {
+              type: 'file'
+              mime: string
+            }
+          | {
+              type: 'folder'
+              files: FileEntry[]
+            }
+        ) & {
+          path: FileResource[]
+          file: FileResource
+        })
       | {
-          type: 'file'
-          mime: string
-        }
-      | {
-          type: 'folder'
+          type: 'shared' | 'starred' | 'trash'
           files: FileEntry[]
         }
     ) & {
-      path: FileResource[]
-      file: FileResource
+      me: UserResource
     })
-  | {
-      type: 'shared' | 'starred' | 'trash'
-      files: FileEntry[]
-    }
   | {
       type: 'loading'
     }
@@ -279,6 +285,7 @@ export type CurrentFile =
 
 export interface FileProperties {
   file: FileResource
+  fileAccessLevel: FileAccessLevel
   viruses: VirusReportResource | null
 
   created: Date

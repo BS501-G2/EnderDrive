@@ -6,6 +6,7 @@
   import Input from '$lib/client/ui/input.svelte'
   import { useAppContext } from '$lib/client/contexts/app'
   import SearchFiles from './search-files.svelte'
+  import { writable } from 'svelte/store'
 
   const { isMobile } = useAppContext()
   const {
@@ -16,7 +17,7 @@
     ondismiss: () => void
   } = $props()
 
-  let searchString: string = $state('')
+  const searchString = writable('')
 </script>
 
 {#snippet resultBox(name: string, seeMore: () => void, snippet: Snippet)}
@@ -61,13 +62,13 @@
 
   <div class="body">
     <div class="search-field">
-      <Input id="search" type="text" name="Search String" bind:value={searchString} />
+      <Input id="search" type="text" name="Search String" bind:value={$searchString} />
     </div>
 
-    {#if searchString.length}
+    {#if $searchString.length}
       <div class="result">
-        <SearchUsers {searchString} card={resultBox} {ondismiss} />
-        <SearchFiles {searchString} card={resultBox} {ondismiss} />
+        <SearchUsers searchString={$searchString} card={resultBox} {ondismiss} />
+        <SearchFiles searchString={$searchString} card={resultBox} {ondismiss} />
       </div>
     {:else}
       <div class="placeholder">

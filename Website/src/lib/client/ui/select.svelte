@@ -23,7 +23,11 @@
   const show = writable(false)
   const selectedIndex = writable<number | null>(null)
 
-  const buttonElement = writable<HTMLButtonElement | null>(null)
+  const buttonElement = writable<HTMLButtonElement>(null as never)
+
+  const y = writable(0)
+  const x = writable(0)
+  const width = writable(0)
 
   $effect(() => {
     set = (value) => {
@@ -34,7 +38,29 @@
   $effect(() => {
     selected = $selectedIndex == null ? null : $options[$selectedIndex]?.value
   })
+
+  function updatePosition(buttonElement: HTMLButtonElement) {
+    const box = buttonElement.getBoundingClientRect()
+
+    x.set(box.x)
+    y.set(box.y + box.height)
+    width.set(box.width)
+  }
+
+  $effect(() => {
+    if ($buttonElement != null) {
+      updatePosition($buttonElement)
+    }
+  })
 </script>
+
+<svelte:window
+  onresize={() => {
+    if ($buttonElement != null) {
+      updatePosition($buttonElement)
+    }
+  }}
+/>
 
 {#snippet foreground(view: Snippet)}
   <div class="container" class:this={$buttonElement}>
@@ -50,6 +76,7 @@
   onclick={() => {
     $show = !$show
   }}
+  bind:buttonElement={$buttonElement}
 >
   <div class="button">
     {$selectedIndex == null ? placeholder : ($options[$selectedIndex]?.label ?? 'Invalid Option')}
@@ -66,20 +93,21 @@
     ondismiss={() => {
       $show = false
     }}
+    x={$x}
+    y={$y}
   >
-  <div class="menu">
-    {#each $options as { id, label, snippet }, index}
-      <Button
-        onclick={() => {
-          $selectedIndex = index
-          $show = false
-        }}
-      >
-        {@render snippet()}
-      </Button>
-    {/each}
-
-  </div>
+    <div class="menu" style:min-width="{$width}px" style:max-width="{$width}px">
+      {#each $options as { id, label, snippet }, index}
+        <Button
+          onclick={() => {
+            $selectedIndex = index
+            $show = false
+          }}
+        >
+          {@render snippet()}
+        </Button>
+      {/each}
+    </div>
   </Overlay>
 {/if}
 
@@ -107,5 +135,10 @@
 
   div.menu {
     background-color: var(--color-9);
+
+    min-height: 0;
+    max-height: 128px;
+
+    overflow: hidden auto;
   }
 </style>

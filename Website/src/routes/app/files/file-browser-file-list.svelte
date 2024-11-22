@@ -1,5 +1,9 @@
 <script lang="ts">
-  import { useFileBrowserContext, type CurrentFile } from '$lib/client/contexts/file-browser'
+  import {
+    useFileBrowserContext,
+    type CurrentFile,
+    type FileEntry
+  } from '$lib/client/contexts/file-browser'
   import { createFileBrowserListContext } from '$lib/client/contexts/file-browser-list'
   import { onMount } from 'svelte'
   import FileBrowserFileListEntry from './file-browser-file-list-entry.svelte'
@@ -9,12 +13,15 @@
   import Title from '../title.svelte'
   import { useAppContext } from '$lib/client/contexts/app'
   import FileBrowserActions from './file-browser-actions.svelte'
+  import type { Writable } from 'svelte/store'
 
   const {
+    displayedFiles,
     current
   }: {
+    displayedFiles: FileEntry[]
     current: CurrentFile & {
-      type: 'folder' | 'shared' | 'starred' | 'trash'
+      type: 'folder' | 'shared' | 'starred' | 'trash' | 'loading'
     }
   } = $props()
 
@@ -40,23 +47,31 @@
   <div class="list-container">
     <div class="header"></div>
     <div class="list" class:mobile={$isMobile}>
-      {#each current.files as file}
-        {#if file.type === 'folder'}
-          <FileBrowserFileListEntry {file} />
-        {:else if selectMode}
-          {#if selectMode.allowedFileMimeTypes.length !== 0}
-            {#await getFileMime(file.file.id) then mime}
-              {#if selectMode.allowedFileMimeTypes.some( (mimeType) => (mimeType instanceof RegExp ? mimeType.test(mime) : mimeType === mime) )}
-                <FileBrowserFileListEntry {file} />
-              {/if}
-            {/await}
+      {#snippet list(files: FileEntry[])}
+        {#each files as file}
+          {#if file.type === 'folder'}
+            <FileBrowserFileListEntry {file} />
+          {:else if selectMode}
+            {#if selectMode.allowedFileMimeTypes.length !== 0}
+              {#await getFileMime(file.file.id) then mime}
+                {#if selectMode.allowedFileMimeTypes.some( (mimeType) => (mimeType instanceof RegExp ? mimeType.test(mime) : mimeType === mime) )}
+                  <FileBrowserFileListEntry {file} />
+                {/if}
+              {/await}
+            {:else}
+              <FileBrowserFileListEntry {file} />
+            {/if}
           {:else}
             <FileBrowserFileListEntry {file} />
           {/if}
-        {:else}
-          <FileBrowserFileListEntry {file} />
-        {/if}
-      {/each}
+        {/each}
+      {/snippet}
+
+      {#if current.type !== 'loading'}
+        {@render list(current.files)}
+      {:else}
+        {@render list(displayedFiles)}
+      {/if}
     </div>
   </div>
 </div>

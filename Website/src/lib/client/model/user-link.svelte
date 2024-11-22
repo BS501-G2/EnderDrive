@@ -2,6 +2,7 @@
   import { onMount } from 'svelte'
   import { useServerContext, type UserResource } from '../client'
   import LoadingSpinner from '../ui/loading-spinner.svelte'
+  import { writable } from 'svelte/store'
 
   const {
     userId
@@ -16,10 +17,10 @@
     return user
   }
 
-  let promise = $state(load())
+  const promise = writable(load())
 </script>
 
-{#await promise}
+{#await $promise}
   <LoadingSpinner size="1rem" />
 {:then user}
   {#if user}

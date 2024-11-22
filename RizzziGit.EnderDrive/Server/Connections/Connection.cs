@@ -132,11 +132,7 @@ public sealed partial class Connection(
 
   protected override async Task OnStop(ConnectionContext context, ExceptionDispatchInfo? exception)
   {
-    foreach ((_, ConnectionByteStream stream) in context.FileStreams)
-    {
-      await stream.Close(CancellationToken.None);
-    }
-
+    await Internal_CloseAllStreams();
     context.FileStreams.Clear();
 
     await StopServices(context.Internal);
