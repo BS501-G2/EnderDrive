@@ -1,7 +1,6 @@
 <script lang="ts">
   import { useAdminContext } from '$lib/client/contexts/admin'
   import { onMount, type Snippet } from 'svelte'
-  import Title from '../../title.svelte'
   import AdminSidePanel from '../admin-side-panel.svelte'
   import Input from '$lib/client/ui/input.svelte'
   import { createUserContext } from './user-context'
@@ -11,7 +10,7 @@
   import CreateUserDialog from './create-user-dialog.svelte'
   import { UserRole, useServerContext } from '$lib/client/client'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
-  import User from './user.svelte'
+  import UserTable from './user-table.svelte'
 
   const { pushSidePanel, pushTitle } = useAdminContext()
   const { searchString, includeRole, excludeRole } = createUserContext()
@@ -47,9 +46,9 @@
     <LoadingSpinner size="3rem" />
   </div>
 {:then users}
-  {#each users ?? [] as user}
-    <User {user} />
-  {/each}
+  <div class="page">
+      <UserTable users={users || []} />
+  </div>
 {:catch error}
   {#each error as a}
     <p class="error">{a}</p>
@@ -134,5 +133,13 @@
 
     align-items: center;
     justify-content: center;
+  }
+
+  div.page {
+    flex-grow: 1;
+    padding: 0 8px;
+
+    box-sizing: border-box;
+    overflow: auto;
   }
 </style>

@@ -4,20 +4,19 @@
   import { tweened } from 'svelte/motion'
   import LandingPages from './landing-pages.svelte'
   import { useAppContext } from '$lib/client/contexts/app'
-  import { createLandingContext, type LoginContext } from '$lib/client/contexts/landing'
+  import { createLandingContext } from '$lib/client/contexts/landing'
   import SiteLogo from './site-logo.svelte'
   import { useColorContext } from '$lib/client/contexts/colors'
   import LandingPagesExpando from './landing-pages-expando.svelte'
   import LandingActions from './landing-actions.svelte'
-  import LoginDialog from './login-dialog.svelte'
+  import LoginDialog from './authenticate-dialog.svelte'
   import { page } from '$app/stores'
-  import Overlay from '../overlay.svelte'
 
   const {
     pages,
     buttons,
     footer,
-    login,
+    authenticateDialog,
     context: { openLogin, closeLogin }
   } = createLandingContext()
   const { isDesktop, isMobile, pushTitle } = useAppContext()
@@ -100,16 +99,8 @@
   {/each}
 </div>
 
-{#if $login != null}
-  <Overlay
-    ondismiss={() => {
-      closeLogin()
-    }}
-  >
-    {#snippet children(windowButtons: Snippet)}
-      <LoginDialog login={login as Writable<LoginContext>} {windowButtons} />
-    {/snippet}
-  </Overlay>
+{#if $authenticateDialog}
+  <LoginDialog ondismiss={closeLogin} />
 {/if}
 
 {@render children()}

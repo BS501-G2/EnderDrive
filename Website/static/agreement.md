@@ -1,42 +1,45 @@
-## Introduction
-***EnderDrive* ("we," "our," or "us")** is a secure, employees-only cloud storage and collaboration platform developed by a third-party service provider on behalf of ***Melchora Aquino Elementary School* ("the Company")**. We are committed to safeguarding your privacy and ensuring transparency about how your information is collected, used, and shared when using the ***Website* ("the Platform")**.
+### Introduction
+
+**_EnderDrive_ ("we," "our," or "us")** is a secure, employees-only cloud storage and collaboration platform developed by a third-party service provider on behalf of **_Melchora Aquino Elementary School_ ("the Company")**. We are committed to safeguarding your privacy and ensuring transparency about how your information is collected, used, and shared when using the **_Website_ ("the Platform")**.
 
 This Privacy Policy explains how data is handled within the Platform to facilitate collaboration and administrative oversight while protecting employee privacy. By using the Platform, you agree to the terms outlined in this Privacy Policy.
 
 ### 1. Information We Collect
+
 We collect and process the following types of information to ensure the Platform functions effectively:
 
 #### 1.1 Personal Information:
 
-* Full name
-* Work email address
-* Files or documents you upload to the Platform
+- Full name
+- Your Google account for one-tap login
+- Files or documents you upload to the Platform
 
 #### 1.2 Usage Data:
 
-* Activity logs (e.g., file uploads, edits, and shares)
-* Time and duration of access to the Platform
+- Activity logs (e.g., file uploads, edits, and shares)
+- Time and duration of access to the Platform
 
 #### 1.3 Administrative Monitoring Data:
 
-* Logs for compliance purposes (e.g., user actions, permissions changes, and collaboration history).
+- Logs for compliance purposes (e.g., file operations, user login/logout timestamps, and shares).
 
 ### 2. How We Use Your Information
 
 We use your information to:
 
-* Provide secure and seamless access to the Platform.
-Facilitate team collaboration and file-sharing.
-Allow administrators to monitor activity for compliance and security.
-Resolve technical issues and improve the Platform’s performance.
-Ensure compliance with Company policies and legal requirements.
+- Provide secure and seamless access to the Platform.
+- Facilitate team collaboration and file-sharing.
+- Allow administrators to monitor activity for compliance and security.
+- Resolve technical issues and improve the Platform’s performance.
+- Ensure compliance with Company policies and legal requirements.
 
 ### 3. Sharing of Information
+
 Your information will be shared only under the following circumstances:
 
-With Authorized Administrators: For monitoring and compliance as per Company policies.
-With the Third-Party Provider: For technical support and maintenance of the Platform.
-As Required by Law: To comply with legal obligations or respond to lawful requests by public authorities.
+- With Authorized Administrators: For monitoring and compliance as per Company policies.
+- With the Third-Party Provider: For technical support and maintenance of the Platform.
+- As Required by Law: To comply with legal obligations or respond to lawful requests by public authorities.
 
 ### 4. Data Security
 
@@ -50,9 +53,9 @@ We retain your data as long as it is necessary to fulfill the purposes outlined 
 
 As a user of the Platform, you have the right to:
 
-Access and review your personal data stored on the Platform.
-Request corrections to inaccurate or outdated information.
-Raise concerns regarding data usage or privacy by contacting us (see Section 9).
+- Access and review your personal data stored on the Platform.
+- Request corrections to inaccurate or outdated information.
+- Raise concerns regarding data usage or privacy by contacting us (see Section 9).
 
 ### 7. Cookies and Tracking Technologies
 

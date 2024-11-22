@@ -5,9 +5,11 @@
   import { writable } from 'svelte/store'
 
   const {
-    userId
+    userId,
+    customText
   }: {
     userId: string
+    customText?: string
   } = $props()
   const { getUser } = useServerContext()
 
@@ -24,9 +26,11 @@
   <LoadingSpinner size="1rem" />
 {:then user}
   {#if user}
-    <a class="user" href="/app/profile?id={user.id}">{user.displayName ?? `${user.firstName}`}</a>
+    <a class="user" href="/app/profile?id={user.id}">
+      {customText ?? user.displayName ?? `${user.firstName}`}
+    </a>
   {:else}
-    <p class="invalid">Invalid username</p>
+    <p class="invalid">Invalid User ID</p>
   {/if}
 {:catch error}
   <p class="invalid">
@@ -38,7 +42,7 @@
   a.user {
     color: inherit;
     text-decoration: none;
-    font-weight: bolder;
+    // font-weight: bolder;
   }
 
   a.user:hover {

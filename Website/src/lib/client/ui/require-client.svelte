@@ -32,14 +32,14 @@
   })
 </script>
 
-{#if $clientState[0] === ClientState.Connected}
-  {@render children()}
-{:else if $clientState[0] === ClientState.Connecting}
+{#if $clientState[0] === ClientState.Connecting}
   <div class="splash-container">
     <div class="splash">
       <LoadingSpinner size="3rem" />
     </div>
   </div>
+{:else if $clientState[0] === ClientState.Connected}
+  {@render children()}
 {:else if $clientState[0] === ClientState.Failed}
   <div class="splash-container error">
     <div class="splash">

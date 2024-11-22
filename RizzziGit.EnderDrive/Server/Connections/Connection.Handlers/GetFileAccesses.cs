@@ -147,6 +147,7 @@ public sealed partial class Connection
                   )
                   && (request.Level == null || fileAccess.Level >= request.Level)
               )
+              .OrderByDescending((fileAccess) => fileAccess.Id)
               .ApplyPagination(request.Pagination)
         )
         .IfAwait(

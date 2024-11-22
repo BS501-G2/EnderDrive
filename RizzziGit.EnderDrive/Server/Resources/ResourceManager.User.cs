@@ -39,7 +39,7 @@ public record class User : ResourceData
   [JsonProperty("displayName")]
   public required string? DisplayName;
 
-  [JsonProperty("role")]
+  [JsonProperty("roles")]
   public required UserRole[] Roles;
 
   [JsonIgnore]

@@ -56,6 +56,8 @@
 
   div.tabs {
     flex-direction: row;
+
+    overflow: auto hidden;
   }
 
   div.background {
@@ -100,11 +102,14 @@
 
   button.tab.mobile {
     flex-grow: 1;
+    flex-basis: 0;
 
     > div.label {
       flex-grow: 1;
       gap: 0;
       flex-direction: column;
+
+      justify-content: flex-end;
     }
 
     border-radius: 0;

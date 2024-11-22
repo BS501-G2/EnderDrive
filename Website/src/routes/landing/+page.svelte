@@ -43,22 +43,24 @@
     </div>
   </div>
 </LandingEntry>
-
-<LandingEntry name="About" contain>
-  <div class="firstGrid-Container" id="home">
+<LandingEntry name="Hero" hideHeader>
+   <div class="firstGrid-Container" id="home">
     <div class="gridInfo1">
-      <h1>Store, share, and collaborate <br>on files and folders across <br>your phone, tablet, or computer.</h1>
+      <h1>Store, share, and collaborate on files and folders across your phone, tablet, or computer.</h1>
       <p>Secure and Private File Storage and Sharing Website <br> for Melchora Aquino Elementary School.</p>
 
       <div class="button-container1">
         <button class="btn btn-primary">Download</button>
-        <button class="btn btn-secondary">Go to Dashboard</button>
+        <button class="btn btn-secondary">Login</button>
       </div>
     </div>
     <div class="gridImage1">
       <img src="first.png" alt="first">
     </div>
   </div>
+</LandingEntry>
+<LandingEntry name="About" contain>//
+
 </LandingEntry>
 
 <LandingEntry name="Why EnderDrive?" contain
@@ -175,7 +177,64 @@
     display:grid;
     place-items: center;
     grid-template-columns: auto auto;
-    padding:200px;
     gap: 20px;
+    padding: 50px;
+  }
+  div.gridInfo1{
+    max-width: 100%;
+    max-height: 100%;
+    overflow: hidden;
+    margin: auto;
+  }
+  div.gridImage1{
+    max-width: auto;
+    object-fit:cover;
+    max-height: auto;
+    overflow: hidden;
+  }
+  p{
+    text-align: left;
+    line-height: 1;
+    font-weight: lighter;
+    font-size: 25px;
+    padding: 20px;
+  }
+  h1{
+    font-size: 45px;
+    word-spacing: normal;
+    letter-spacing: normal;
+    text-align: left;
+    font-weight: bold;
+    line-height: 1;
+  }
+  div.button-container1 {
+    margin-top: 20px;
+    display:grid;
+    grid-template-columns: auto auto;
+    justify-content: start;
+  }
+
+  .btn {
+    margin-right: 10px;
+    padding: 10px 20px;
+    border: 2px solid transparent;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 20px;
+    transition: border-color 0.5s, box-shadow 0.5s;
+  }
+  .btn-primary {
+    background-color: rgb(185, 188, 188);
+    color: black;
+  }
+  .btn-secondary {
+    background-color: rgb(12, 91, 66);
+    color: white;
+  }
+  .btn:hover {
+    background-color: #0f3031ff;
+    color:white;
+    border-color: white;
+    box-shadow: 0 0 10px white;
   }
 </style>

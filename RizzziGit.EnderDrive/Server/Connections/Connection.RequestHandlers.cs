@@ -143,6 +143,7 @@ public sealed partial class Connection
       ServerSideRequestCode.DeclinePasswordResetRequest,
       DeclinePasswordResetRequest
     );
+    registerAdminHandler(ServerSideRequestCode.IsUserAdmin, IsUserAdmin);
   }
 }
 
@@ -217,4 +218,6 @@ public enum ServerSideRequestCode : byte
   GetPasswordResetRequests,
   DeclinePasswordResetRequest,
   AcceptPasswordResetRequest,
+
+  IsUserAdmin,
 }

@@ -95,9 +95,9 @@
   }}
 />
 
-<OverlayHost {overlay} />
-
 {@render children()}
+
+<OverlayHost {overlay} />
 
 <style lang="scss">
   @use '../global.scss' as *;

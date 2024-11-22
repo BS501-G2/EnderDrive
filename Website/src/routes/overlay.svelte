@@ -136,8 +136,8 @@
   <div class="overlay-bounds">
     <button
       class="overlay-container"
-      style:align-items={horizontalAlign}
-      style:justify-content={verticalAlign}
+      style:align-items="safe {horizontalAlign}"
+      style:justify-content="safe {verticalAlign}"
       style:padding-top="{paddingTop}px"
       style:padding-bottom="{paddingBottom}px"
       style:padding-left="{paddingLeft}px"
@@ -202,6 +202,8 @@
 
     text-align: start;
 
+    overflow: auto;
+
     border: none;
     outline: none;
 
@@ -222,7 +224,7 @@
 
     min-width: 0px;
     min-height: 0px;
-    max-width: 100dvw;
-    max-height: 100dvh;
+    // max-width: 100dvw;
+    // max-height: 100dvh;
   }
 </style>

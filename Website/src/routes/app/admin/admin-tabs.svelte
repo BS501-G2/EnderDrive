@@ -77,3 +77,19 @@
     }
   }}
 />
+
+<AdminTab
+  name="Password Reset Requests"
+  callback={({ url }) => {
+    const isPath = url.pathname === '/app/admin/reset'
+
+    return {
+      path: '/app/admin/reset',
+      selected: isPath,
+      icon: {
+        icon: 'key',
+        thickness: 'solid'
+      }
+    }
+  }}
+/>

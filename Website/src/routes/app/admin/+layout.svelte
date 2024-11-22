@@ -80,8 +80,6 @@
   @use '../../../global.scss' as *;
 
   div.page {
-    padding: 8px;
-
     flex-grow: 1;
 
     min-height: 0;

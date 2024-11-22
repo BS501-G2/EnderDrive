@@ -38,11 +38,6 @@ export interface LandingPageFooter {
 
 const landingContextName = 'Landing Context'
 
-export interface LoginContext {
-  username: Writable<string>
-  password: Writable<string>
-}
-
 export function useLandingContext() {
   return getContext<LandingContext>(landingContextName)
 }
@@ -50,7 +45,7 @@ export function useLandingContext() {
 export function createLandingContext() {
   const pages: Writable<LandingPageEntry[]> = writable([])
   const buttons: Writable<LandingPageButton[]> = writable([])
-  const login: Writable<LoginContext | null> = writable(null)
+  const authenticateDialog: Writable<boolean> = writable(false)
   const footer: Writable<LandingPageFooter[]> = writable([])
 
   const context = setContext<LandingContext>(landingContextName, {
@@ -103,14 +98,11 @@ export function createLandingContext() {
     },
 
     openLogin: () => {
-      login.set({
-        username: writable(''),
-        password: writable('')
-      })
+      authenticateDialog.set(true)
     },
 
     closeLogin: () => {
-      login.set(null)
+      authenticateDialog.set(false)
     }
   })
 
@@ -119,6 +111,6 @@ export function createLandingContext() {
     pages,
     footer,
     buttons,
-    login
+    authenticateDialog
   }
 }

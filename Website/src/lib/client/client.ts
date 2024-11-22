@@ -1125,6 +1125,12 @@ function getServerFunctions(
         passwordResetRequestId,
         password: newPassword
       })
+    },
+
+    isUserAdmin: async (userId: string) => {
+      const { isAdmin } = await request(ServerSideRequestCode.IsUserAdmin, { userId })
+
+      return isAdmin as boolean
     }
   }
 
@@ -1233,7 +1239,9 @@ export enum ServerSideRequestCode {
   RequestPasswordReset,
   GetPasswordResetRequests,
   DeclinePasswordResetRequest,
-  AcceptPasswordResetRequest
+  AcceptPasswordResetRequest,
+
+  IsUserAdmin
 }
 
 export enum PasswordResetRequestStatus {
@@ -1278,7 +1286,7 @@ export interface UserResource extends ResourceData {
   middleName?: string
   lastName: string
   displayName?: string
-  role: UserRole
+  roles: UserRole[]
 }
 
 export interface FileResource extends ResourceData {
