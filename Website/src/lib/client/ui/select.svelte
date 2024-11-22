@@ -8,7 +8,6 @@
 
   let {
     placeholder = 'Select an Option',
-    set = $bindable(),
     selected = $bindable(),
     children
   }: {
@@ -21,23 +20,15 @@
   const { options } = createSelectContext<T>()
 
   const show = writable(false)
-  const selectedIndex = writable<number | null>(null)
+  const selectedIndex = $derived(
+    selected == null ? 0 : $options.findIndex((option) => option.value === selected)
+  )
 
   const buttonElement = writable<HTMLButtonElement>(null as never)
 
   const y = writable(0)
   const x = writable(0)
   const width = writable(0)
-
-  $effect(() => {
-    set = (value) => {
-      $selectedIndex = $options.findIndex((e) => e.value == value)
-    }
-  })
-
-  $effect(() => {
-    selected = $selectedIndex == null ? null : $options[$selectedIndex]?.value
-  })
 
   function updatePosition(buttonElement: HTMLButtonElement) {
     const box = buttonElement.getBoundingClientRect()
@@ -79,7 +70,7 @@
   bind:buttonElement={$buttonElement}
 >
   <div class="button">
-    {$selectedIndex == null ? placeholder : ($options[$selectedIndex]?.label ?? 'Invalid Option')}
+    {selectedIndex < 0 ? 'Invalid Option' : ($options[selectedIndex]?.label ?? 'Select an option')}
   </div>
 </Button>
 
@@ -97,10 +88,10 @@
     y={$y}
   >
     <div class="menu" style:min-width="{$width}px" style:max-width="{$width}px">
-      {#each $options as { id, label, snippet }, index}
+      {#each $options as { id, snippet, value } (id)}
         <Button
           onclick={() => {
-            $selectedIndex = index
+            selected = value
             $show = false
           }}
         >
@@ -137,7 +128,7 @@
     background-color: var(--color-9);
 
     min-height: 0;
-    max-height: 128px;
+    max-height: 256px;
 
     overflow: hidden auto;
   }

@@ -37,6 +37,7 @@ export interface FileBrowserOptions {
     maxSelectionCount: number
 
     allowedFileMimeTypes: (RegExp | string)[]
+    filter: (file: FileEntry) => boolean | Promise<boolean>
   } | null
 
   onFileId?: (

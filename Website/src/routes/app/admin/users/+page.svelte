@@ -23,7 +23,12 @@
     includeRole: UserRole[] | null,
     excludeRole: UserRole[] | null
   ) {
-    const users = await getUsers(searchString, includeRole ?? void 0, excludeRole ?? void 0)
+    const users = await getUsers({
+      searchString,
+      includeRole: includeRole ?? void 0,
+      excludeRole: excludeRole ?? void 0,
+      excludeSelf: false
+    })
 
     return users
   }
@@ -47,7 +52,7 @@
   </div>
 {:then users}
   <div class="page">
-      <UserTable users={users || []} />
+    <UserTable users={users || []} />
   </div>
 {:catch error}
   {#each error as a}
@@ -140,6 +145,6 @@
     padding: 0 8px;
 
     box-sizing: border-box;
-    overflow: auto;
+    min-height: 0;
   }
 </style>

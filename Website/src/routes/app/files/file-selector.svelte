@@ -3,7 +3,10 @@
     createFileBrowserContext,
     FileBrowserResolveType,
     type FileBrowserOptions,
-    type FileBrowserResolve
+    type FileBrowserResolve,
+
+    type FileEntry
+
   } from '$lib/client/contexts/file-browser'
   import { derived, writable, type Writable } from 'svelte/store'
   import FileSelectorInner from './file-selector-inner.svelte'
@@ -13,11 +16,13 @@
     maxFileCount,
     onresult,
     mimeTypes,
-    oncancel
+    oncancel,
+    filter
   }: {
     maxFileCount: number
     onresult: (files: FileResource[]) => Promise<void>
     mimeTypes: (string | RegExp)[]
+    filter: (file: FileEntry) => boolean | Promise<boolean>
     oncancel: () => void
   } = $props()
 
@@ -30,7 +35,8 @@
 
   const selectMode: FileBrowserOptions['selectMode'] = {
     maxSelectionCount: maxFileCount,
-    allowedFileMimeTypes: mimeTypes
+    allowedFileMimeTypes: mimeTypes,
+    filter
   }
 
   async function onfiles(

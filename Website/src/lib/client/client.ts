@@ -660,15 +660,25 @@ function getServerFunctions(
       return null
     },
 
-    getUsers: async (
-      searchString?: string,
-      includeRole?: UserRole[],
-      excludeRole?: UserRole[],
-      username?: string,
-      id?: string,
-      offset?: number,
+    getUsers: async ({
+      searchString,
+      includeRole,
+      excludeRole,
+      username,
+      id,
+      offset,
+      count,
+      excludeSelf
+    }: {
+      searchString?: string
+      includeRole?: UserRole[]
+      excludeRole?: UserRole[]
+      username?: string
+      id?: string
+      offset?: number
       count?: number
-    ) => {
+      excludeSelf?: boolean
+    }) => {
       const { users } = await request(ServerSideRequestCode.GetUsers, {
         searchString,
         includeRole,
@@ -678,7 +688,8 @@ function getServerFunctions(
         pagination: {
           offset,
           count
-        }
+        },
+        excludeSelf
       })
 
       return users.map((user: any) => JSON.parse(user)) as UserResource[]
@@ -1131,6 +1142,34 @@ function getServerFunctions(
       const { isAdmin } = await request(ServerSideRequestCode.IsUserAdmin, { userId })
 
       return isAdmin as boolean
+    },
+
+    setUserRoles: async (userId: string, roles: UserRole[]) => {
+      await request(ServerSideRequestCode.SetUserRoles, { userId, roles })
+    },
+
+    transcribeAudio: async (fileId: string, fileSnapshotId?: string) => {
+      const { text, status } = await request(ServerSideRequestCode.TranscribeAudio, {
+        fileId,
+        fileSnapshotId
+      })
+
+      return {
+        text: text as string[],
+        status: status as AudioTranscriptionStatus
+      }
+    },
+
+    trashFile: async (fileId: string) => {
+      await request(ServerSideRequestCode.TrashFile, { fileId })
+    },
+
+    untrashFile: async (fileId: string) => {
+      await request(ServerSideRequestCode.UntrashFile, { fileId })
+    },
+
+    updateUsername: async (username: string) => {
+      await request(ServerSideRequestCode.UpdateUsername, { newUsername: username })
     }
   }
 
@@ -1153,6 +1192,13 @@ export interface VirusReportResource extends ResourceData {
 export enum ClientSideRequestCode {
   Ping,
   Notify
+}
+export enum AudioTranscriptionStatus {
+  NotRunning,
+  Pending,
+  Running,
+  Done,
+  Error
 }
 
 export enum ResponseCode {
@@ -1241,7 +1287,12 @@ export enum ServerSideRequestCode {
   DeclinePasswordResetRequest,
   AcceptPasswordResetRequest,
 
-  IsUserAdmin
+  IsUserAdmin,
+  SetUserRoles,
+
+  TranscribeAudio,
+
+  UpdateUsername
 }
 
 export enum PasswordResetRequestStatus {
@@ -1291,15 +1342,16 @@ export interface UserResource extends ResourceData {
 
 export interface FileResource extends ResourceData {
   parentId?: string
-  ownerUserId?: string
+  ownerUserId: string
   name: string
   type: FileType
+  trashTime?: Date
 }
 
 export interface FileAccessResource extends ResourceData {
   fileId: string
   authorUserId: string
-  targetEntity?: FileTargetEntity
+  targetUserId?: string
   level: FileAccessLevel
 }
 
@@ -1334,11 +1386,6 @@ export interface FileStarResource extends ResourceData {
   creatTime: Date
 }
 
-export interface FileTargetEntity {
-  entityType: FileAccessTargetEntityType
-  entityId: string
-}
-
 export interface FileContentResource extends ResourceData {
   fileId: string
   main: boolean
@@ -1349,11 +1396,6 @@ export interface NewsResource extends ResourceData {
   title: string
   imageFileIds: string[]
   authorUserId: string
-}
-
-export enum FileAccessTargetEntityType {
-  User,
-  Group
 }
 
 export enum FileAccessLevel {

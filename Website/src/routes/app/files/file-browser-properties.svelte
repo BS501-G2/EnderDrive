@@ -13,6 +13,7 @@
   import FileBrowserPropertiesDetailsTab from './file-browser-properties-details-tab.svelte'
   import FileBrowserPropertiesAccessTab from './file-browser-properties-access-tab.svelte'
   import { writable } from 'svelte/store'
+  import FileBrowserPropertiesTranscriptTab from './file-browser-properties-transcript-tab.svelte'
 
   const {
     selectedFileIds
@@ -34,11 +35,13 @@
   const { currentTab, tabs } = createFileBrowserPropertiesContext()
   const { isMobile } = useAppContext()
 
-  $effect(() => currentTab.subscribe((tabIndex) => {
-    if (!(tabIndex in $tabs)) {
-      currentTab.set(0)
-    }
-  }))
+  $effect(() =>
+    currentTab.subscribe((tabIndex) => {
+      if (!(tabIndex in $tabs)) {
+        currentTab.set(0)
+      }
+    })
+  )
 
   $effect(() => {
     $promises = (() =>
@@ -66,7 +69,7 @@
               ? new Date(fileOldestSnapshot.createTime)
               : new Date()
 
-              return {
+          return {
             file,
             fileAccessLevel,
             viruses,
@@ -159,11 +162,15 @@
         <FileBrowserPropertiesDetailsTab {files} />
       {/if}
 
-      {#if files.length === 1 && files[0].file.parentId != null && files[0].fileAccessLevel >= FileAccessLevel.Manage}
-        <FileBrowserPropertiesAccessTab file={files[0]} />
-      {/if}
+      {#if files.length === 1 && files[0].file.parentId != null}
+        {#if files[0].fileAccessLevel >= FileAccessLevel.Manage}
+          <FileBrowserPropertiesAccessTab file={files[0]} />
+        {/if}
 
-      {#if files.length === 1}{/if}
+        {#if files[0].mime.startsWith('audio/') || files[0].mime.startsWith('video/')}
+          <FileBrowserPropertiesTranscriptTab file={files[0]} />
+        {/if}
+      {/if}
     {/await}
   {/if}
 </div>
@@ -207,9 +214,13 @@
   div.details {
     flex-grow: 1;
 
+    min-height: 0;
+
     > div.tabs {
       flex-direction: row;
       overflow: auto hidden;
+
+      flex-shrink: 0;
 
       div.entry {
         flex-grow: 1;
@@ -236,6 +247,8 @@
 
     > div.tab-content {
       flex-grow: 1;
+
+      min-height: 0;
     }
   }
 

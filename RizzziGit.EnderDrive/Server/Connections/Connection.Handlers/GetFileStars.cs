@@ -45,7 +45,7 @@ public sealed partial class Connection
             transaction,
             Resources.Query<User>(
               transaction,
-              (query) => query.Where((item) => item.Id == request.UserId)
+              (query) => query.Where((user) => user.Id == request.UserId)
             )
           )
           : null;
@@ -56,7 +56,7 @@ public sealed partial class Connection
             transaction,
             Resources.Query<File>(
               transaction,
-              (query) => query.Where((item) => item.Id == request.FileId)
+              (query) => query.Where((file) => file.Id == request.FileId)
             )
           )
           : null;

@@ -29,6 +29,9 @@ public sealed partial class Connection
 
     [BsonElement("pagination")]
     public required PaginationOptions? Pagination;
+
+    [BsonElement("excludeSelf")]
+    public bool ExcludeSelf = true;
   }
 
   private sealed record class GetUsersResponse
@@ -38,7 +41,7 @@ public sealed partial class Connection
   }
 
   private AuthenticatedRequestHandler<GetUsersRequest, GetUsersResponse> GetUsers =>
-    async (transaction, request, _, _, _) =>
+    async (transaction, request, _, me, _) =>
     {
       Resource<User>[] users = await Resources
         .Query<User>(
@@ -95,6 +98,7 @@ public sealed partial class Connection
                     )
                   )
                   && (request.Id == null || user.Id == request.Id)
+                  && (!request.ExcludeSelf || user.Id != me.Id)
               )
               .ApplyPagination(request.Pagination)
         )

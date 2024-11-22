@@ -113,7 +113,7 @@
   div.gridImage1{
     max-width: 100%;
     max-height: 100%;
-    object-fit: cover;
+
     padding-bottom:70px;
     overflow: hidden;
   }

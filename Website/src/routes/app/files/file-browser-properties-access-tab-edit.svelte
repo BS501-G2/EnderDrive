@@ -10,7 +10,7 @@
   import SelectOption from '$lib/client/ui/select-option.svelte'
   import Select from '$lib/client/ui/select.svelte'
   import Window from '$lib/client/ui/window.svelte'
-  import { type Snippet } from 'svelte'
+  import { onMount, type Snippet } from 'svelte'
   import { writable, type Writable } from 'svelte/store'
 
   const {
@@ -136,7 +136,7 @@
   @use '../../../global.scss' as *;
 
   div.content {
-    @include force-size(min(100dvw - 64px, 350px), &);
+    @include force-size(min(100dvw - 64px, 480px), &);
 
     gap: 16px;
   }
@@ -154,7 +154,7 @@
     }
 
     > div.value {
-      flex-basis: 32px;
+      flex-basis: 72px;
       flex-grow: 1;
     }
   }

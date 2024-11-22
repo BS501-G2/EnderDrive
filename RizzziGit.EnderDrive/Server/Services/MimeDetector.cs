@@ -35,7 +35,7 @@ public sealed partial class MimeDetector(Server server)
   : Service<MimeDetectorContext>("Mime Detector", server)
 {
   public Server Server => server;
-  public ResourceManager Resources => Server.ResourceManager;
+  public ResourceManager Resources => Server.Resources;
 
   protected override Task<MimeDetectorContext> OnStart(
     CancellationToken startupCancellationToken,
@@ -123,7 +123,7 @@ public sealed partial class MimeDetector(Server server)
 
     if (mimeDetectionReport.Data.Mime == null)
     {
-      using Stream stream = await server.ResourceManager.CreateReadStream(
+      using Stream stream = await server.Resources.CreateReadStream(
         transaction,
         file,
         fileContent,

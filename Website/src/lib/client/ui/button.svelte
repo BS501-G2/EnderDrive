@@ -2,6 +2,9 @@
   import type { Snippet } from 'svelte'
   import LoadingSpinner from './loading-spinner.svelte'
   import { writable } from 'svelte/store'
+  import Window from './window.svelte'
+  import Separator from './separator.svelte'
+  import { dev } from '$app/environment'
 
   const clickButton = () => {
     $button.click()
@@ -20,7 +23,7 @@
     reset = $bindable()
   }: {
     hint?: string
-    children: Snippet
+    children?: Snippet
     background?: Snippet<[content: Snippet, error: boolean]>
     foreground?: Snippet<[content: Snippet, error: boolean]>
     onclick: (
@@ -36,7 +39,7 @@
   } = $props()
 
   const promise = writable<Promise<void> | null>(null)
-  const error= writable<Error | null >(null)
+  const error = writable<Error | null>(null)
 
   $effect(() => {
     reset = () => {
@@ -100,10 +103,9 @@
         {#if $error != null}
           {$error.message}
         {:else if $promise != null}
-
           <LoadingSpinner size="1em" />
         {:else}
-          {@render children()}
+          {@render children?.()}
         {/if}
       {/snippet}
 
@@ -122,7 +124,54 @@
   {/if}
 </button>
 
+{#if $error != null && dev}
+  <Window
+    ondismiss={() => {
+      $error = null
+    }}
+    title="An Error Occured"
+  >
+    <div class="error-container">
+      <p>An error occured on the click hook.</p>
+      <div class="error">
+        <pre class="error-message">{$error?.message}</pre>
+
+        <Separator horizontal />
+
+        <pre class="error-stack">{$error?.stack}</pre>
+      </div>
+    </div>
+  </Window>
+{/if}
+
 <style lang="scss">
+  div.error-container {
+    max-width: 640px;
+    max-height: 320px;
+    gap: 8px;
+
+    > div.error {
+      padding: 8px;
+      gap: 8px;
+
+      overflow: hidden auto;
+
+      background-color: var(--color-6);
+      color: var(--color-5);
+
+      > pre.error-message {
+        font-size: 1.2em;
+        font-weight: bolder;
+        white-space: pre-wrap;
+      }
+
+      > pre.error-stack {
+
+        white-space: pre-wrap;
+      }
+    }
+  }
+
   button {
     -webkit-app-region: no-drag;
 

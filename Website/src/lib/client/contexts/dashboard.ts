@@ -4,10 +4,11 @@ import type { IconOptions } from '../ui/icon.svelte'
 
 const contextName = `${Date.now()}`
 
-export function useDashboardContext() {
-  return getContext<ReturnType<typeof createDashboardContext>['context']>(contextName)
+export function useDashboardContext(context?: DashboardContext) {
+  return context != null ? setContext(contextName, context) : getContext<DashboardContext>(contextName)
 }
 
+export type DashboardContext = ReturnType<typeof createDashboardContext>['context']
 export interface BackgroundTask {
   id: number
 

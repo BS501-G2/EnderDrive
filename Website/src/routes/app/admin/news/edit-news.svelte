@@ -1,3 +1,18 @@
 <script lang="ts">
-  const { id, imageId }: { id: string | null; imageId: string } = $props()
+  import Window from '$lib/client/ui/window.svelte'
+  import Overlay from '../../../overlay.svelte'
+
+  const { id, imageId, ondismiss }: { id: string | null; imageId: string; ondismiss: () => void } =
+    $props()
 </script>
+
+<Window {ondismiss}>
+  <div class="edit-news">
+    </div>
+</Window>
+
+<style lang="scss">
+  div.edit-news {
+    gap: 8px;
+  }
+</style>

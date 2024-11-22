@@ -7,6 +7,9 @@
   import { useAppContext } from '$lib/client/contexts/app'
   import AccountSettingsTab from './account-settings-tab.svelte'
   import { loremIpsum } from 'lorem-ipsum'
+  import AccountSettingsPersonalInformationTab from './account-settings-personal-information-tab.svelte'
+  import AccountSettingsLoginInformationTab from './account-settings-login-information-tab.svelte'
+  import AccountSettingsOfflineAvailabilityTab from './account-settings-offline-availability-tab.svelte'
 
   const { tabs, currentTab, context } = createAccountSettingsContext()
   const { isMobile, isDesktop } = useAppContext()
@@ -14,15 +17,14 @@
 
 <div class="page" class:desktop={$isDesktop}>
   {#if $isDesktop}
-  <div class="header">
-    <h2>Account Settings</h2>
-  </div>
+    <div class="header">
+      <h2>Account Settings</h2>
+    </div>
   {/if}
 
   <Separator horizontal />
 
   <div class="content" class:mobile={$isMobile} class:desktop={$isDesktop}>
-
     <Separator vertical />
     <div class="tabs" class:mobile={$isMobile} class:desktop={$isDesktop}>
       {#each $tabs as { id, name, icon }, index (id)}
@@ -59,16 +61,12 @@
     <Separator vertical />
   </div>
 
-    <Separator horizontal />
+  <Separator horizontal />
 </div>
 
-<AccountSettingsTab name="Personal Information" icon={{ icon: 'info', thickness: 'solid' }}>
-  {loremIpsum({ count: 100 })}
-</AccountSettingsTab>
-
-<AccountSettingsTab name="Login Information" icon={{ icon: 'key', thickness: 'solid' }}>
-  {loremIpsum({ count: 100 })}
-</AccountSettingsTab>
+<AccountSettingsPersonalInformationTab />
+<AccountSettingsLoginInformationTab />
+<AccountSettingsOfflineAvailabilityTab />
 
 <style lang="scss">
   @use '../../../global.scss' as *;
@@ -125,7 +123,7 @@
       }
     }
 
-     div.tabs.desktop {
+    div.tabs.desktop {
       @include force-size(256px, &);
     }
 
@@ -149,7 +147,6 @@
   }
 
   div.page.desktop {
-
     padding: 64px;
   }
 </style>

@@ -3,6 +3,7 @@
   import FileBrowserPropertiesTab from './file-browser-properties-tab.svelte'
   import { FileType } from '$lib/client/client'
   import type { FileProperties } from '$lib/client/contexts/file-browser'
+  import UserLink from '$lib/client/model/user-link.svelte'
 
   const { files }: { files: FileProperties[] } = $props()
 </script>
@@ -32,10 +33,16 @@
         {/if}
         {@render field('Created', `${files[0].created}`)}
         {@render field('Modified', `${files[0].modified}`)}
+
+        {#snippet user()}
+          <UserLink userId={files[0].file.ownerUserId!} />
+        {/snippet}
+
+        {@render field('Owner', user)}
       {/if}
     </div>
   </FileBrowserPropertiesTab>
-  
+
 <style lang="scss">
   @use '../../../global.scss' as *;
 

@@ -2,10 +2,13 @@
   import { useServerContext, type UserResource } from '$lib/client/client'
   import { useAppContext } from '$lib/client/contexts/app'
   import UserLink from '$lib/client/model/user-link.svelte'
-  import Icon from '$lib/client/ui/icon.svelte'
+  import Button from '$lib/client/ui/button.svelte'
+  import Icon, { type IconOptions } from '$lib/client/ui/icon.svelte'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import { type Snippet } from 'svelte'
   import { writable } from 'svelte/store'
+  import ActionMenu from './action-menu.svelte'
+  import RoleEditor from './role-editor.svelte'
 
   const { user }: { user: UserResource } = $props()
   const { amIAdmin, isUserAdmin } = useServerContext()
@@ -24,15 +27,30 @@
         hover.set(false)
       }
 
+      const oncontextmenu = (event: MouseEvent) => {
+        if ($isMobile) {
+          event.preventDefault()
+
+          $showMenu = true
+          return
+        }
+      }
+
       $rowElement.addEventListener('mouseenter', onmouseenter)
       $rowElement.addEventListener('mouseleave', onmouseleave)
+      $rowElement.addEventListener('contextmenu', oncontextmenu)
 
       return () => {
         $rowElement.removeEventListener('mouseenter', onmouseenter)
         $rowElement.removeEventListener('mouseleave', onmouseleave)
+        $rowElement.removeEventListener('contextmenu', oncontextmenu)
       }
     }
   })
+
+  const menuButton = writable<HTMLButtonElement>(null as never)
+  const showMenu = writable(false)
+  const showEditRoles = writable(false)
 </script>
 
 <tr class="user" bind:this={$rowElement} class:hover={$hover}>
@@ -49,14 +67,31 @@
         <p class="username">@{user.username}</p>
       </div>
 
-      {#if $hover}
+      {#if ($hover || $showMenu) && $isDesktop}
         <div class="actions">
-          {#snippet foreground(view: Snippet)}
-            <div class="foreground">
-              {@render view()}
-            </div>
+          {#snippet button(
+            name: string,
+            icon: IconOptions,
+            onclick: (
+              event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
+            ) => Promise<void> | void
+          )}
+            {#snippet foreground(view: Snippet)}
+              <div class="action-foreground">
+                {@render view()}
+              </div>
+            {/snippet}
+
+            <Button bind:buttonElement={$menuButton} {onclick} hint={name} {foreground}>
+              <div class="action">
+                <Icon {...icon} />
+              </div>
+            </Button>
           {/snippet}
-          action
+
+          {@render button('Options', { icon: 'ellipsis-vertical', thickness: 'solid' }, () => {
+            $showMenu = true
+          })}
         </div>
       {/if}
     </div>
@@ -82,6 +117,26 @@
     </td>
   {/if}
 </tr>
+
+{#if $showMenu}
+  <ActionMenu
+    {user}
+    {showEditRoles}
+    menuButton={$menuButton}
+    ondismiss={() => {
+      $showMenu = false
+    }}
+  />
+{/if}
+
+{#if $showEditRoles}
+  <RoleEditor
+    {user}
+    ondismiss={() => {
+      $showEditRoles = false
+    }}
+  />
+{/if}
 
 <style lang="scss">
   tr.user {
@@ -117,12 +172,22 @@
         }
 
         > div.actions {
+          div.action-foreground {
+            flex-grow: 1;
+
+            padding: 8px;
+
+            div.action {
+              flex-direction: row;
+              align-items: center;
+            }
+          }
         }
       }
     }
 
     td.roles {
-      width: 256px;
+      width: 128px;
     }
 
     p.username {

@@ -107,6 +107,7 @@ public sealed partial class ResourceManager
             Position,
             long.Min(buffer.Span.Length, Length - Position)
           );
+    manager.Debug($"Read {position}-{position + fileRead.Length} of {FileSnapshot.Data.Size}", "File Read");
 
           fileRead.ToByteArray().CopyTo(buffer.Span);
           position += fileRead.Length;

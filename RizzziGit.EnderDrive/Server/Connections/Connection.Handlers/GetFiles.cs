@@ -32,7 +32,7 @@ public sealed partial class Connection
     public required ObjectId? Id;
 
     [BsonElement("trashOptions")]
-    public required TrashOptions? TrashOptions;
+    public TrashOptions TrashOptions = TrashOptions.NonInclusive;
 
     [BsonElement("pagination")]
     public required PaginationOptions? Pagination;
@@ -67,7 +67,8 @@ public sealed partial class Connection
 
       if (
         (
-          request.OwnerUserId != null && request.OwnerUserId!= me.Id
+          request.OwnerUserId != null
+          && request.OwnerUserId != me.Id
           && !await Resources
             .Query<AdminAccess>(transaction, (query) => query.Where((item) => item.UserId == me.Id))
             .AnyAsync(transaction.CancellationToken)
@@ -107,13 +108,8 @@ public sealed partial class Connection
                   )
                   && (request.Id == null || item.Id == request.Id)
                   && (
-                    request.TrashOptions == null
-                    || (
-                      request.TrashOptions == TrashOptions.Exclusive
-                        ? item.TrashTime != null
-                        : request.TrashOptions != TrashOptions.NonInclusive
-                          || item.TrashTime == null
-                    )
+                    request.TrashOptions == TrashOptions.Exclusive ? item.TrashTime != null
+                    : request.TrashOptions == TrashOptions.Inclusive || (request.TrashOptions == TrashOptions.NonInclusive && item.TrashTime == null)
                   )
               )
               .OrderByDescending((file) => file.Type)

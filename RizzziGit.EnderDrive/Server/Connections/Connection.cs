@@ -67,7 +67,7 @@ public sealed partial class Connection(
 {
   public ConnectionManager Manager => manager;
   public Server Server => Manager.Server;
-  public ResourceManager Resources => Server.ResourceManager;
+  public ResourceManager Resources => Server.Resources;
   public UnlockedUserAuthentication? CurrentUser => GetContext().CurrentUser;
 
   protected override async Task<ConnectionContext> OnStart(

@@ -1,4 +1,4 @@
-<script lang="ts">
+<script lang="ts" generics="T extends any">
   import type { Snippet } from 'svelte'
   import Overlay from '../../../routes/overlay.svelte'
   import Separator from './separator.svelte'
@@ -10,19 +10,23 @@
     title,
     header,
     children: body,
-    ondismiss
+    ondismiss,
+    style,
+    payload
   }: {
     titleIcon?: IconOptions
     title?: string
     header?: Snippet
-    children: Snippet
+    children?: Snippet<[payload: T]>
     ondismiss: () => void
+    style?: string
+    payload?: T
   } = $props()
 </script>
 
-<Overlay {ondismiss}>
-  {#snippet children(windowButtons: Snippet)}
-    <div class="window">
+<Overlay {ondismiss} {payload}>
+  {#snippet children(windowButtons: Snippet, payload: T)}
+    <div class="window" {style}>
       <div class="header">
         <div class="title">
           {#if titleIcon}
@@ -48,7 +52,7 @@
       <Separator horizontal />
 
       <div class="body">
-        {@render body()}
+        {@render body?.(payload)}
       </div>
     </div>
   {/snippet}
@@ -71,7 +75,7 @@
 
         flex-direction: row;
 
-      align-items: center;
+        align-items: center;
 
         > div.icon {
         }
@@ -81,8 +85,6 @@
           font-size: 1.2em;
           font-weight: bolder;
         }
-
-
       }
     }
 

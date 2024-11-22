@@ -18,7 +18,7 @@
       return []
     }
 
-    return await getUsers(searchString)
+    return await getUsers({searchString})
   }
 
   const searchString = writable('')

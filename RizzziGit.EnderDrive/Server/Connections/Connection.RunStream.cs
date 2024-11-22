@@ -93,7 +93,6 @@ public sealed partial class Connection
                 );
 
                 offset += bytes.Length;
-
                 source.SetResult(bytes);
               }
               catch (Exception exception)

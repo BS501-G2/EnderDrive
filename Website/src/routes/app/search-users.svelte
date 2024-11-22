@@ -52,7 +52,7 @@
 {/snippet}
 
 {#snippet main()}
-  {#await getUsers(searchString)}
+  {#await getUsers({searchString})}
     <LoadingSpinner size="1em" />
   {:then users}
     {#each users as entry}

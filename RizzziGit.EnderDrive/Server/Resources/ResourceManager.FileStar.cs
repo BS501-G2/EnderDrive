@@ -32,7 +32,7 @@ public sealed partial class ResourceManager
   {
     Resource<FileStar>? star = await Query<FileStar>(
         transaction,
-        (query) => query.Where((item) => item.FileId == file.Id)
+        (query) => query.Where((item) => item.FileId == file.Id && item.UserId == user.Id)
       )
       .FirstOrDefaultAsync(transaction.CancellationToken);
 

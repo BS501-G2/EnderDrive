@@ -1,6 +1,7 @@
 namespace RizzziGit.EnderDrive.Server.Connections;
 
 using System;
+using System.Linq;
 using Resources;
 
 public sealed partial class Connection
@@ -18,6 +19,33 @@ public sealed partial class Connection
         userAuthentication,
         fileAccess.UnlockedFile.File.Id
       );
+
+      if (
+        await Resources
+          .Query<File>(
+            transaction,
+            query =>
+              query.Where(
+                (file) =>
+                  file.ParentId == parentFolder.Id
+                  && file.Name.Equals(
+                    fileAccess.UnlockedFile.File.Data.Name,
+                    StringComparison.CurrentCultureIgnoreCase
+                  )
+                  && file.TrashTime == null
+              )
+          )
+          .AnyAsync(transaction)
+      )
+      {
+        throw new ConnectionResponseException(
+          ResponseCode.FileNameConflict,
+          new ConnectionResponseExceptionData.FileNameConflict()
+          {
+            Name = fileAccess.UnlockedFile.File.Data.Name,
+          }
+        );
+      }
 
       fileAccess.UnlockedFile.File.Data.TrashTime = null;
       await fileAccess.UnlockedFile.File.Save(transaction);

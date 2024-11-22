@@ -53,8 +53,13 @@
             <FileBrowserFileListEntry {file} />
           {:else if selectMode}
             {#if selectMode.allowedFileMimeTypes.length !== 0}
-              {#await getFileMime(file.file.id) then mime}
-                {#if selectMode.allowedFileMimeTypes.some( (mimeType) => (mimeType instanceof RegExp ? mimeType.test(mime) : mimeType === mime) )}
+              {#await (async () => {
+                const mime = await getFileMime(file.file.id)
+
+
+                return {mime, filter: await selectMode.filter(file)}
+              })() then {mime, filter}}
+                {#if filter && selectMode.allowedFileMimeTypes.some( (mimeType) => (mimeType instanceof RegExp ? mimeType.test(mime) : mimeType === mime) )}
                   <FileBrowserFileListEntry {file} />
                 {/if}
               {/await}

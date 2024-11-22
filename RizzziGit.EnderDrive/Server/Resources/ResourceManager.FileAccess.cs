@@ -33,7 +33,7 @@ public record class FileAccess : ResourceData
   [JsonProperty("authorUserId")]
   public required ObjectId AuthorUserId;
 
-  [JsonProperty("targetUser")]
+  [JsonProperty("targetUserId")]
   public required ObjectId? TargetUserId;
 
   [JsonIgnore]

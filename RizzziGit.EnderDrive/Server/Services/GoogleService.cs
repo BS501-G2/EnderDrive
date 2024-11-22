@@ -21,7 +21,7 @@ public sealed partial class GoogleService(Server server)
   : Service<GoogleContext>("Google API", server)
 {
   public Server Server => server;
-  public ResourceManager Resources => Server.ResourceManager;
+  public ResourceManager Resources => Server.Resources;
 
   public abstract record Feed
   {

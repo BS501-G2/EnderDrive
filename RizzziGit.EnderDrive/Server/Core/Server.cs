@@ -20,6 +20,7 @@ public sealed class ServerData
   public required ConnectionManager ConnectionManager;
   public required MimeDetector MimeDetector;
   public required AdminManager AdminManager;
+  public required AudioTranscriber AudioTranscriber;
 }
 
 public sealed class Server(
@@ -44,11 +45,12 @@ public sealed class Server(
     GoogleService googleService = new(this);
     ConnectionManager connectionManager = new(this);
     MimeDetector mimeDetector = new(this);
+    AudioTranscriber audioTranscriber = new(this, "/mnt/buffalo/bs701/model.bin");
 
     await StartServices([keyGenerator, resourceManager], startupCancellationToken);
     await StartServices([adminManager], startupCancellationToken);
     await StartServices(
-      [virusScanner, apiServer, googleService, connectionManager, mimeDetector],
+      [virusScanner, apiServer, googleService, connectionManager, mimeDetector, audioTranscriber],
       startupCancellationToken
     );
 
@@ -62,17 +64,19 @@ public sealed class Server(
       GoogleService = googleService,
       ConnectionManager = connectionManager,
       MimeDetector = mimeDetector,
+      AudioTranscriber = audioTranscriber
     };
   }
 
   public KeyManager KeyManager => GetContext().KeyGenerator;
-  public ResourceManager ResourceManager => GetContext().ResourceManager;
+  public ResourceManager Resources => GetContext().ResourceManager;
   public AdminManager AdminManager => GetContext().AdminManager;
   public VirusScanner VirusScanner => GetContext().VirusScanner;
   public ApiServer ApiServer => GetContext().ApiServer;
   public GoogleService GoogleService => GetContext().GoogleService;
   public ConnectionManager ConnectionManager => GetContext().ConnectionManager;
   public MimeDetector MimeDetector => GetContext().MimeDetector;
+  public AudioTranscriber AudioTranscriber => GetContext().AudioTranscriber;
 
   public new Task Start(CancellationToken cancellationToken = default) =>
     base.Start(cancellationToken);
@@ -89,7 +93,8 @@ public sealed class Server(
       WatchService(context.ApiServer, cancellationToken),
       WatchService(context.GoogleService, cancellationToken),
       WatchService(context.ConnectionManager, cancellationToken),
-      WatchService(context.MimeDetector, cancellationToken)
+      WatchService(context.MimeDetector, cancellationToken),
+      WatchService(context.AudioTranscriber, cancellationToken)
     );
   }
 
@@ -98,6 +103,7 @@ public sealed class Server(
     ServerData context = GetContext();
 
     await StopServices(
+      context.AudioTranscriber,
       context.MimeDetector,
       context.ConnectionManager,
       context.GoogleService,

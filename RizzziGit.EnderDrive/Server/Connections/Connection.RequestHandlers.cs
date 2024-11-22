@@ -144,6 +144,14 @@ public sealed partial class Connection
       DeclinePasswordResetRequest
     );
     registerAdminHandler(ServerSideRequestCode.IsUserAdmin, IsUserAdmin);
+    registerAdminHandler(ServerSideRequestCode.SetUserRoles, SetUserRoles);
+    registerFileHandler(
+      ServerSideRequestCode.TranscribeAudio,
+      TranscribeAudio,
+      FileType.File,
+      FileAccessLevel.Read
+    );
+    registerAuthenticatedHandler(ServerSideRequestCode.UpdateUsername, UpdateUsername);
   }
 }
 
@@ -220,4 +228,8 @@ public enum ServerSideRequestCode : byte
   AcceptPasswordResetRequest,
 
   IsUserAdmin,
+  SetUserRoles,
+  TranscribeAudio,
+
+  UpdateUsername
 }

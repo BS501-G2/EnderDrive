@@ -103,6 +103,8 @@
         case FileBrowserResolveType.Starred: {
           const fileStars = await getFileStars(undefined, self.id, offset, count)
 
+          console.log(fileStars)
+
           return {
             type: 'starred',
             files: await Promise.all(

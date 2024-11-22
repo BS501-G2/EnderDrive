@@ -1,4 +1,4 @@
-<script lang="ts">
+<script lang="ts" generics="T extends any">
   import { onMount, type Snippet } from 'svelte'
   import { useAppContext } from '$lib/client/contexts/app'
   import { scale } from 'svelte/transition'
@@ -15,16 +15,18 @@
     noshadow = false,
     x,
     y,
-    'disable-x': disableX = false
+    'disable-x': disableX = false,
+    payload
   }: {
-    children: Snippet<[windowButtons: Snippet]>
+    children?: Snippet<[windowButtons: Snippet, payload: T]>
     ondismiss?: () => void
     nodim?: boolean
     noshadow?: boolean
     notransition?: boolean
     x?: number
     y?: number
-    'disable-x'?: boolean
+    'disable-x'?: boolean,
+    payload?: T
   } = $props()
 
   let {
@@ -160,11 +162,11 @@
             start: 0.95
           }}
         >
-          {@render children(windowButtons)}
+          {@render children?.(windowButtons, payload as never)}
         </div>
       {:else}
         <div class="overlay">
-          {@render children(windowButtons)}
+          {@render children?.(windowButtons, payload as never)}
         </div>
       {/if}
     </button>

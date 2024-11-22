@@ -40,7 +40,7 @@
 {/if}
 
 {#if $editDialog != null}
-  <EditNews {...$editDialog} />
+  <EditNews {...$editDialog} ondismiss={() => { $editDialog = null }} />
 {/if}
 
 <style lang="scss">

@@ -155,7 +155,7 @@ public sealed partial class VirusScanner(Server server, string unixSocketPath)
     bool forceRescan
   )
   {
-    Resource<VirusReport> virusReport = await server.ResourceManager.GetVirusReport(
+    Resource<VirusReport> virusReport = await server.Resources.GetVirusReport(
       transaction,
       file.File,
       fileContent,
@@ -191,7 +191,7 @@ public sealed partial class VirusScanner(Server server, string unixSocketPath)
     {
       try
       {
-        using Stream stream = await server.ResourceManager.CreateReadStream(
+        using Stream stream = await server.Resources.CreateReadStream(
           transaction,
           file,
           fileContent,
