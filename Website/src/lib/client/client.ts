@@ -877,7 +877,8 @@ function getServerFunctions(
       fileSnapshotId,
       userId,
       offset,
-      count
+      count,
+      uniqueFileId
     }: {
       fileId?: string
       fileContentId?: string
@@ -885,6 +886,7 @@ function getServerFunctions(
       userId?: string
       offset?: number
       count?: number
+      uniqueFileId?: boolean
     }) => {
       const { fileLogs } = await request(ServerSideRequestCode.GetFileLogs, {
         fileId,
@@ -894,7 +896,8 @@ function getServerFunctions(
         pagination: {
           offset,
           count
-        }
+        },
+        uniqueFileId
       })
 
       return fileLogs.map((fileLog: any) => JSON.parse(fileLog)) as FileLogResource[]
@@ -955,12 +958,12 @@ function getServerFunctions(
     },
 
     writeStream: async (streamId: string, data: Buffer | Blob) => {
-      const    { newFileSnapshotId } = await request(ServerSideRequestCode.WriteStream, {
+      const { newFileSnapshotId } = await request(ServerSideRequestCode.WriteStream, {
         streamId,
         data
       })
 
-      return newFileSnapshotId as string
+      return newFileSnapshotId as string | null
     },
 
     setPosition: async (streamId: string, newPosition: number) => {
@@ -986,10 +989,10 @@ function getServerFunctions(
       return position as number
     },
 
-    createNews: async (title: string, imageFileIds: string[], publishTime?: Date) => {
+    createNews: async (title: string, imageFileId: string, publishTime?: Date) => {
       const { news } = await request(ServerSideRequestCode.CreateNews, {
         title,
-        imageFileIds,
+        imageFileId,
         publishTime
       })
 
@@ -1003,7 +1006,7 @@ function getServerFunctions(
     },
 
     getNews: async (afterId?: string, published?: boolean, offset?: number, count?: number) => {
-      const { newsEntries } = await request(ServerSideRequestCode.GetNews, {
+      const { newsIds } = await request(ServerSideRequestCode.GetNews, {
         afterId,
         published,
         pagination: {
@@ -1012,7 +1015,7 @@ function getServerFunctions(
         }
       })
 
-      return newsEntries.map((newsEntry: any) => JSON.parse(newsEntry)) as NewsResource[]
+      return newsIds as string[]
     },
 
     getLatestFileSnapshot: async (fileId: string, fileContentId?: string) => {
@@ -1127,7 +1130,7 @@ function getServerFunctions(
       offset,
       count
     }: {
-      status: PasswordResetRequestStatus
+      status?: PasswordResetRequestStatus
       offset?: number
       count?: string
     }) => {
@@ -1204,6 +1207,56 @@ function getServerFunctions(
       const { fileId } = await request(ServerSideRequestCode.GetRootId, { userId })
 
       return fileId as string | null
+    },
+
+    truncateStream: async (streamId: string, length?: number) => {
+      const { newFileSnapshotId } = await request(ServerSideRequestCode.TruncateStream, {
+        streamId,
+        length
+      })
+
+      return newFileSnapshotId as string | null
+    },
+
+    deleteFile: async (fileId: string) => {
+      await request(ServerSideRequestCode.DeleteFile, { fileId })
+    },
+
+    getFileNameValidationFlags: async (parentId: string, name: string) => {
+      const { flags } = await request(ServerSideRequestCode.GetFileNameValidationFlags, {
+        parentId,
+        name
+      })
+
+      return flags as FileNameValidationFlags
+    },
+    getNewsEntry: async (newsId: string) => {
+      const { newsEntry } = await request(ServerSideRequestCode.GetNewsEntry, { newsId })
+
+      return JSON.parse(newsEntry) as NewsResource
+    },
+
+    updateName: async ({
+      firstName,
+      middleName,
+      lastName,
+      displayName
+    }: {
+      firstName: string
+      middleName: string | null
+      lastName: string
+      displayName: string | null
+    }) => {
+      await request(ServerSideRequestCode.UpdateName, {
+        firstName,
+        middleName,
+        lastName,
+        displayName
+      })
+    },
+
+    moveFile: async ({fileId, newParentId, newName}: {fileId: string, newParentId?: string, newName?: string}) => {
+      await request(ServerSideRequestCode.MoveFile, { fileId, newParentId, newName })
     }
   }
 
@@ -1221,6 +1274,15 @@ export interface VirusReportResource extends ResourceData {
   fileSnapshotId: string
   status: VirusReportStatus
   viruses: string[]
+}
+
+export enum FileNameValidationFlags {
+  OK = 0,
+
+  TooLong = 1 << 0,
+  TooShort = 1 << 1,
+  InvalidCharacters = 1 << 2,
+  FileExists = 1 << 3
 }
 
 export enum ClientSideRequestCode {
@@ -1329,7 +1391,13 @@ export enum ServerSideRequestCode {
   UpdateUsername,
   UpdatePassword,
 
-  GetRootId
+  GetRootId,
+  TruncateStream,
+
+  DeleteFile,
+  GetFileNameValidationFlags,
+  GetNewsEntry,
+  UpdateName
 }
 
 export enum PasswordResetRequestStatus {
@@ -1432,8 +1500,12 @@ export interface FileContentResource extends ResourceData {
 
 export interface NewsResource extends ResourceData {
   title: string
-  imageFileIds: string[]
+
+  publishTime?: Date
+
   authorUserId: string
+
+  image: Buffer
 }
 
 export enum FileAccessLevel {
@@ -1456,9 +1528,14 @@ export enum TrashOptions {
 }
 
 export enum FileLogType {
-  CreateFile,
-  TrashFile,
-  ModifyFile
+  Create,
+  Update,
+  Trash,
+  Untrash,
+  Share,
+  Unshare,
+  Delete,
+  Read
 }
 
 export enum VirusReportStatus {

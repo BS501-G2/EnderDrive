@@ -40,6 +40,9 @@ public record class FileBuffer : ResourceData
   public required ObjectId FileContentId;
 
   [JsonIgnore]
+  public required ObjectId FileSnapshotId;
+
+  [JsonIgnore]
   public required byte[] EncryptedBuffer;
 }
 
@@ -48,6 +51,7 @@ public sealed partial class ResourceManager
   public async Task<CompositeBuffer> ReadFileBlock(
     ResourceTransaction transaction,
     UnlockedFile file,
+    Resource<FileContent> fileContent,
     Resource<FileSnapshot> fileSnapshot,
     long index
   )
@@ -60,6 +64,7 @@ public sealed partial class ResourceManager
               item.FileId == file.File.Id
               && item.Index == index
               && item.FileSnapshotId == fileSnapshot.Id
+              && item.FileContentId == fileContent.Id
           )
       )
       .FirstOrDefaultAsync(transaction.CancellationToken);
@@ -99,6 +104,7 @@ public sealed partial class ResourceManager
               item.FileId == file.File.Id
               && item.Index == index
               && item.FileSnapshotId == fileSnapshot.Id
+              && item.FileContentId == fileContent.Id
           )
       )
       .FirstOrDefaultAsync(transaction.CancellationToken);
@@ -114,6 +120,7 @@ public sealed partial class ResourceManager
       {
         FileId = file.File.Id,
         FileContentId = fileContent.Id,
+        FileSnapshotId = fileSnapshot.Id,
         EncryptedBuffer = KeyManager.Encrypt(file, bytes.ToByteArray()),
       }
     );
@@ -135,6 +142,10 @@ public sealed partial class ResourceManager
           Index = index,
         }
       );
+    }
+    else
+    {
+      data.Data.BufferId = buffer.Id;
     }
 
     await data.Save(transaction);
@@ -167,7 +178,13 @@ public sealed partial class ResourceManager
 
       if (bufferEnd - bufferStart > 0)
       {
-        CompositeBuffer buffer = await ReadFileBlock(transaction, file, fileSnapshot, index);
+        CompositeBuffer buffer = await ReadFileBlock(
+          transaction,
+          file,
+          fileContent,
+          fileSnapshot,
+          index
+        );
 
         CompositeBuffer toRead = buffer.Slice(bufferStart, bufferEnd);
 
@@ -202,7 +219,13 @@ public sealed partial class ResourceManager
 
       if (currentEnd - currentStart > 0)
       {
-        CompositeBuffer current = await ReadFileBlock(transaction, file, fileSnapshot, indexStart);
+        CompositeBuffer current = await ReadFileBlock(
+          transaction,
+          file,
+          fileContent,
+          fileSnapshot,
+          indexStart
+        );
 
         CompositeBuffer toWrite = bytes.Slice(currentStart, currentEnd);
 

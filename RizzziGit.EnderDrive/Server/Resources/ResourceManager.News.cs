@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using MongoDB.Bson;
@@ -16,11 +17,11 @@ public record class News : ResourceData
   [BsonRepresentation(BsonType.DateTime)]
   public required DateTimeOffset? PublishTime;
 
-  [JsonProperty("imageFileIds")]
-  public required ObjectId[] ImageFileIds;
-
   [JsonProperty("authorUserId")]
   public required ObjectId AuthorUserId;
+
+  [JsonProperty("image")]
+  public required byte[] Image;
 }
 
 public sealed partial class ResourceManager
@@ -28,19 +29,26 @@ public sealed partial class ResourceManager
   public async Task<Resource<News>> CreateNews(
     ResourceTransaction transaction,
     string title,
-    Resource<File>[] images,
+    UnlockedFile file,
+    Resource<FileContent> fileContent,
+    Resource<FileSnapshot> fileSnapshot,
     Resource<User> newsAuthor,
     DateTimeOffset? publishTime
   )
   {
+    using MemoryStream stream = new();
+    using Stream a = await CreateReadStream(transaction, file, fileContent, fileSnapshot);
+
+    await a.CopyToAsync(stream, transaction.CancellationToken);
+
     Resource<News> news = ToResource<News>(
       transaction,
       new()
       {
         Title = title,
-        ImageFileIds = images.Select((item) => item.Id).ToArray(),
         AuthorUserId = newsAuthor.Id,
         PublishTime = publishTime,
+        Image = stream.ToArray(),
       }
     );
 

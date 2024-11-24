@@ -55,7 +55,7 @@ public sealed partial class Connection
 
       return new()
       {
-        Text = audioTranscription.Data.Text.Select((token) => $"{token}").ToArray(),
+        Text = audioTranscription.Data.Text.Select((token) => token.Text).ToArray(),
         Status = audioTranscription.Data.Status,
       };
     };

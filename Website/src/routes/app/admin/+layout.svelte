@@ -7,7 +7,8 @@
   import Title from '../title.svelte'
   import Separator from '$lib/client/ui/separator.svelte'
   import Icon from '$lib/client/ui/icon.svelte'
-
+  import { useServerContext } from '$lib/client/client'
+  import { goto } from '$app/navigation'
   const {
     children
   }: {
@@ -16,6 +17,16 @@
   const { isDesktop, isMobile, pushTitle } = useAppContext()
 
   const { tabs, sidePanel, titleStack } = createAdminContext()
+
+  const server = useServerContext()
+
+  onMount(() => {
+    void (async () => {
+      if (!(await server.amIAdmin())) {
+        goto('/app', { replaceState: false })
+      }
+    })()
+  })
 </script>
 
 <AdminTabs />
@@ -47,7 +58,7 @@
   </div>
 
   <div class="content">
-    {#if $isDesktop}
+    {#if $isDesktop && $sidePanel.length}
       <div class="side">
         {#each $sidePanel as { id, name, icon, snippet }, index (id)}
           {#if index !== 0}

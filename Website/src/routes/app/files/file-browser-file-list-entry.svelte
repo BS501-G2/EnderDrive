@@ -30,7 +30,8 @@
     getFiles,
     getMainFileContent,
     getUser,
-    getFileSize
+    getFileSize,
+    getLatestFileSnapshot
   } = useServerContext()
   const { isMobile, isDesktop } = useAppContext()
   const { onFileId } = useFileBrowserContext()
@@ -44,7 +45,8 @@
 
   const getModified = async (file: FileEntry) => {
     const fileContent = await getMainFileContent(file.file.id)
-    const fileSnapshot = (await getFileSnapshots(file.file.id, fileContent.id, void 0, 0, 1))[0]
+    // const fileSnapshot = (await getFileSnapshots(file.file.id, fileContent.id, void 0, 0, 1))[0]
+    const fileSnapshot = (await getLatestFileSnapshot(file.file.id, fileContent.id))!
     const user = await getUser(fileSnapshot.authorUserId)
 
     return [fileSnapshot, user!] as const

@@ -116,11 +116,11 @@ public sealed partial class ResourceManager
 
       try
       {
-        transactionLogger.Info("Started");
+        // transactionLogger.Info("Started");
 
         await transactInner(transactionId, transactionLogger);
 
-        transactionLogger.Info("Completed");
+        // transactionLogger.Info("Completed");
       }
       catch (Exception exception)
       {

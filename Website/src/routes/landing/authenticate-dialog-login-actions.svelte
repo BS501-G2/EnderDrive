@@ -1,7 +1,10 @@
 <script lang="ts">
+  import { useLandingContext } from '$lib/client/contexts/landing'
   import Button from '$lib/client/ui/button.svelte'
   import Icon, { type IconOptions } from '$lib/client/ui/icon.svelte'
   import { type Snippet } from 'svelte'
+
+  const { onreset }: { onreset: () => void } = $props()
 </script>
 
 {#snippet action(name: string, icon: IconOptions, onclick: () => void)}
@@ -28,14 +31,14 @@
 {/snippet}
 
 <div class="actions">
-  {@render action(
+  <!-- {@render action(
     'Google',
     {
       brand: true,
       icon: 'google'
     },
     async () => {}
-  )}
+  )} -->
 
   {@render action(
     'Reset Password',
@@ -43,9 +46,7 @@
       thickness: 'solid',
       icon: 'key'
     },
-    async () => {
-      // const
-    }
+    onreset
   )}
 </div>
 
@@ -54,7 +55,7 @@
     display: grid;
     gap: 8px;
 
-    grid-template-columns: repeat(2, calc(50% - 4px));
+    // grid-template-columns: repeat(2, calc(50% - 4px));
   }
 
   div.action-container-outer {

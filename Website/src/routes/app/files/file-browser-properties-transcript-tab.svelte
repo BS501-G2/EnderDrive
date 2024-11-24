@@ -19,8 +19,15 @@
   {:then { text, status }}
     <div class="transcript">
       <p><b>Status:</b> {AudioTranscriptionStatus[status]}</p>
-      <p><b>Transcript:</b></p>
-      <pre>{text.join('\n')}</pre>
+      {#if status === AudioTranscriptionStatus.Error}
+        <p>Audio transcription only works on WAV files using 16KHz.</p>
+      {:else}
+        <p><b>Transcript:</b></p>
+
+        {#each text as entry}
+          <p>{entry}</p>
+        {/each}
+      {/if}
     </div>
   {/await}
 </FileBrowserPropertiesTab>
@@ -33,6 +40,10 @@
   div.transcript {
     padding: 8px;
     gap: 8px;
+
+    > pre {
+      text-wrap: wrap;
+    }
   }
 
   b {

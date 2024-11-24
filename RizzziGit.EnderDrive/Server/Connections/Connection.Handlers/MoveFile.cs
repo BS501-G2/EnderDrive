@@ -12,7 +12,7 @@ public sealed partial class Connection
   private sealed record MoveFileRequest : BaseFileRequest
   {
     [BsonElement("newParentId")]
-    public required ObjectId NewParentId;
+    public required ObjectId? NewParentId;
 
     [BsonElement("newName")]
     public required string? NewName;
@@ -30,24 +30,26 @@ public sealed partial class Connection
         fileAccess.UnlockedFile.File.Data.ParentId
       );
 
-      Resource<File> newParent = await Internal_GetFile(
-        transaction,
-        me,
-        userAuthentication,
-        request.NewParentId
-      );
+      Resource<File>? newParent =
+        request.NewParentId != null
+          ? await Internal_GetFile(transaction, me, userAuthentication, request.NewParentId)
+          : null;
 
-      if (newParent.Data.Type != FileType.Folder)
+      FileAccessResult? newParentAccessResult = null;
+      if (newParent != null)
       {
-        throw new InvalidOperationException("Parent is not a folder.");
-      }
+        if (newParent.Data.Type != FileType.Folder)
+        {
+          throw new InvalidOperationException("Parent is not a folder.");
+        }
 
-      FileAccessResult newParentAccessResult = await Internal_UnlockFile(
-        transaction,
-        newParent,
-        me,
-        userAuthentication
-      );
+        newParentAccessResult = await Internal_UnlockFile(
+          transaction,
+          newParent,
+          me,
+          userAuthentication
+        );
+      }
 
       string newName = request.NewName ?? fileAccess.UnlockedFile.File.Data.Name;
 
@@ -58,7 +60,7 @@ public sealed partial class Connection
             (query) =>
               query.Where(
                 (file) =>
-                  file.ParentId == newParent.Id
+                  file.ParentId == (newParent != null ? newParent.Id : oldParent.Id)
                   && file.TrashTime == null
                   && file.Name.Equals(newName, StringComparison.OrdinalIgnoreCase)
               )
@@ -72,16 +74,23 @@ public sealed partial class Connection
         );
       }
 
-      await Resources.MoveFile(
-        transaction,
-        fileAccess.UnlockedFile,
-        newParentAccessResult.UnlockedFile
-      );
+      if (newParentAccessResult != null)
+      {
+        await Resources.MoveFile(
+          transaction,
+          fileAccess.UnlockedFile,
+          newParentAccessResult.UnlockedFile
+        );
+      }
 
       fileAccess.UnlockedFile.File.Data.Name = newName;
       await fileAccess.UnlockedFile.File.Save(transaction);
 
-      await Resources.CreateFileLog(transaction, newParent, me, FileLogType.Update);
+      if (newParent != null)
+      {
+        await Resources.CreateFileLog(transaction, newParent, me, FileLogType.Update);
+      }
+
       await Resources.CreateFileLog(transaction, oldParent, me, FileLogType.Update);
 
       return new() { };

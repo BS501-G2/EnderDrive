@@ -2,15 +2,16 @@
   import { useServerContext } from '$lib/client/client'
   import { useAppContext } from '$lib/client/contexts/app'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
-  import { writable, type Writable } from 'svelte/store'
+  import { derived, writable, type Writable } from 'svelte/store'
   import FileBrowserActions from './file-browser-actions.svelte'
   import FileBrowserFileContentView from './file-browser-file-content-view.svelte'
   import { type Snippet } from 'svelte'
-
+import { page } from '$app/stores'
   const {
     fileId,
     selectedFileIds
-  }: {
+  }:
+ {
     fileId: string
     selectedFileIds: Writable<string[]>
   } = $props()
@@ -24,6 +25,7 @@
     me
   } = useServerContext()
   const { isDesktop } = useAppContext()
+  const snapshotId = derived(page, ({ url }) => url.searchParams.get('snapshotId'))
 
   async function load(customSnapshotId?: string) {
     const file = await getFile(fileId)
@@ -48,7 +50,7 @@
     }
   }
 
-  let promise = writable(load())
+  let promise = writable(load($snapshotId || undefined))
 </script>
 
 {#snippet loading()}

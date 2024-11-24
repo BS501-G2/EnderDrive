@@ -73,6 +73,7 @@ public sealed partial class Connection
         fileAccessResult.UnlockedFile,
         fileContent,
         fileSnapshot,
+        me,
         userAuthentication,
         source
       );

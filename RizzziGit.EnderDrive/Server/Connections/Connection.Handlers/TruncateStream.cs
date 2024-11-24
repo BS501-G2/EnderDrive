@@ -1,28 +1,27 @@
 using System;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
-using RizzziGit.Commons.Memory;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
 public sealed partial class Connection
 {
-  private sealed record class WriteStreamRequest
+  private sealed record class TruncateStreamRequest
   {
     [BsonElement("streamId")]
     public required ObjectId StreamId;
 
-    [BsonElement("data")]
-    public required byte[] Data;
+    [BsonElement("length")]
+    public required long Length;
   }
 
-  private sealed record class WriteStreamResponse
+  private sealed record class TruncateStreamResponse
   {
     [BsonElement("newFileSnapshotId")]
     public required ObjectId? NewFileSnapshotId;
   }
 
-  private RequestHandler<WriteStreamRequest, WriteStreamResponse> WriteStream =>
+  private RequestHandler<TruncateStreamRequest, TruncateStreamResponse> TruncateStream =>
     async (request, cancellationToken) =>
     {
       ConnectionContext context = GetContext();
@@ -31,7 +30,6 @@ public sealed partial class Connection
       {
         throw new InvalidOperationException("File stream not found.");
       }
-
-      return new() { NewFileSnapshotId = await stream.Write(request.Data, cancellationToken) };
+      return new() { NewFileSnapshotId = await stream.Truncate(request.Length, cancellationToken) };
     };
 }

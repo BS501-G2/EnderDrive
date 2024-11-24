@@ -3,7 +3,12 @@ import { writable, type Writable } from 'svelte/store'
 import type { IconOptions } from '../ui/icon.svelte'
 
 export interface LandingContext {
-  pushLandingEntry: (name: string, content: Snippet, showButton: boolean,  scrollTop?: Writable<number>) => () => void
+  pushLandingEntry: (
+    name: string,
+    content: Snippet,
+    showButton: boolean,
+    scrollTop?: Writable<number>
+  ) => () => void
 
   pushButton: (
     content: Snippet,
@@ -16,6 +21,11 @@ export interface LandingContext {
 
   openLogin: () => void
   closeLogin: () => void
+
+  openReset: () => void
+  closeReset: () => void
+
+  currentPage: Writable<number>
 }
 
 export type LandingPageEntry = {
@@ -23,7 +33,7 @@ export type LandingPageEntry = {
   name: string
   content: Snippet
   showButton: boolean
-  scrollTop?: number
+  scrollTop?: Writable<number>
 }
 
 export type LandingPageButton = {
@@ -50,10 +60,12 @@ export function createLandingContext() {
   const pages: Writable<LandingPageEntry[]> = writable([])
   const buttons: Writable<LandingPageButton[]> = writable([])
   const authenticateDialog: Writable<boolean> = writable(false)
+  const resetDialog: Writable<boolean> = writable(false)
   const footer: Writable<LandingPageFooter[]> = writable([])
+  const currentPage = writable(0)
 
   const context = setContext<LandingContext>(landingContextName, {
-    pushLandingEntry: (name: string, content: Snippet, showButton: boolean) => {
+    pushLandingEntry: (name: string, content: Snippet, showButton: boolean, scrollTop) => {
       const id = Math.random()
 
       pages.update((pageButtons) => [
@@ -62,7 +74,7 @@ export function createLandingContext() {
           id,
           name,
           content,
-          showButton
+          showButton,scrollTop
         }
       ])
 
@@ -107,7 +119,17 @@ export function createLandingContext() {
 
     closeLogin: () => {
       authenticateDialog.set(false)
-    }
+    },
+
+    openReset: () => {
+      resetDialog.set(true)
+    },
+
+    closeReset: () => {
+      resetDialog.set(false)
+    },
+
+    currentPage
   })
 
   return {
@@ -115,6 +137,8 @@ export function createLandingContext() {
     pages,
     footer,
     buttons,
-    authenticateDialog
+    authenticateDialog,
+    currentPage,
+    resetDialog
   }
 }

@@ -172,6 +172,11 @@ public sealed partial class Connection
               fileAccess.Data.FileId
             );
 
+            if (file.Data.TrashTime != null)
+            {
+              return false;
+            }
+
             FileAccessResult? fileAccessResult = await Resources.FindFileAccess(
               transaction,
               file,

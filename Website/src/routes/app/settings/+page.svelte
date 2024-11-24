@@ -66,7 +66,6 @@
 
 <AccountSettingsPersonalInformationTab />
 <AccountSettingsLoginInformationTab />
-<AccountSettingsOfflineAvailabilityTab />
 
 <style lang="scss">
   @use '../../../global.scss' as *;

@@ -42,6 +42,13 @@ public sealed partial class Connection
 
       if (request.Level != FileAccessLevel.None)
       {
+        await Resources.CreateFileLog(
+          transaction,
+          fileAccess.UnlockedFile.File,
+          me,
+          FileLogType.Share
+        );
+
         if (request.TargetUserId == null)
         {
           await Resources.CreateFileAccess(transaction, fileAccess.UnlockedFile, request.Level, me);
@@ -56,8 +63,6 @@ public sealed partial class Connection
             )
           );
 
-          Console.WriteLine(targetUser);
-
           await Resources.CreateFileAccess(
             transaction,
             file: fileAccess.UnlockedFile,
@@ -66,6 +71,15 @@ public sealed partial class Connection
             authorUser: me
           );
         }
+      }
+      else
+      {
+        await Resources.CreateFileLog(
+          transaction,
+          fileAccess.UnlockedFile.File,
+          me,
+          FileLogType.Unshare
+        );
       }
 
       return new() { };

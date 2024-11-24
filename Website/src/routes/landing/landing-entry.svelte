@@ -16,12 +16,12 @@
     hideButton?: boolean
     hideHeader?: boolean
   } = $props()
-  const { pushLandingEntry } = useLandingContext()
+  const { pushLandingEntry, currentPage } = useLandingContext()
 
   const element = writable<HTMLDivElement>(null as never)
   const offsetTop = writable<number>(0)
 
-  onMount(() => pushLandingEntry(name, container, !hideButton))
+  onMount(() => pushLandingEntry(name, container, !hideButton, offsetTop))
 
   function updateScroll() {
     if ($offsetTop != $element.offsetTop) {

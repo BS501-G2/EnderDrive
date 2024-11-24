@@ -74,6 +74,7 @@ public sealed partial class Connection
       [UserRole.NewsEditor]
     );
     registerAuthenticatedHandler(ServerSideRequestCode.GetNews, GetNews);
+    registerAuthenticatedHandler(ServerSideRequestCode.GetNewsEntry, GetNewsEntry);
     registerFileHandler(ServerSideRequestCode.SetFileStar, SetFileStar);
     registerFileHandler(ServerSideRequestCode.GetFileStar, GetFileStar);
     registerFileHandler(ServerSideRequestCode.GetFilePath, GetFilePath, null, FileAccessLevel.Read);
@@ -153,7 +154,11 @@ public sealed partial class Connection
     );
     registerAuthenticatedHandler(ServerSideRequestCode.UpdateUsername, UpdateUsername);
     registerAuthenticatedHandler(ServerSideRequestCode.UpdatePassword, UpdatePassword);
-    registerAdminHandler(ServerSideRequestCode.GetRootId,GetRootId);
+    registerAdminHandler(ServerSideRequestCode.GetRootId, GetRootId);
+    registerHandler(ServerSideRequestCode.TruncateStream, TruncateStream);
+    registerFileHandler(ServerSideRequestCode.DeleteFile, DeleteFile);
+    registerTransactedHandler(ServerSideRequestCode.GetFileNameValidationFlags, GetFileNameValidationFlags);
+    registerAuthenticatedHandler(ServerSideRequestCode.UpdateName, UpdateName);
   }
 }
 
@@ -236,5 +241,11 @@ public enum ServerSideRequestCode : byte
   UpdateUsername,
   UpdatePassword,
 
-  GetRootId
+  GetRootId,
+  TruncateStream,
+
+  DeleteFile,
+  GetFileNameValidationFlags,
+  GetNewsEntry,
+  UpdateName
 }

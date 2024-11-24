@@ -90,8 +90,8 @@
       <h1>Effortless Collaboration</h1>
       <p>
         Work seamlessly with your team by sharing and managing files across devices. EnderDrive
-        makes collaboration simple and efficient, no matter where you are. Enjoy a
-        hassle-free experience tailored for education and teamwork.
+        makes collaboration simple and efficient, no matter where you are. Enjoy a hassle-free
+        experience tailored for education and teamwork.
       </p>
     </div>
     <div class="gridVid">
@@ -142,110 +142,117 @@
 <LandingEntry name="About" hideHeader>
   <div class="about">
     <div class="AboutUs">
-    <h1>Our <span class="highlight">Team</span></h1>
+      <h1>Our <span class="highlight">Team</span></h1>
     </div>
-      <div class="cardContainer">
-        <div class="card">
-
-          <div class="imgBx">
-            <img src="dave.jpg" alt="dave">
-          </div>
-
-          <div class="content">
-            <div class="contentBx">
-              <h3>Darren Dave M. Macarorol <br><span>Web Design</span></h3>
-            </div>
-            <ul class="sci">
-              <li style="--i: 1">
-                <a href="#"><i class="fa-brands fa-instagram"></i></a>
-              </li>
-              <li style="--i: 2">
-                <a href="#"><i class="fa-brands fa-github"></i></a>
-              </li>
-              <li style="--i: 3">
-                <a href="#"><i class="fa-brands fa-linkedin-in"></i></a>
-              </li>
-            </ul>
-          </div>
-
+    <div class="cardContainer">
+      <div class="card">
+        <div class="imgBx">
+          <img src="carl.png" alt="carl" />
         </div>
-        <div class="card">
 
-          <div class="imgBx">
-            <img src="dave.jpg" alt="dave">
+        <div class="content">
+          <div class="contentBx">
+            <h3>Carl James O. Omandam <br /><span>Back-End Developer</span></h3>
           </div>
-
-          <div class="content">
-            <div class="contentBx">
-              <h3>Darren Dave M. Macarorol <br><span>Web Design</span></h3>
-            </div>
-            <ul class="sci">
-              <li style="--i: 1">
-                <a href="#"><i class="fa-brands fa-instagram"></i></a>
-              </li>
-              <li style="--i: 2">
-                <a href="#"><i class="fa-brands fa-github"></i></a>
-              </li>
-              <li style="--i: 3">
-                <a href="#"><i class="fa-brands fa-linkedin-in"></i></a>
-              </li>
-            </ul>
-          </div>
-
-        </div>
-        <div class="card">
-
-          <div class="imgBx">
-            <img src="dave.jpg" alt="dave">
-          </div>
-
-          <div class="content">
-            <div class="contentBx">
-              <h3>Darren Dave M. Macarorol <br><span>Web Design</span></h3>
-            </div>
-            <ul class="sci">
-              <li style="--i: 1">
-                <a href="#"><i class="fa-brands fa-instagram"></i></a>
-              </li>
-              <li style="--i: 2">
-                <a href="#"><i class="fa-brands fa-github"></i></a>
-              </li>
-              <li style="--i: 3">
-                <a href="#"><i class="fa-brands fa-linkedin-in"></i></a>
-              </li>
-            </ul>
-          </div>
-
-        </div>
-        <div class="card">
-
-          <div class="imgBx">
-            <img src="dave.jpg" alt="dave">
-          </div>
-
-          <div class="content">
-            <div class="contentBx">
-              <h3>Darren Dave M. Macarorol <br><span>Web Design</span></h3>
-            </div>
-            <ul class="sci">
-              <li style="--i: 1">
-                <a href="#"><i class="fa-brands fa-instagram"></i></a>
-              </li>
-              <li style="--i: 2">
-                <a href="#"><i class="fa-brands fa-github"></i></a>
-              </li>
-              <li style="--i: 3">
-                <a href="#"><i class="fa-brands fa-linkedin-in"></i></a>
-              </li>
-            </ul>
-          </div>
-
+          <ul class="sci">
+            <li style="--i: 1">
+              <a href="#"><i class="fa-brands fa-instagram"></i></a>
+            </li>
+            <li style="--i: 2">
+              <a href="#"><i class="fa-brands fa-github"></i></a>
+            </li>
+            <li style="--i: 3">
+              <a href="#"><i class="fa-brands fa-linkedin-in"></i></a>
+            </li>
+          </ul>
         </div>
       </div>
+      <div class="card">
+        <div class="imgBx">
+          <img src="arvin.png" alt="arvin" />
+        </div>
 
+        <div class="content">
+          <div class="contentBx">
+            <h3>
+              Arvin John C. Suyat <br /><span>Project Manager <br /> Front-End Developer</span>
+            </h3>
+          </div>
+          <ul class="sci">
+            <li style="--i: 1">
+              <a href="https://www.instagram.com/a.suyat08" target="_blank"
+                ><i class="fa-brands fa-instagram">a</i></a
+              >
+            </li>
+            <li style="--i: 2">
+              <a href="https://github.com/RVNJHN08" target="_blank"
+                ><i class="fa-brands fa-github">a</i></a
+              >
+            </li>
+            <li style="--i: 3">
+              <a
+                href="https://www.linkedin.com/in/iamarvinsuyat"
+                target="_blank"
+                rel="noopener noreferrer"><i class="fa-brands fa-linkedin-in">a</i></a
+              >
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="card">
+        <div class="imgBx">
+          <img src="dave.jpg" alt="dave" />
+        </div>
+
+        <div class="content">
+          <div class="contentBx">
+            <h3>Darren Dave M. Macrol <br /><span>Web Design</span></h3>
+          </div>
+          <ul class="sci">
+            <li style="--i: 1">
+              <a href="https://www.instagram.com/kodisantoss" target="_blank"
+                ><i class="fa-brands fa-instagram">a</i></a
+              >
+            </li>
+            <li style="--i: 2">
+              <a href="https://github.com/kowdeegithub" target="_blank"
+                ><i class="fa-brands fa-github">a</i></a
+              >
+            </li>
+            <li style="--i: 3">
+              <a href="https://www.linkedin.com/in/darrendave-macrol-5041852a8/" target="_blank"
+                ><i class="fa-brands fa-linkedin-in">a</i></a
+              >
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="card">
+        <div class="imgBx">
+          <img src="richard.png" alt="Richard" />
+        </div>
+
+        <div class="content">
+          <div class="contentBx">
+            <h3>Richard R. Tandayo Jr. <br /><span>Front-End Developer</span></h3>
+          </div>
+          <ul class="sci">
+            <li style="--i: 1">
+              <a href="https://www.facebook.com/anne.tandayo"
+                ><i class="fa-brands fa-facebook"></i></a
+              >
+            </li>
+            <li style="--i: 2">
+              <a href="https://github.com/Chartyx04652"><i class="fa-brands fa-github"></i></a>
+            </li>
+            <li style="--i: 3">
+              <a href="#"><i class="fa-brands fa-linkedin-in"></i></a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
   </div>
-
-
 </LandingEntry>
 
 <style lang="scss">
@@ -438,6 +445,7 @@
     align-items: center;
     width: 100%;
     min-height: 900px;
+    margin-bottom: -10%;
   }
   .contactDetails h1 {
     font-size: 4em;
@@ -518,19 +526,19 @@
     overflow: visible;
     min-height: 50px;
   }
-  .AboutUs .highlight{
+  .AboutUs .highlight {
     color: #86c24fff;
   }
-  .AboutUs h1{
-   text-align: center;
-   font-size: 4em;
+  .AboutUs h1 {
+    text-align: center;
+    font-size: 4em;
   }
-  .about{
+  .about {
     display: flex;
     justify-content: center;
     align-items: center;
   }
-  .about .cardContainer{
+  .about .cardContainer {
     position: relative;
     display: flex;
     flex-direction: row;
@@ -540,28 +548,31 @@
     margin: 40px 0;
     gap: 20px;
   }
-  .cardContainer .card{
-    position:relative;
-    width: 230px;
-    height: 330px;
+  .cardContainer .card {
+    position: relative;
+    width: 225px;
+    height: 300px;
     margin: 20px;
     overflow: hidden;
-    box-shadow: 0 30px 30px -20px rgba(0, 0, 0, 1),
-    inset 0 0 0 1000px rgba(67, 52, 109, .6);
+    box-shadow:
+      0 30px 30px -20px rgba(0, 0, 0, 1),
+      inset 0 0 0 1000px rgba(67, 52, 109, 0.6);
     border-radius: 15px;
     display: flex;
     justify-content: center;
     align-items: center;
   }
-  .card .imgBx, .imgBx img{
+  .card .imgBx,
+  .imgBx img {
     width: 100%;
     height: 100%;
+    object-fit: cover;
   }
-  .card .content{
+  .card .content {
     position: absolute;
     bottom: -160px;
     width: 100%;
-    height: 160px;
+    height: 120px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -573,31 +584,30 @@
     transition: bottom 0.5s;
     transition-delay: 0.65s;
   }
-  .card:hover .content{
+  .card:hover .content {
     bottom: 0;
     transition-delay: 0s;
   }
-  .content .contentBx h3{
-    text-align:center;
+  .content .contentBx h3 {
+    text-align: center;
     margin-bottom: 30px;
-    font-weight: 500;
-    font-size: 18px;
+    font-weight: 600;
+    font-size: 16px;
     color: #fff;
     opacity: 1;
     transform: translateY(0);
   }
-  .content .contentBx h3 span{
-
-    font-size: 14px;
+  .content .contentBx h3 span {
+    font-size: 12px;
     font-weight: 300;
     text-transform: initial;
   }
-  .content .sci{
+  .content .sci {
     position: relative;
-    bottom: -50px;
+    bottom: 10px;
     display: flex;
   }
-  .content .sci li{
+  .content .sci li {
     list-style: none;
     margin: 0 10px;
     transform: translateY(40px);
@@ -605,11 +615,11 @@
     opacity: 0;
     transition-delay: calc(0.2s * var(--i));
   }
-  .card:hover .content .sci li{
+  .card:hover .content .sci li {
     transform: translateY(0);
     opacity: 1;
   }
-  .content .sci li a{
+  .content .sci li a {
     color: #fff;
     font-size: 24px;
   }
@@ -674,6 +684,21 @@
     div.Card h3 {
       font-size: medium;
     }
+    .cardContainer .card {
+      width: 200px;
+      height: 275px;
+      margin: 15px;
+    }
+    .content .contentBx h3 {
+      font-size: medium;
+      margin-top: 5px;
+    }
+    .card .content {
+      height: 100px;
+    }
+    .content .sci li a {
+      font-size: large;
+    }
   }
   @media (max-width: 768px) {
     div.firstGrid-Container {
@@ -735,11 +760,29 @@
     }
 
     div.Card h3 {
-      font-size: small;
+      font-size: xx-small;
     }
 
     div.Card p {
-      font-size: x-small;
+      font-size: xx-small;
+    }
+    .cardContainer .card {
+      width: 175px;
+      height: 250px;
+      margin: 15px;
+    }
+    .content .contentBx h3 {
+      font-size: small;
+      margin-top: 5px;
+    }
+    .content .contentBx h3 span {
+      font-size: smaller;
+    }
+    .card .content {
+      height: 90px;
+    }
+    .content .sci li a {
+      font-size: large;
     }
   }
   @media (max-width: 480px) {

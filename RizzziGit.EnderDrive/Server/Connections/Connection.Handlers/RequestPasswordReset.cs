@@ -3,6 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
+using System;
 using System.Linq;
 using Resources;
 
@@ -56,25 +57,23 @@ public sealed partial class Connection
       }
       else
       {
-        throw new ConnectionResponseException(
-          ResponseCode.InvalidParameters,
-          new ConnectionResponseExceptionData.InvalidParameters()
-        );
+        throw new InvalidOperationException("Please enter user ID or username.");
       }
 
       if (
         await Resources
           .Query<PasswordResetRequest>(
             transaction,
-            (query) => query.Where((request) => request.UserId == user.Id)
+            (query) =>
+              query.Where(
+                (request) =>
+                  request.UserId == user.Id && request.Status == PasswordResetRequestStatus.Pending
+              )
           )
           .AnyAsync()
       )
       {
-        throw new ConnectionResponseException(
-          ResponseCode.InvalidParameters,
-          new ConnectionResponseExceptionData.InvalidParameters()
-        );
+        throw new InvalidOperationException("A password reset is already pending.");
       }
 
       await Resources.CreatePasswordResetRequest(transaction, user);

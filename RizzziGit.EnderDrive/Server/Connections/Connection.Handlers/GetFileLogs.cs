@@ -26,6 +26,9 @@ public sealed partial class Connection
 
     [BsonElement("pagination")]
     public required PaginationOptions? Pagination;
+
+    [BsonElement("uniqueFileId")]
+    public bool UniqueFileId;
   }
 
   private sealed record class GetFileLogsResponse
@@ -102,7 +105,7 @@ public sealed partial class Connection
               )
               .OrderByDescending((fileLog) => fileLog.CreateTime)
               .Optional(
-                file == null
+                request.UniqueFileId
                   ? (query) => query.GroupBy((e) => e.FileId).Select((e) => e.First())
                   : null
               )
@@ -113,9 +116,8 @@ public sealed partial class Connection
           {
             return await Resources.FindFileAccess(
                 transaction,
-                file != null
-                  ? file
-                  : await Internal_GetFile(
+                file
+                  ?? await Internal_GetFile(
                     transaction,
                     me,
                     userAuthentication,

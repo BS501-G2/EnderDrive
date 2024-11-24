@@ -16,6 +16,7 @@ public sealed partial class Connection
     UnlockedFile file,
     Resource<FileContent> fileContent,
     Resource<FileSnapshot> fileSnapshot,
+    Resource<User> user,
     UnlockedUserAuthentication userAuthentication,
     TaskCompletionSource<ObjectId> source
   ) =>
@@ -47,14 +48,75 @@ public sealed partial class Connection
         {
           switch (feed)
           {
+            case ConnectionByteStream.Feed.Truncate(
+              TaskCompletionSource<ObjectId?> source,
+              long length,
+              _
+            ):
+            {
+              try
+              {
+                ObjectId? newId = null;
+                if (!written)
+                {
+                  await Resources.CreateFileLog(transaction, file.File, user, FileLogType.Update);
+                  fileSnapshot = await Resources.CreateFileSnapshot(
+                    transaction,
+                    file,
+                    fileContent,
+                    userAuthentication,
+                    fileSnapshot
+                  );
+
+                  written = true;
+
+                  newId = fileSnapshot.Id;
+                }
+
+                await fileSnapshot.Update(
+                  (data) =>
+                  {
+                    data.Size = length;
+                  },
+                  transaction
+                );
+
+                offset = long.Min(offset, length);
+
+                source.SetResult(newId);
+              }
+              catch (Exception exception)
+              {
+                source.SetException(exception);
+              }
+
+              break;
+            }
+
             case ConnectionByteStream.Feed.Write(
-              TaskCompletionSource source,
+              TaskCompletionSource<ObjectId?> source,
               CompositeBuffer bytes,
               _
             ):
             {
               try
               {
+                ObjectId? newId = null;
+                if (!written)
+                {
+                  fileSnapshot = await Resources.CreateFileSnapshot(
+                    transaction,
+                    file,
+                    fileContent,
+                    userAuthentication,
+                    fileSnapshot
+                  );
+
+                  written = true;
+
+                  newId = fileSnapshot.Id;
+                }
+
                 await Resources.WriteFile(
                   transaction,
                   file,
@@ -64,9 +126,10 @@ public sealed partial class Connection
                   offset,
                   bytes
                 );
+
                 offset += bytes.Length;
 
-                source.SetResult();
+                source.SetResult(newId);
               }
               catch (Exception exception)
               {

@@ -54,7 +54,7 @@
 
 <div class="entries-container">
   <div class="entries">
-    {#each $pages as { id, name }, index (id)}
+    {#each $pages as { id, name, scrollTop }, index (id)}
       {#if index !== 0}
         <div class="divider"></div>
       {/if}
@@ -65,6 +65,8 @@
         {widths}
         isActive={index === $flattenedCurrentPage}
         onclick={() => {
+          window.scrollY = scrollTop != null ? get(scrollTop) : 0
+          console.log((scrollTop != null ? get(scrollTop) : 0))
           $currentPage = index
         }}
       />

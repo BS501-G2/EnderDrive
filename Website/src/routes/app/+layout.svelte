@@ -21,6 +21,7 @@
   import InstallButtonDesktop from './install-button-desktop.svelte'
   import AppButton from './app-button.svelte'
   import { createSyncContext } from './sync'
+  import News from './news.svelte'
   const {
     mobileAppButtons,
     mobileTopLeft,
@@ -187,6 +188,7 @@
   <Search />
   <AppButtonHost {mobileAppButtons} />
   <ProgressHost tasks={backgroundTasks} />
+  <News />
 
   {#if $isDesktop}
     <NotificationButtonDesktop />

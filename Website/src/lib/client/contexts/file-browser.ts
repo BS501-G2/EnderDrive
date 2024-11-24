@@ -99,8 +99,10 @@ export function createFileBrowserContext(
   const refresh = writable<(() => void) | null>(null)
 
   const fileListContext: Writable<FileBrowserListContext | null> = writable(null)
+  const stored: Writable<[source: string, files: string[]] | null> = writable( null)
 
   const context = setContext(contextName, {
+    stored,
     showDetails,
 
     pushTop: (snippet: Snippet) => {

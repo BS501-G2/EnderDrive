@@ -128,19 +128,6 @@ public sealed partial class AudioTranscriber(Server server, string modelPath)
         transaction
       );
 
-      ProcessStartInfo processStartInfo = new()
-      {
-        FileName = "/usr/bin/ffmpeg",
-        Arguments = $"-i pipe:0 -f wav -ar 16000 pipe:1",
-        UseShellExecute = false,
-        RedirectStandardInput = true,
-        RedirectStandardOutput = true,
-      };
-
-      using Process process =
-        System.Diagnostics.Process.Start(processStartInfo)
-        ?? throw new InvalidOperationException("Failed to start ffmpeg process.");
-
       using MemoryStream memoryStream = new();
 
       {
@@ -162,71 +149,56 @@ public sealed partial class AudioTranscriber(Server server, string modelPath)
         fileSnapshot
       );
 
-      await Task.WhenAll(
-        [
-          Task.Run(() => stream.CopyToAsync(process.StandardInput.BaseStream)),
-          Task.Run(() => process.StandardOutput.BaseStream.CopyToAsync(memoryStream)),
-        ]
-      );
+      AudioTranscriptionData[] data = [];
 
-      try
+      await foreach (SegmentData? result in processor.ProcessAsync(stream))
       {
-        AudioTranscriptionData[] data = [];
-
-        await foreach (SegmentData? result in processor.ProcessAsync(memoryStream))
+        if (result == null)
         {
-          if (result == null)
-          {
-            continue;
-          }
-
-          audioTranscription.Data.Text = data = [
-            .. data,
-            new()
-            {
-              Start = result.Start,
-              End = result.End,
-              Text = result.Text,
-              MinProbability = result.MinProbability,
-              MaxProbability = result.MaxProbability,
-              Probability = result.Probability,
-              Language = result.Language,
-              Tokens =
-              [
-                .. result.Tokens.Select(
-                  (token) =>
-                    new AudioTranscriptionToken()
-                    {
-                      Id = token.Id,
-                      Text = token.Text,
-                      Start = token.Start,
-                      End = token.End,
-                      Probability = token.Probability,
-                      ProbabilityLog = token.ProbabilityLog,
-                      TimestampId = token.TimestampId,
-                      TimestampProbability = token.TimestampProbability,
-                      TimestampProbabilitySum = token.TimestampProbabilitySum,
-                      VoiceLen = token.VoiceLen,
-                      DtwTimestamp = token.DtwTimestamp,
-                    }
-                ),
-              ],
-            },
-          ];
-
-          await audioTranscription.Save(transaction);
-
-          source.SetResult();
+          continue;
         }
-      }
-      finally
-      {
-        process.Kill();
+
+        audioTranscription.Data.Text = data = [
+          .. data,
+          new()
+          {
+            Start = result.Start,
+            End = result.End,
+            Text = result.Text,
+            MinProbability = result.MinProbability,
+            MaxProbability = result.MaxProbability,
+            Probability = result.Probability,
+            Language = result.Language,
+            Tokens =
+            [
+              .. result.Tokens.Select(
+                (token) =>
+                  new AudioTranscriptionToken()
+                  {
+                    Id = token.Id,
+                    Text = token.Text,
+                    Start = token.Start,
+                    End = token.End,
+                    Probability = token.Probability,
+                    ProbabilityLog = token.ProbabilityLog,
+                    TimestampId = token.TimestampId,
+                    TimestampProbability = token.TimestampProbability,
+                    TimestampProbabilitySum = token.TimestampProbabilitySum,
+                    VoiceLen = token.VoiceLen,
+                    DtwTimestamp = token.DtwTimestamp,
+                  }
+              ),
+            ],
+          },
+        ];
+
+        await audioTranscription.Save(transaction);
       }
     }
     catch (Exception exception)
     {
-      source.SetException(exception);
+      Error(exception);
+      source.TrySetException(exception);
     }
   }
 

@@ -78,7 +78,7 @@ public sealed partial class Connection
 
       TaskCompletionSource<ObjectId> source = new();
 
-      RunStream(unlockedFile, fileContent, fileSnapshot, userAuthentication, source);
+      RunStream(unlockedFile, fileContent, fileSnapshot, me, userAuthentication, source);
       await Resources.CreateFileLog(transaction, unlockedFile.File, me, FileLogType.Create);
 
       return new() { StreamId = await source.Task };

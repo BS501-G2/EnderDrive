@@ -28,12 +28,7 @@
             {@render view()}
           </div>
         {/snippet}
-
-        <Button {foreground} onclick={() => {}}>
-          <Icon icon="upload" thickness="solid" />
-          <p>Upload Image</p>
-        </Button>
-
+        
         <Button
           {foreground}
           onclick={() => {

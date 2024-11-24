@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { FileAccessLevel, useServerContext } from '$lib/client/client'
-  import type { FileProperties } from '$lib/client/contexts/file-browser'
+  import { FileAccessLevel, FileType, useServerContext } from '$lib/client/client'
+  import { useFileBrowserContext, type FileProperties } from '$lib/client/contexts/file-browser'
   import Icon from '$lib/client/ui/icon.svelte'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import Separator from '$lib/client/ui/separator.svelte'
@@ -14,6 +14,8 @@
   import FileBrowserPropertiesAccessTab from './file-browser-properties-access-tab.svelte'
   import { writable } from 'svelte/store'
   import FileBrowserPropertiesTranscriptTab from './file-browser-properties-transcript-tab.svelte'
+  import FileBrowserPropertiesLogsTab from './file-browser-properties-logs-tab.svelte'
+  import FileBrowserPropertiesSnapshots from './file-browser-properties-snapshots.svelte'
 
   const {
     selectedFileIds
@@ -31,6 +33,7 @@
     getFileAccessLevel
   } = useServerContext()
 
+  const { current } = useFileBrowserContext()
   const promises = writable<Promise<FileProperties[]>>(null as never)
   const { currentTab, tabs } = createFileBrowserPropertiesContext()
   const { isMobile } = useAppContext()
@@ -167,9 +170,15 @@
           <FileBrowserPropertiesAccessTab file={files[0]} />
         {/if}
 
+        {#if files[0].file.type === FileType.File && $current.type === 'file'}
+          <FileBrowserPropertiesSnapshots file={files[0]} />
+        {/if}
+
         {#if files[0].mime.startsWith('audio/') || files[0].mime.startsWith('video/')}
           <FileBrowserPropertiesTranscriptTab file={files[0]} />
         {/if}
+
+        <FileBrowserPropertiesLogsTab file={files[0]} />
       {/if}
     {/await}
   {/if}
@@ -241,6 +250,10 @@
 
         div.indicator.mobile {
           background-color: var(--color-5);
+        }
+
+        p.label {
+          text-wrap: nowrap;
         }
       }
     }

@@ -180,12 +180,16 @@ export function createSyncContext(server: ServerSideContext) {
               const size = fileSnapshot.size
 
               const bufferSize = 1024 * 256
+              let contents = new Blob()
               for (let offset = 0; offset < size; offset += bufferSize) {
-                const buffer = new Blob([await server.readStream(remoteFileHandle, bufferSize)])
-
-                localFileHandle.position = offset
-                localFileHandle.write(buffer)
+                contents = new Blob([contents, await server.readStream(remoteFileHandle, bufferSize)])
               }
+
+                await new Promise<void>((resolve, reject) => {
+                  localFileHandle.position = 0
+                  localFileHandle.write(contents)
+                  localFileHandle.truncate(contents.size)
+                })
 
               localFileHandle.truncate(size)
             } catch {

@@ -22,7 +22,7 @@ public sealed record ConnectionByteStream(
     ) : Feed(CancellationToken);
 
     public sealed record Write(
-      TaskCompletionSource Source,
+      TaskCompletionSource<ObjectId?> Source,
       CompositeBuffer Buffer,
       CancellationToken CancellationToken
     ) : Feed(CancellationToken);
@@ -45,6 +45,12 @@ public sealed record ConnectionByteStream(
 
     public sealed record Close(TaskCompletionSource Source, CancellationToken CancellationToken)
       : Feed(CancellationToken);
+
+    public sealed record Truncate(
+      TaskCompletionSource<ObjectId?> Source,
+      long Length,
+      CancellationToken CancellationToken
+    ) : Feed(CancellationToken);
   }
 
   public async Task<CompositeBuffer> Read(long length, CancellationToken cancellationToken)
@@ -55,12 +61,12 @@ public sealed record ConnectionByteStream(
     return await source.Task;
   }
 
-  public async Task Write(CompositeBuffer bytes, CancellationToken cancellationToken)
+  public async Task<ObjectId?> Write(CompositeBuffer bytes, CancellationToken cancellationToken)
   {
-    TaskCompletionSource source = new();
+    TaskCompletionSource<ObjectId?> source = new();
 
     await Queue.Enqueue(new Feed.Write(source, bytes, cancellationToken), cancellationToken);
-    await source.Task;
+    return await source.Task;
   }
 
   public async Task SetPosition(long offset, CancellationToken cancellationToken)
@@ -84,6 +90,14 @@ public sealed record ConnectionByteStream(
     TaskCompletionSource<long> source = new();
 
     await Queue.Enqueue(new Feed.GetLength(source, cancellationToken), cancellationToken);
+    return await source.Task;
+  }
+
+  public async Task<ObjectId?> Truncate(long length, CancellationToken cancellationToken)
+  {
+    TaskCompletionSource<ObjectId?> source = new();
+
+    await Queue.Enqueue(new Feed.Truncate(source, length, cancellationToken), cancellationToken);
     return await source.Task;
   }
 

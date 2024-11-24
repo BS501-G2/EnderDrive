@@ -25,6 +25,17 @@ public enum TrashOptions
   Exclusive,
 }
 
+[Flags]
+public enum FileNameValidationFlags
+{
+  OK = 0,
+
+  TooLong = 1 << 0,
+  TooShort = 1 << 1,
+  InvalidCharacters = 1 << 2,
+  FileExists = 1 << 3,
+}
+
 public record class File : ResourceData
 {
   [JsonProperty("parentId")]
@@ -61,6 +72,44 @@ public record class File : ResourceData
 public sealed partial class ResourceManager
 {
   public const int FILE_BUFFER_SIZE = 1024 * 256;
+
+  public async ValueTask<FileNameValidationFlags> ValidateFileName(
+    ResourceTransaction transaction,
+    string name,
+    Resource<File>? parnet
+  )
+  {
+    FileNameValidationFlags flags = 0;
+
+    if (name.Length < 1)
+    {
+      flags |= FileNameValidationFlags.TooShort;
+    }
+
+    if (name.Length > 100)
+    {
+      flags |= FileNameValidationFlags.TooLong;
+    }
+
+    if (
+      parnet != null
+      && await Query<File>(
+          transaction,
+          (query) =>
+            query.Where(
+              (file) =>
+                file.ParentId == parnet.Id
+                && file.Name.Equals(name, StringComparison.CurrentCultureIgnoreCase)
+            )
+        )
+        .AnyAsync(transaction.CancellationToken)
+    )
+    {
+      flags |= FileNameValidationFlags.FileExists;
+    }
+
+    return flags;
+  }
 
   public async Task<UnlockedFile> GetRootFolder(
     ResourceTransaction transaction,

@@ -31,7 +31,7 @@
       <LoadingSpinner size="3em" />
     </div>
   {:then logs}
-    {#each logs.toSorted((a, b) => new Date(b.fileLog.createTime).getTime() - new Date(a.fileLog.createTime).getTime()) as { file, fileLog } (file.id)}
+    {#each logs.toSorted((a, b) => new Date(b.fileLog.createTime).getTime() - new Date(a.fileLog.createTime).getTime()) as { file, fileLog } }
       {#if file.type === FileType.File}
         <RecentEntry {file} {fileLog} />
       {/if}
