@@ -90,19 +90,23 @@ public sealed partial class AudioTranscriber(Server server, string modelPath)
       ) in context.WaitQueue.WithCancellation(serviceCancellationToken)
     )
     {
-      await Resources.Transact(
-        (transaction) =>
-          InternalProcess(
-            transaction,
-            source,
-            file,
-            fileContent,
-            fileSnapshot,
-            factory,
-            audioTranscription
-          ),
-        serviceCancellationToken
-      );
+      try
+      {
+        await Resources.Transact(
+          (transaction) =>
+            InternalProcess(
+              transaction,
+              source,
+              file,
+              fileContent,
+              fileSnapshot,
+              factory,
+              audioTranscription
+            ),
+          serviceCancellationToken
+        );
+      }
+      catch { }
     }
   }
 
