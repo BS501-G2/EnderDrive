@@ -31,6 +31,7 @@ export function createAppContext() {
       title: string
     }[]
   > = writable([])
+  const pwaAvailable: Writable<{ pwa: boolean; install: () => void } | null> = writable(null)
 
   const context = setContext(appContextName, {
     pushOverlayContent: (view: Snippet, dim: boolean) => {
@@ -73,7 +74,9 @@ export function createAppContext() {
 
     currentTitle: derived(titleStack, (value) => value.at(-1)),
 
-    titleStack: derived(titleStack, (value) => [...value])
+    titleStack: derived(titleStack, (value) => [...value]),
+
+    pwaAvailable: derived(pwaAvailable, (value) => value)
   })
 
   return {
@@ -81,6 +84,7 @@ export function createAppContext() {
     windowMode,
     overlay,
     titleStack,
-    context
+    context,
+    pwaAvailable
   }
 }

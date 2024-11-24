@@ -16,7 +16,10 @@ public sealed partial class Connection
     public required byte[] Data;
   }
 
-  private sealed record class WriteStreamResponse { }
+  private sealed record class WriteStreamResponse {
+    [BsonElement("newFileSnapshotId")]
+    public required ObjectId? NewFileSnapshotId;
+   }
 
   private RequestHandler<WriteStreamRequest, WriteStreamResponse> WriteStream =>
     async (request, cancellationToken) =>

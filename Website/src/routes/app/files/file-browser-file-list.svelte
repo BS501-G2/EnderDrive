@@ -14,6 +14,7 @@
   import { useAppContext } from '$lib/client/contexts/app'
   import FileBrowserActions from './file-browser-actions.svelte'
   import type { Writable } from 'svelte/store'
+  import Icon from '$lib/client/ui/icon.svelte'
 
   const {
     displayedFiles,
@@ -28,7 +29,7 @@
   const { setFileListContext, refresh, selectMode } = useFileBrowserContext()
   const { getFileMime, setFileStar, getFileStar } = useServerContext()
   const { context, selectedFileIds } = createFileBrowserListContext()
-  const { isMobile } = useAppContext()
+  const { isMobile, isDesktop } = useAppContext()
 
   onMount(() => setFileListContext(context))
 </script>
@@ -48,28 +49,38 @@
     <div class="header"></div>
     <div class="list" class:mobile={$isMobile}>
       {#snippet list(files: FileEntry[])}
-        {#each files as file}
-          {#if file.type === 'folder'}
-            <FileBrowserFileListEntry {file} />
-          {:else if selectMode}
-            {#if selectMode.allowedFileMimeTypes.length !== 0}
-              {#await (async () => {
-                const mime = await getFileMime(file.file.id)
+        {#if $isDesktop}
+          <FileBrowserFileListEntry head />
+        {/if}
+          {#each files as file}
+            {#if file.type === 'folder'}
+              <FileBrowserFileListEntry {file} />
+            {:else if selectMode}
+              {#if selectMode.allowedFileMimeTypes.length !== 0}
+                {#await (async () => {
+                  const mime = await getFileMime(file.file.id)
 
-
-                return {mime, filter: await selectMode.filter(file)}
-              })() then {mime, filter}}
-                {#if filter && selectMode.allowedFileMimeTypes.some( (mimeType) => (mimeType instanceof RegExp ? mimeType.test(mime) : mimeType === mime) )}
-                  <FileBrowserFileListEntry {file} />
-                {/if}
-              {/await}
+                  return { mime, filter: await selectMode.filter(file) }
+                })() then { mime, filter }}
+                
+                  {#if filter && selectMode.allowedFileMimeTypes.some( (mimeType) => (mimeType instanceof RegExp ? mimeType.test(mime) : mimeType === mime) )}
+                    <FileBrowserFileListEntry {file} />
+                  {/if}
+                {/await}
+              {:else}
+                <FileBrowserFileListEntry {file} />
+              {/if}
             {:else}
               <FileBrowserFileListEntry {file} />
             {/if}
-          {:else}
-            <FileBrowserFileListEntry {file} />
-          {/if}
-        {/each}
+          {/each}
+
+        {#if !files.length}
+          <div class="empty">
+            <Icon icon="folder-open" thickness="solid" size="4rem" />
+            <p>This list is empty.</p>
+          </div>
+        {/if}
       {/snippet}
 
       {#if current.type !== 'loading'}
@@ -96,6 +107,20 @@
       min-width: 0;
 
       > div.list.mobile {
+      }
+
+      > div.list {
+        flex-grow: 1;
+      }
+
+      div.empty {
+        gap: 32px;
+        flex-grow: 1;
+
+        align-items: center;
+        justify-content: center;
+
+        color: gray;
       }
     }
   }

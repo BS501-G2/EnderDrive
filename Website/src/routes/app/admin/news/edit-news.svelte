@@ -6,9 +6,8 @@
     $props()
 </script>
 
-<Window {ondismiss}>
-  <div class="edit-news">
-    </div>
+<Window title="{id == null ? 'Create' : 'Edit'} news" {ondismiss}>
+  <div class="edit-news"></div>
 </Window>
 
 <style lang="scss">

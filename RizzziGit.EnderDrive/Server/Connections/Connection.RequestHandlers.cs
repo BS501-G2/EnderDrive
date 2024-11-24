@@ -152,6 +152,8 @@ public sealed partial class Connection
       FileAccessLevel.Read
     );
     registerAuthenticatedHandler(ServerSideRequestCode.UpdateUsername, UpdateUsername);
+    registerAuthenticatedHandler(ServerSideRequestCode.UpdatePassword, UpdatePassword);
+    registerAdminHandler(ServerSideRequestCode.GetRootId,GetRootId);
   }
 }
 
@@ -231,5 +233,8 @@ public enum ServerSideRequestCode : byte
   SetUserRoles,
   TranscribeAudio,
 
-  UpdateUsername
+  UpdateUsername,
+  UpdatePassword,
+
+  GetRootId
 }

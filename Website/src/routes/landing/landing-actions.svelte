@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { useClientContext } from '$lib/client/client'
   import { useAppContext } from '$lib/client/contexts/app'
   import { useLandingContext, type LandingPageButton } from '$lib/client/contexts/landing'
   import Button from '$lib/client/ui/button.svelte'
@@ -14,8 +15,9 @@
     opacity: Readable<number>
   } = $props()
 
-  const { isDesktop } = useAppContext()
+  const { isDesktop, pwaAvailable } = useAppContext()
   const { openLogin, closeLogin } = useLandingContext()
+  const { authentication } = useClientContext()
 </script>
 
 {#snippet action({ id, icon, content, isSecondary, onclick }: LandingPageButton, index: number)}
@@ -65,27 +67,35 @@
     0
   )}
 
-  {@render action(
-    {
-      id: Date.now(),
-      icon: {
-        icon: 'download',
-        thickness: 'solid'
+  {#if $pwaAvailable}
+    {@render action(
+      {
+        id: Date.now(),
+        icon: {
+          icon: 'download',
+          thickness: 'solid'
+        },
+        content: download,
+        isSecondary: true,
+        onclick: () => {
+          $pwaAvailable.install()
+        }
       },
-      content: download,
-      isSecondary: true,
-      onclick: () => {}
-    },
-    0
-  )}
+      0
+    )}
+  {/if}
 </div>
 
 {#snippet download()}
-  Download
+  Install App
 {/snippet}
 
 {#snippet login()}
-  Login
+  {#if $authentication != null}
+    Continue To Dashboard
+  {:else}
+    Login
+  {/if}
 {/snippet}
 
 <style lang="scss">

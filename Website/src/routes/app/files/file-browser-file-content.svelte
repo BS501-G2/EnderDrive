@@ -5,6 +5,7 @@
   import { writable, type Writable } from 'svelte/store'
   import FileBrowserActions from './file-browser-actions.svelte'
   import FileBrowserFileContentView from './file-browser-file-content-view.svelte'
+  import { type Snippet } from 'svelte'
 
   const {
     fileId,
@@ -56,6 +57,18 @@
   </div>
 {/snippet}
 
+{#snippet message(message: Snippet, title: string = 'Preview Not Available')}
+  <div class="message-background">
+    <div class="container">
+      <h2>{title}</h2>
+
+      <div class="message">
+        {@render message()}
+      </div>
+    </div>
+  </div>
+{/snippet}
+
 {#await $promise}
   {@render loading()}
 {:then { file, mime, fileContent, fileSnapshot, virusResult, me }}
@@ -64,25 +77,28 @@
   {/if}
 
   {#if virusResult.viruses.length > 0}
-    <div class="message">
+    {#snippet msg()}
       <p>Virus detected. The site has prevented you from opening this file.</p>
 
       <p>
         {virusResult.viruses.join(', ')}
       </p>
-    </div>
+    {/snippet}
+
+    {@render message(msg)}
   {:else if mime.startsWith('image/') || mime.startsWith('video/') || mime.startsWith('text/') || mime.startsWith('audio/') || mime === 'application/pdf'}
     <FileBrowserFileContentView {fileContent} {fileSnapshot} {file} {mime} />
   {:else}
-    <div class="message">
-      <p>
-        File type not supported.
-      </p>
-    </div>
+    {#snippet msg()}
+      <p>No preview is available for this file.</p>
+    {/snippet}
+    {@render message(msg)}
   {/if}
 {/await}
 
 <style lang="scss">
+  @use '../../../global.scss' as *;
+
   div.loading {
     flex-grow: 1;
 
@@ -90,10 +106,29 @@
     justify-content: center;
   }
 
-  div.message{
+  div.message-background {
     flex-grow: 1;
 
-    align-items: center;
-    justify-content: center;
+    align-items: safe center;
+    justify-content: safe center;
+
+    background-color: gray;
+
+    overflow: auto;
+
+    > div.container {
+      background-color: var(--color-9);
+      color: var(--color-1);
+
+      padding: 16px;
+      gap: 16px;
+
+      > h2 {
+        font-weight: bolder;
+      }
+
+      > div.message {
+      }
+    }
   }
 </style>

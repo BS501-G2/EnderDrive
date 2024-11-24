@@ -3,13 +3,15 @@ import { writable, type Writable } from 'svelte/store'
 import type { IconOptions } from '../ui/icon.svelte'
 
 export interface LandingContext {
-  pushLandingEntry: (name: string, content: Snippet, showButton: boolean) => () => void
+  pushLandingEntry: (name: string, content: Snippet, showButton: boolean,  scrollTop?: Writable<number>) => () => void
+
   pushButton: (
     content: Snippet,
     icon: IconOptions,
     isSecondary: boolean,
     onClick: () => void
   ) => () => void
+
   pushFooter: (name: string, content: Snippet) => () => void
 
   openLogin: () => void
@@ -21,7 +23,9 @@ export type LandingPageEntry = {
   name: string
   content: Snippet
   showButton: boolean
+  scrollTop?: number
 }
+
 export type LandingPageButton = {
   id: number
   icon: IconOptions

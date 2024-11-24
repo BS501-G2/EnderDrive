@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "vite dev --host --port 8081",
+    "dev": "vite dev --host",
     "build": "vite build",
     "preview": "vite preview --host --port 8084",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -23,6 +23,7 @@
     "@types/web-app-manifest": "^1.0.8",
     "@types/wicg-file-system-access": "^2023.10.5",
     "buffer": "^6.0.3",
+    "dexie": "^4.0.10",
     "eslint": "^9.13.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-svelte": "^2.46.0",

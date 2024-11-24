@@ -20,6 +20,12 @@ export default defineConfig({
     headers: {
       'Onion-Location':
         'http://g6dlimujfaxaicjn34c5fctegcrx62boiqnd5wm7boei5b5rcamns4id.onion%{REQUEST_URI}s'
-    }
+    },
+    // https: {
+    //   key: '../enderdrive.com-key.pem',
+    //   cert: '../enderdrive.com.pem'
+    // },
+    // port: 8443
+    port: 8081
   }
 })

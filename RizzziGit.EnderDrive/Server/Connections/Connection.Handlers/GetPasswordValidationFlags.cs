@@ -10,6 +10,9 @@ public sealed partial class Connection
   {
     [BsonElement("password")]
     public required string Password;
+
+    [BsonElement("confirm-password")]
+    public required string? ConfirmPassword;
   }
 
   private sealed record class GetPasswordValidationFlagsResponse
@@ -24,6 +27,9 @@ public sealed partial class Connection
   > GetPasswordValidationFlags =>
     async (request, cancellationToken) =>
     {
-      return new() { Flags = Resources.ValidatePassword(request.Password) };
+      return new()
+      {
+        Flags = Resources.ValidatePassword(request.Password, request.ConfirmPassword),
+      };
     };
 }

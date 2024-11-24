@@ -22,6 +22,7 @@ public sealed partial class Connection
     await Resources.Transact(
       async (transaction) =>
       {
+        bool written = false;
         ConnectionContext context = GetContext();
 
         ObjectId objectId = ObjectId.GenerateNewId();

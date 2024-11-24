@@ -42,9 +42,35 @@
   const starred = await Promise.all(selectedFileIds.map((fileId) => getFileStar(fileId)))
   const files = await Promise.all(selectedFileIds.map((fileId) => getFile(fileId)))
 
-  return { selectedFileIds, starred, files }
-})($selectedFileIds) then { starred, selectedFileIds, files }}
-  {#if current.type === 'folder' && selectMode == null}
+  return { nonReactiveSelectedFileIds: selectedFileIds, starred, files }
+})($selectedFileIds) then { starred, nonReactiveSelectedFileIds, files }}
+  {#if files.length != 0 && current.type !== 'file' && current.type !== 'error' && current.type !== 'loading' && nonReactiveSelectedFileIds.length >= current.files.length}
+    <FileBrowserAction
+      type="left-main"
+      label="Deselect All"
+      icon={{
+        icon: 'circle-check'
+      }}
+      onclick={() => {
+        selectedFileIds.set([])
+      }}
+    />
+  {:else if nonReactiveSelectedFileIds.length > 0}
+    <FileBrowserAction
+      type="left-main"
+      label="Select All"
+      icon={{
+        icon: 'circle-check'
+      }}
+      onclick={() => {
+        if (current.type !== 'file' && current.type !== 'error' && current.type !== 'loading') {
+          selectedFileIds.set(current.files.map((file) => file.file.id))
+        }
+      }}
+    />
+  {/if}
+
+  {#if current.type === 'folder' && selectMode == null && nonReactiveSelectedFileIds.length === 0}
     <FileBrowserAction
       type="left-main"
       icon={{
@@ -150,7 +176,7 @@
     {/if}
   {/if}
 
-  {#if selectedFileIds.length > 0}
+  {#if nonReactiveSelectedFileIds.length > 0}
     {#if files[0].trashTime == null}
       <FileBrowserAction
         type="left"
@@ -160,7 +186,7 @@
         }}
         label="Trash"
         onclick={async () => {
-          await Promise.all(selectedFileIds.map(trashFile))
+          await Promise.all(nonReactiveSelectedFileIds.map(trashFile))
           refresh()
         }}
       />
@@ -173,7 +199,7 @@
         }}
         label="Restore"
         onclick={async () => {
-          await Promise.all(selectedFileIds.map(untrashFile))
+          await Promise.all(nonReactiveSelectedFileIds.map(untrashFile))
           refresh()
         }}
       />
@@ -200,7 +226,7 @@
     />
   {/if}
 
-  {#if selectedFileIds.length > 0}
+  {#if nonReactiveSelectedFileIds.length > 0}
     {@const isStarred = starred.some((file) => file)}
 
     <FileBrowserAction
@@ -217,7 +243,9 @@
       label={isStarred ? 'Unstar' : 'Star'}
       onclick={async () => {
         const isStarred = starred.some((file) => file)
-        await Promise.all(selectedFileIds.map((fileId) => setFileStar(fileId, !isStarred)))
+        await Promise.all(
+          nonReactiveSelectedFileIds.map((fileId) => setFileStar(fileId, !isStarred))
+        )
         refresh()
       }}
     />

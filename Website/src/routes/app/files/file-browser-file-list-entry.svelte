@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { FileType, useServerContext } from '$lib/client/client'
+  import { FileType, useServerContext, type FileResource } from '$lib/client/client'
   import { useAppContext } from '$lib/client/contexts/app'
   import { useFileBrowserContext, type FileEntry } from '$lib/client/contexts/file-browser'
   import { useFileBrowserListContext } from '$lib/client/contexts/file-browser-list'
@@ -15,10 +15,12 @@
   import FileBrowserFileIcon from './file-browser-file-icon.svelte'
 
   const {
-    file
-  }: {
-    file: FileEntry
-  } = $props()
+    ...props
+  }:
+    | {
+        file: FileEntry
+      }
+    | { head: true } = $props()
   const { pushFile, selectedFileIds, selectFile, deselectFile } = useFileBrowserListContext()
   const {
     getFileContents,
@@ -36,9 +38,11 @@
   const fileElement = writable<HTMLElement>(null as never)
   const hover = writable<boolean>(false)
 
-  onMount(() => pushFile(file, $fileElement))
+  if (!('head' in props)) {
+    onMount(() => pushFile(props.file, $fileElement))
+  }
 
-  const getModified = async () => {
+  const getModified = async (file: FileEntry) => {
     const fileContent = await getMainFileContent(file.file.id)
     const fileSnapshot = (await getFileSnapshots(file.file.id, fileContent.id, void 0, 0, 1))[0]
     const user = await getUser(fileSnapshot.authorUserId)
@@ -46,13 +50,13 @@
     return [fileSnapshot, user!] as const
   }
 
-  const getSize = async () => {
+  const getSize = async (file: FileEntry) => {
     let fileSize = await getFileSize(file.file.id)
 
     return toReadableSize(fileSize)
   }
 
-  const getFolderSize = async () => {
+  const getFolderSize = async (file: FileEntry) => {
     const self = await me()
     const files = await getFiles(file.file.id, void 0, void 0, self.id, void 0)
 
@@ -60,16 +64,16 @@
   }
 </script>
 
-{#snippet size()}
+{#snippet size(file: FileEntry)}
   <p class="size">
     {#if file.file.type === FileType.File}
-      {#await getSize()}
+      {#await getSize(file)}
         <LoadingSpinner size="1em" />
       {:then size}
         {size}
       {/await}
     {:else}
-      {#await getFolderSize() then files}
+      {#await getFolderSize(file) then files}
         {#if files === 0}
           Empty
         {:else if files === 1}
@@ -92,18 +96,21 @@
     if (get(isMobile)) {
       event.preventDefault()
 
-      $selectedFileIds.includes(file.file.id)
-        ? deselectFile(file.file.id)
-        : selectFile(file.file.id)
+      if (!('head' in props)) {
+        $selectedFileIds.includes(props.file.file.id)
+          ? deselectFile(props.file.file.id)
+          : selectFile(props.file.file.id)
+      }
     }
   }}
   onclick={(event) => {
     if (get(isMobile) && $selectedFileIds.length) {
       event.preventDefault()
-
-      $selectedFileIds.includes(file.file.id)
-        ? deselectFile(file.file.id)
-        : selectFile(file.file.id)
+      if (!('head' in props)) {
+        $selectedFileIds.includes(props.file.file.id)
+          ? deselectFile(props.file.file.id)
+          : selectFile(props.file.file.id)
+      }
     }
   }}
   class="file"
@@ -116,7 +123,8 @@
   }}
   onkeypress={() => {}}
 >
-  {#if $isDesktop || ($isMobile && $selectedFileIds.length)}
+  {#if ($isDesktop || ($isMobile && $selectedFileIds.length)) && !('head' in props)}
+    {@const file = props.file}
     <div
       class="check"
       transition:fly={{
@@ -144,66 +152,84 @@
   {/if}
 
   <div class="preview">
-    {#if file.file.type !== FileType.File}
-      <Icon icon="folder" size="32px" />
-    {:else}
-      {#await getFileMime(file.file.id)}
-        <LoadingSpinner size="32px" />
-      {:then mime}
-        <FileBrowserFileIcon {mime} size="32px" />
-      {/await}
+    {#if !('head' in props)}
+      {@const file = props.file}
+
+      {#if file.file.type !== FileType.File}
+        <Icon icon="folder" size="32px" />
+      {:else}
+        {#await getFileMime(file.file.id)}
+          <LoadingSpinner size="32px" />
+        {:then mime}
+          <FileBrowserFileIcon {mime} size="32px" />
+        {/await}
+      {/if}
     {/if}
   </div>
 
   <div class="name">
-    <div class="file-name">
-      <a
-        href="/app/files?fileId={file.file.id}"
-        ondblclick={(event) => {
-          onFileId?.(event as never, file.file.id)
-        }}
-        onclick={(event) => {
-          event.preventDefault()
+    {#if !('head' in props)}
+      {@const file = props.file}
+      <div class="file-name">
+        <a
+          href="/app/files?fileId={file.file.id}"
+          ondblclick={(event) => {
+            onFileId?.(event as never, file.file.id)
+          }}
+          onclick={(event) => {
+            event.preventDefault()
 
-          if ($isMobile) {
-            if ($selectedFileIds.length === 0) {
-              onFileId?.(event as never, file.file.id)
+            if ($isMobile) {
+              if ($selectedFileIds.length === 0) {
+                onFileId?.(event as never, file.file.id)
+              }
+            } else {
+              $selectedFileIds = [file.file.id]
             }
-          } else {
-            $selectedFileIds = [file.file.id]
-          }
-        }}
-        class:mobile={$isMobile}
-      >
-        <p class="name">
-          {file.file.name}
-        </p>
+          }}
+          class:mobile={$isMobile}
+        >
+          <p class="name">
+            {file.file.name}
+          </p>
 
-        {#if $isMobile}
-          {@render size()}
-        {/if}
-      </a>
-    </div>
+          {#if $isMobile}
+            {@render size(file)}
+          {/if}
+        </a>
+      </div>
+    {:else}
+      <h2>File Name</h2>
+    {/if}
   </div>
 
   {#if $isDesktop}
     <div class="size">
-      {@render size()}
+      {#if !('head' in props)}
+        {@render size(props.file)}
+      {:else}
+      <h2>File Size</h2>
+      {/if}
     </div>
   {/if}
 
   {#if $isDesktop}
     <div class="modified">
-      {#if file.file.type === FileType.File}
-        {#await getModified()}
-          <LoadingSpinner size="1em" />
-        {:then [fileSnapshot, user]}
-          <p class="user">
-            {moment.unix(new Date(fileSnapshot.createTime).getTime() / 1000).fromNow()}
-            by
-            <UserLink userId={user.id} />
-          </p>
-        {/await}
+      {#if !('head' in props)}
+        {@const file = props.file}
+        {#if file.file.type === FileType.File}
+          {#await getModified(file)}
+            <LoadingSpinner size="1em" />
+          {:then [fileSnapshot, user]}
+            <p class="user">
+              {moment.unix(new Date(fileSnapshot.createTime).getTime() / 1000).fromNow()}
+              by
+              <UserLink userId={user.id} />
+            </p>
+          {/await}
+        {/if}
+      {:else}
+        <h2>Modified by</h2>
       {/if}
     </div>
 
@@ -225,6 +251,10 @@
     padding: 8px;
     gap: 8px;
 
+    h2 {
+      font-weight: bolder;
+    }
+
     > div.check {
       @include force-size(32px, 32px);
 
@@ -237,6 +267,10 @@
 
         cursor: pointer;
       }
+    }
+
+    > div.preview {
+      @include force-size(32px, 32px);
     }
 
     > div.name {

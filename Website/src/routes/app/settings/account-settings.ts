@@ -1,7 +1,6 @@
 import { getContext, setContext, type Snippet } from 'svelte'
 import { writable } from 'svelte/store'
 import type { IconOptions } from '$lib/client/ui/icon.svelte'
-// import show
 
 const name = Symbol('Settings Context')
 
@@ -26,12 +25,4 @@ export function createAccountSettingsContext() {
   })
 
   return { context, tabs, currentTab }
-}
-
-export async function getFileSyncStorage() {
-  const a = await showDirectoryPicker({
-    mode: 'readwrite'
-  })
-
-  return a
 }

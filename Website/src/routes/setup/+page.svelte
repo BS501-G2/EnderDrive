@@ -330,9 +330,9 @@
     color: var(--color-1);
   }
 
-  div.nav-button.error {
-    background-color: var(--color-6);
-  }
+  // div.nav-button.error {
+  //   background-color: var(--color-6);
+  // }
 
   p.nav-label {
     padding: 8px;

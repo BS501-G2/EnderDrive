@@ -48,7 +48,8 @@
         targetFileId: file.file.id
       })
 
-      return a.some((a) => a.targetUserId != null && a.level >= FileAccessLevel.Read)
+      const b = a.find((e) => e.targetUserId == null && e.level >= FileAccessLevel.Read) != null
+      return b
     }}
   />
 </div>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { useLandingContext } from '$lib/client/contexts/landing'
   import { onMount, type Snippet } from 'svelte'
+  import { writable } from 'svelte/store'
 
   const {
     name,
@@ -17,11 +18,22 @@
   } = $props()
   const { pushLandingEntry } = useLandingContext()
 
+  const element = writable<HTMLDivElement>(null as never)
+  const offsetTop = writable<number>(0)
+
   onMount(() => pushLandingEntry(name, container, !hideButton))
+
+  function updateScroll() {
+    if ($offsetTop != $element.offsetTop) {
+      $offsetTop = $element.offsetTop
+    }
+  }
 </script>
 
+<svelte:window onscroll={updateScroll} onresize={updateScroll} />
+
 {#snippet content()}
-  <div class="content">
+  <div class="content" bind:this={$element}>
     {#if !hideHeader}
       <h2 class="content-header">
         {name}

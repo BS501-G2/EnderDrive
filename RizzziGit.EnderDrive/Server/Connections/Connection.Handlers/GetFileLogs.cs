@@ -37,18 +37,6 @@ public sealed partial class Connection
   private AuthenticatedRequestHandler<GetFileLogsRequest, GetFileLogsResponse> GetFileLogs =>
     async (transaction, request, userAuthentication, me, myAdminAccess) =>
     {
-      if (
-        me.Id != request.UserId
-        && !await Resources
-          .Query<AdminAccess>(transaction, (query) => query.Where((item) => item.UserId == me.Id))
-          .AnyAsync(transaction)
-      )
-      {
-        throw new InvalidOperationException(
-          "User ID other than self is not allowed when not an administrator."
-        );
-      }
-
       Resource<User>? user =
         request.UserId != null
           ? await Resources
@@ -63,83 +51,81 @@ public sealed partial class Connection
 
       FileAccessResult? fileAccessResult =
         file != null
-          ? await Resources.FindFileAccess(
+          ? await Internal_UnlockFile(
             transaction,
             file,
             me,
             userAuthentication,
-            FileAccessLevel.ReadWrite
+            FileAccessLevel.Read
           )
           : null;
 
-      if (
-        file != null
-        && fileAccessResult == null
-        && !await Resources
-          .Query<AdminAccess>(transaction, (query) => query.Where((item) => item.UserId == me.Id))
-          .AnyAsync(transaction)
-      )
-      {
-        throw new InvalidOperationException("File access is required when not an administrator.");
-      }
-
-      Resource<FileContent>? fileContent = null;
-      if (request.FileContentId != null)
-      {
-        if (file == null)
-        {
-          throw new InvalidOperationException(
-            "File ID is required when file content ID is provided."
-          );
-        }
-
-        fileContent =
-          await Resources
-            .Query<FileContent>(
+      Resource<FileContent>? fileContent =
+        request.FileContentId != null
+          ? await Internal_EnsureFirst(
+            transaction,
+            Resources.Query<FileContent>(
               transaction,
               (query) => query.Where((item) => item.Id == request.FileContentId)
             )
-            .FirstOrDefaultAsync(transaction.CancellationToken)
-          ?? throw new InvalidOperationException("File content not found.");
-      }
+          )
+          : null;
 
       Resource<FileSnapshot>? fileSnapshot = null;
 
-      if (request.FileSnapshotId != null)
-      {
-        if (fileContent == null)
-        {
-          throw new InvalidOperationException(
-            "File content ID is required when file snapshot ID is provided."
-          );
-        }
-
-        fileSnapshot =
-          await Resources
-            .Query<FileSnapshot>(
+      fileSnapshot =
+        request.FileSnapshotId != null
+          ? await Internal_EnsureFirst(
+            transaction,
+            Resources.Query<FileSnapshot>(
               transaction,
               (query) =>
                 query.Where(
                   (item) =>
-                    (file == null || item.FileId == file.Id)
-                    && item.FileContentId == fileContent.Id
-                    && item.Id == request.FileSnapshotId
+                    (file == null || item.FileId == file.Id) && item.Id == request.FileSnapshotId
                 )
             )
-            .FirstOrDefaultAsync(transaction.CancellationToken)
-          ?? throw new InvalidOperationException("File snapshot not found.");
-      }
+          )
+          : null;
 
       Resource<FileLog>[] fileLogs = await Resources
         .Query<FileLog>(
           transaction,
           (query) =>
-            query.Where(
-              (item) =>
-                (file == null || item.FileId == file.Id)
-                && (fileContent == null || item.FileContentId == fileContent.Id)
-                && (fileSnapshot == null || item.FileSnapshotId == fileSnapshot.Id)
-            )
+            query
+              .Where(
+                (item) =>
+                  (file == null || item.FileId == file.Id)
+                  && (fileContent == null || item.FileContentId == fileContent.Id)
+                  && (fileSnapshot == null || item.FileSnapshotId == fileSnapshot.Id)
+                  && (user == null || item.ActorUserId == user.Id)
+              )
+              .OrderByDescending((fileLog) => fileLog.CreateTime)
+              .Optional(
+                file == null
+                  ? (query) => query.GroupBy((e) => e.FileId).Select((e) => e.First())
+                  : null
+              )
+              .ApplyPagination(request.Pagination)
+        )
+        .WhereAwait(
+          async (fileLog) =>
+          {
+            return await Resources.FindFileAccess(
+                transaction,
+                file != null
+                  ? file
+                  : await Internal_GetFile(
+                    transaction,
+                    me,
+                    userAuthentication,
+                    fileLog.Data.FileId
+                  ),
+                me,
+                userAuthentication,
+                FileAccessLevel.Read
+              ) != null;
+          }
         )
         .ToArrayAsync(transaction.CancellationToken);
 

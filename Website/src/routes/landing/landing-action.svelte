@@ -14,9 +14,10 @@
     isSecondary?: boolean
     onclick: () => void
   } = $props()
-  const { pushButton: pushAction } = useLandingContext()
 
-  onMount(() => pushAction(container, icon, isSecondary, onclick))
+  const { pushButton } = useLandingContext()
+
+  onMount(() => pushButton(container, icon, isSecondary, onclick))
 </script>
 
 {#snippet container()}

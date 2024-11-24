@@ -3,7 +3,7 @@
   import { page } from '$app/stores'
 
   import { useClientContext, useServerContext } from '$lib/client/client'
-  import { useAppContext } from '$lib/client/contexts/app'
+  import { useAppContext, ViewMode, WindowMode } from '$lib/client/contexts/app'
   import { createDashboardContext } from '$lib/client/contexts/dashboard'
   import Button from '$lib/client/ui/button.svelte'
   import Favicon from '$lib/client/ui/favicon.svelte'
@@ -18,7 +18,9 @@
   import User from './user.svelte'
   import LogoutConfirmation from './logout-confirmation.svelte'
   import { writable } from 'svelte/store'
-
+  import InstallButtonDesktop from './install-button-desktop.svelte'
+  import AppButton from './app-button.svelte'
+  import { createSyncContext } from './sync'
   const {
     mobileAppButtons,
     mobileTopLeft,
@@ -31,7 +33,16 @@
     backgroundTasks
   } = createDashboardContext()
   const { navigationEntries } = createNavigationContext()
-  const { isMobile, isDesktop, isCustomBar, isFullscreen, titleStack } = useAppContext()
+  const {
+    isMobile,
+    isDesktop,
+    isCustomBar,
+    pwaAvailable,
+    viewMode,
+    windowMode,
+    isFullscreen,
+    titleStack
+  } = useAppContext()
   const { authentication } = useClientContext()
   const { me, didIAgree } = useServerContext()
 
@@ -41,6 +52,10 @@
     children: Snippet
   } = $props()
 
+  if ('showOpenFilePicker' in window) {
+    createSyncContext(useServerContext())
+  }
+
   const logoutConfirmation = writable(false)
 
   onMount(() =>
@@ -49,7 +64,7 @@
         await goto(`/landing?login&return=${encodeURIComponent($page.url.pathname)}`, {
           replaceState: true
         })
-      } else if (!await didIAgree() && !$page.url.pathname.startsWith('/agreement')) {
+      } else if (!(await didIAgree()) && !$page.url.pathname.startsWith('/agreement')) {
         await goto(`/app/agreement?return=${encodeURIComponent($page.url.pathname)}`)
       }
     })
@@ -176,11 +191,23 @@
   {#if $isDesktop}
     <NotificationButtonDesktop />
 
+    {#if $pwaAvailable != null}
+      <InstallButtonDesktop install={$pwaAvailable.install} />
+    {/if}
+
     {#await me() then user}
       {#if user != null}
         <User bind:logoutConfirmation={$logoutConfirmation} {user} />
       {/if}
     {/await}
+  {:else if $isMobile}
+    {#if $pwaAvailable}
+      <AppButton
+        label="Install"
+        icon={{ icon: 'download', thickness: 'solid' }}
+        onclick={$pwaAvailable.install}
+      />
+    {/if}
   {/if}
 
   {#if $logoutConfirmation}

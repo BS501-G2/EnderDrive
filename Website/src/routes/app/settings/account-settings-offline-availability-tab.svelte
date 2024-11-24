@@ -1,12 +1,15 @@
 <script lang="ts">
   import { persisted } from 'svelte-persisted-store'
   import AccountSettingsTab from './account-settings-tab.svelte'
-  import { getFileSyncStorage } from './account-settings'
+  import SyncExpando from './sync-expando.svelte'
+  import Expando from './expando.svelte'
+  import { useSyncContext } from '../sync'
 
-  getFileSyncStorage()
+  const sync = useSyncContext()
 </script>
 
-<AccountSettingsTab
-  name="Offline Availability"
-  icon={{ icon: 'wifi', thickness: 'solid' }}
-></AccountSettingsTab>
+<AccountSettingsTab name="EnderDrive Sync" icon={{ icon: 'rotate', thickness: 'solid' }}>
+  <Expando title="Synced Folders{sync == null ? ' (Unavailable)' : null}">
+    <SyncExpando />
+  </Expando>
+</AccountSettingsTab>

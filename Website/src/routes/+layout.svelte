@@ -3,17 +3,22 @@
   import 'reset-css/reset.css'
 
   import { onMount, type Snippet } from 'svelte'
-  import { get } from 'svelte/store'
+  import { get, writable } from 'svelte/store'
   import { createColorContext } from '../lib/client/contexts/colors'
   import { createAppContext, ViewMode, WindowMode } from '$lib/client/contexts/app'
   import { createClientContext } from '$lib/client/client'
   import OverlayHost from './overlay-host.svelte'
+  import Pwa from './app/pwa.svelte'
+  import { navigating } from '$app/stores'
+  import Overlay from './overlay.svelte'
+  import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
 
   const {
     viewMode,
     windowMode,
     overlay,
     titleStack,
+    pwaAvailable,
     context: { pushTitle }
   } = createAppContext()
 
@@ -56,6 +61,7 @@
   }
 
   const { printStyleHTML, useCssColor } = createColorContext()
+  // const {} = createSyncContext()
   const {} = createClientContext()
   const {
     children
@@ -63,12 +69,35 @@
     children: Snippet
   } = $props()
 
+  const showNav = writable(false)
+
   onMount(() => {
     triggerUpdateViewMode(window)
     triggerUpdateWindowMode(window)
   })
 
   onMount(() => pushTitle('EnderDrive'))
+
+  onMount(() => {
+    let timeout: number | null = null
+
+    return navigating.subscribe((isNav) => {
+      if (isNav) {
+        if (timeout == null) {
+          timeout = setTimeout(() => {
+            $showNav = true
+          }, 500)
+        }
+      } else {
+        if (timeout != null) {
+          clearTimeout(timeout)
+          timeout = null
+        }
+
+        $showNav = false
+      }
+    })
+  })
 </script>
 
 <svelte:head>
@@ -79,12 +108,12 @@
     rel="manifest"
     href="/manifest?theme-color={$useCssColor(8, 0)}&background-color={$useCssColor(8, 0)}"
   />
-  <title
-    >{$titleStack
+  <title>
+    {$titleStack
       .toReversed()
       .map((e) => e.title)
-      .join(' - ')}</title
-  >
+      .join(' - ')}
+  </title>
   {@html $printStyleHTML()}
 </svelte:head>
 
@@ -94,13 +123,30 @@
     triggerUpdateWindowMode(window)
   }}
 />
-
 {@render children()}
 
 <OverlayHost {overlay} />
+<Pwa {pwaAvailable} />
+
+{#if $showNav}
+  <Overlay>
+    <div class="nav-indicator">
+      <LoadingSpinner size="3rem" />
+    </div>
+  </Overlay>
+{/if}
 
 <style lang="scss">
   @use '../global.scss' as *;
+
+  div.nav-indicator {
+    padding: 16px;
+
+    background-color: var(--color-9);
+    color: var(--color-1);
+
+    border-radius: 50%;
+  }
 
   :global(div) {
     display: flex;

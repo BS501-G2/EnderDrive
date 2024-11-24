@@ -204,6 +204,35 @@ public sealed partial class ResourceManager
     );
 
     await userAuthentication.Save(transaction);
+
+    async Task removeOld(ObjectId exceptId, UserAuthenticationType type)
+    {
+      await foreach (
+        Resource<UserAuthentication> oldPassword in Query<UserAuthentication>(
+          transaction,
+          (query) =>
+            query.Where(
+              (oldPassword) =>
+                oldPassword.UserId == user.Id
+                && oldPassword.Type == type
+                && oldPassword.Id != exceptId
+            )
+        )
+      )
+      {
+        await Delete(transaction, oldPassword);
+      }
+    }
+
+    if (userAuthentication.Data.Type == UserAuthenticationType.Password)
+    {
+      await removeOld(userAuthentication.Id, UserAuthenticationType.Password);
+    }
+    else if (userAuthentication.Data.Type == UserAuthenticationType.Google)
+    {
+      await removeOld(userAuthentication.Id, UserAuthenticationType.Google);
+    }
+
     return new(userAuthentication)
     {
       AesKey = sourceUserAuthentication.AesKey,

@@ -2,8 +2,9 @@
   import { useAppContext } from '$lib/client/contexts/app'
   import { useNavigationContext } from '$lib/client/contexts/navigation'
   import Icon, { type IconOptions } from '$lib/client/ui/icon.svelte'
+  import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import { onMount } from 'svelte'
-  import { derived, type Readable } from 'svelte/store'
+  import { derived, writable, type Readable } from 'svelte/store'
 
   const {
     label,
@@ -23,17 +24,42 @@
   onMount(() => pushNavigation(content))
 
   const iconDisplay = derived(isActive, icon)
+
+  const isLoading = writable(false)
+
+  async function click(): Promise<void> {
+    try {
+      try {
+        $isLoading = true
+        await onclick()
+      } catch (error: any) {
+        throw error
+      }
+    } finally {
+      $isLoading = false
+    }
+  }
 </script>
 
 {#snippet content()}
-  <button {onclick} class:active={$isActive} class:mobile={$isMobile} class:desktop={$isDesktop}>
+  <button
+    onclick={() => click()}
+    class:active={$isActive}
+    class:mobile={$isMobile}
+    class:desktop={$isDesktop}
+  >
     {#if $isMobile && $isActive}
       <div class="indicator"></div>
     {/if}
 
     <div class="content">
       {#key $iconDisplay}
-        <Icon {...$iconDisplay} size="1.5em" />
+        <!-- {#if $isLoading}
+        <LoadingSpinner size="1.5rem" />
+        {:else}
+          <Icon {...$iconDisplay} size="1.5em" />
+        {/if} -->
+          <Icon {...$iconDisplay} size="1.5em" />
       {/key}
 
       <p class="label">

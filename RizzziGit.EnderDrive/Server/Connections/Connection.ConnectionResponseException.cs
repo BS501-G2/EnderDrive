@@ -29,8 +29,9 @@ public abstract class ConnectionException(string? message = null, Exception? inn
 public sealed class ConnectionResponseException(
   ResponseCode code,
   ConnectionResponseExceptionData data,
-  string? message = null
-) : ConnectionException(message ?? $"Server returned error response: {code}")
+  string? message = null,
+  Exception? inner = null
+) : ConnectionException(message ?? $"Server returned error response: {code}", inner)
 {
   public readonly ResponseCode Code = code;
   public new readonly ConnectionResponseExceptionData Data = data;

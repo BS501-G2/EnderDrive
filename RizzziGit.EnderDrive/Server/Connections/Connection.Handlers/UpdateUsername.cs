@@ -20,9 +20,11 @@ public sealed partial class Connection
   > UpdateUsername =>
     async (transaction, request, userAuthentication, me, myAdminAccess) =>
     {
-      if (Resources.ValidateUsername(request.NewUsername) != UsernameValidationFlags.OK)
+      UsernameValidationFlags flags = Resources.ValidateUsername(request.NewUsername);
+
+      if (flags != UsernameValidationFlags.OK)
       {
-        throw new InvalidOperationException("Invalid username");
+        throw new InvalidOperationException($"Invalid username: {flags}");
       }
 
       await me.Update(

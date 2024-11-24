@@ -7,6 +7,7 @@ import * as SocketIO from 'socket.io-client'
 
 import { persisted } from 'svelte-persisted-store'
 import type { NotificationContext } from './contexts/notification'
+import { goto } from '$app/navigation'
 
 const clientContextName = 'Client Context'
 
@@ -294,10 +295,14 @@ export function createClientContext() {
         try {
           return await new Promise<any>((resolve, reject) => {
             incomingResponses.set(id, {
-              resolve: (value: Payload<ResponseCode>) => {
+              resolve: async (value: Payload<ResponseCode>) => {
                 if (value.Code === ResponseCode.OK) {
                   resolve(value.Data)
                 } else {
+                  if (value.Code === ResponseCode.AuthenticationRequired) {
+                    await goto('/landing?login')
+                  }
+
                   reject(new ClientResponseError(code, value.Code))
                 }
               },
@@ -615,16 +620,20 @@ function getServerFunctions(
     },
 
     authenticateToken: async (userId: string, token: string): Promise<void> => {
-      const { renewedToken } = await request(ServerSideRequestCode.AuthenticateToken, {
-        userId,
-        token
-      })
-
-      if (renewedToken != null) {
-        storedAuthenticationToken.set({
+      try {
+        const { renewedToken } = await request(ServerSideRequestCode.AuthenticateToken, {
           userId,
-          token: renewedToken
+          token
         })
+
+        if (renewedToken != null) {
+          storedAuthenticationToken.set({
+            userId,
+            token: renewedToken
+          })
+        }
+      } catch {
+        storedAuthenticationToken.set(null)
       }
     },
 
@@ -946,10 +955,12 @@ function getServerFunctions(
     },
 
     writeStream: async (streamId: string, data: Buffer | Blob) => {
-      await request(ServerSideRequestCode.WriteStream, {
+      const    { newFileSnapshotId } = await request(ServerSideRequestCode.WriteStream, {
         streamId,
         data
       })
+
+      return newFileSnapshotId as string
     },
 
     setPosition: async (streamId: string, newPosition: number) => {
@@ -1082,9 +1093,10 @@ function getServerFunctions(
       return flags as UsernameValidationFlags
     },
 
-    getPasswordValidationFlags: async (password: string) => {
+    getPasswordValidationFlags: async (password: string, confirmPassword?: string) => {
       const { flags } = await request(ServerSideRequestCode.GetPasswordValidationFlags, {
-        password
+        password,
+        'confirm-password': confirmPassword
       })
 
       return flags as PasswordValidationFlags
@@ -1170,6 +1182,28 @@ function getServerFunctions(
 
     updateUsername: async (username: string) => {
       await request(ServerSideRequestCode.UpdateUsername, { newUsername: username })
+    },
+
+    updatePassword: async ({
+      currentPassword,
+      password,
+      confirmPassword
+    }: {
+      currentPassword: string
+      password: string
+      confirmPassword: string
+    }) => {
+      await request(ServerSideRequestCode.UpdatePassword, {
+        newPassword: password,
+        'current-password': currentPassword,
+        'confirm-password': confirmPassword
+      })
+    },
+
+    getRootId: async (userId: string) => {
+      const { fileId } = await request(ServerSideRequestCode.GetRootId, { userId })
+
+      return fileId as string | null
     }
   }
 
@@ -1292,7 +1326,10 @@ export enum ServerSideRequestCode {
 
   TranscribeAudio,
 
-  UpdateUsername
+  UpdateUsername,
+  UpdatePassword,
+
+  GetRootId
 }
 
 export enum PasswordResetRequestStatus {
@@ -1341,7 +1378,7 @@ export interface UserResource extends ResourceData {
 }
 
 export interface FileResource extends ResourceData {
-  parentId?: string
+  parentId: string
   ownerUserId: string
   name: string
   type: FileType
@@ -1365,11 +1402,12 @@ export interface FileSnapshotResource extends ResourceData {
 }
 
 export interface FileLogResource extends ResourceData {
-  type: FileType
+  type: FileLogType
   fileId: string
-  actorUserId?: string
+  actorUserId: string
   fileContentId?: string
   fileSnapshotId?: string
+  createTime: string
 }
 
 export interface FileVirusReportResource extends ResourceData {

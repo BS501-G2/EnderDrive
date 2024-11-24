@@ -1,26 +1,31 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using Newtonsoft.Json;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
 public sealed record class FileLog : ResourceData
 {
-  [BsonElement("type")]
+  [JsonProperty("type")]
   public required FileLogType Type;
 
-  [BsonElement("actorUserId")]
+  [JsonProperty("actorUserId")]
   public required ObjectId ActorUserId;
 
-  [BsonElement("fileId")]
+  [JsonProperty("fileId")]
   public required ObjectId FileId;
 
-  [BsonElement("fileContentId")]
+  [JsonProperty("fileContentId")]
   public required ObjectId? FileContentId;
 
-  [BsonElement("fileSnapshotId")]
+  [JsonProperty("fileSnapshotId")]
   public required ObjectId? FileSnapshotId;
+
+  [JsonProperty("createTime")]
+  public required DateTimeOffset CreateTime;
 }
 
 public enum FileLogType : byte
@@ -55,6 +60,7 @@ public sealed partial class ResourceManager
         FileId = file.Id,
         FileContentId = fileContent?.Id,
         FileSnapshotId = fileSnapshot?.Id,
+        CreateTime = DateTimeOffset.UtcNow,
       }
     );
 
