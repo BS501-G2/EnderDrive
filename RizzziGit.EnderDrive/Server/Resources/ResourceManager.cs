@@ -1,6 +1,7 @@
 using System;
-using System.Collections.Concurrent;
+using System.IO;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,12 +13,14 @@ using Newtonsoft.Json;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
+using System.Collections.Concurrent;
+using Commons.Collections;
 using Commons.Services;
+using Commons.Tasks;
 using Core;
-using RizzziGit.Commons.Collections;
 using Services;
 
-public abstract record class ResourceData
+public abstract record ResourceData
 {
   [BsonId]
   [JsonProperty("id")]
@@ -36,12 +39,22 @@ public sealed class ResourceManagerContext
   public required RandomNumberGenerator RandomNumberGenerator;
 
   public required WeakDictionary<ResourceKey, object> Resources;
+  public required ConcurrentDictionary<
+    ObjectId,
+    ResourceManager.FileResourceStream
+  > ActiveFileStreams;
+
+  public required TaskQueue TransactionQueue;
+  public required FileStream BlobStream;
 }
 
-public sealed partial class ResourceManager(Server server)
-  : Service<ResourceManagerContext>("Resource Manager", server)
+public sealed partial class ResourceManager(
+  EnderDriveServer server,
+  string blobPath,
+  long blobRedundancyCount
+) : Service<ResourceManagerContext>("Resource Manager", server)
 {
-  private Server Server => server;
+  private EnderDriveServer Server => server;
   private IMongoClient Client => GetContext().Client;
   private IMongoDatabase Database => Client.GetDatabase("EnderDrive");
 
@@ -60,13 +73,14 @@ public sealed partial class ResourceManager(Server server)
       (options) => options.AddProvider(new LoggerProvider((category) => new LoggerInstance(this)))
     );
 
-    MongoClient client = new(
-      new MongoClientSettings()
-      {
-        Server = new MongoServerAddress("127.0.0.1"),
-        LoggingSettings = new(loggerFactory),
-      }
-    );
+    MongoClient client =
+      new(
+        new MongoClientSettings()
+        {
+          Server = new MongoServerAddress("127.0.0.1"),
+          LoggingSettings = new(loggerFactory),
+        }
+      );
 
     RandomNumberGenerator randomNumberGenerator = RandomNumberGenerator.Create();
 
@@ -80,7 +94,30 @@ public sealed partial class ResourceManager(Server server)
       LoggerFactory = loggerFactory,
       Client = client,
       RandomNumberGenerator = randomNumberGenerator,
-      Resources = new(),
+      Resources = [],
+      BlobStream = new FileStream(
+        blobPath,
+        FileMode.OpenOrCreate,
+        System.IO.FileAccess.ReadWrite,
+        FileShare.ReadWrite
+      ),
+      TransactionQueue = new(),
+      ActiveFileStreams = new()
     };
+  }
+
+  protected override async Task OnRun(
+    ResourceManagerContext context,
+    CancellationToken serviceCancellationToken
+  )
+  {
+    await context.TransactionQueue.Start(serviceCancellationToken);
+  }
+
+  protected override Task OnStop(ResourceManagerContext context, ExceptionDispatchInfo? exception)
+  {
+    context.BlobStream.Close();
+
+    return base.OnStop(context, exception);
   }
 }

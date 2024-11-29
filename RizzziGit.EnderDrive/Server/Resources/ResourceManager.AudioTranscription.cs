@@ -12,11 +12,8 @@ public sealed record class AudioTranscription : ResourceData
   [JsonProperty("fileId")]
   public required ObjectId FileId;
 
-  [JsonProperty("fileContentId")]
-  public required ObjectId FileContentId;
-
-  [JsonProperty("fileSnapshotId")]
-  public required ObjectId FileSnapshotId;
+  [JsonProperty("fileDataId")]
+  public required ObjectId FileDataId;
 
   [JsonProperty("status")]
   public required AudioTranscriptionStatus Status;
@@ -85,8 +82,7 @@ public sealed partial class ResourceManager
   public async Task<Resource<AudioTranscription>> GetAudioTranscription(
     ResourceTransaction transaction,
     Resource<File> file,
-    Resource<FileContent> fileContent,
-    Resource<FileSnapshot> fileSnapshot
+    Resource<FileData> fileSnapshot
   )
   {
     Resource<AudioTranscription>? audioTranscription = await Query<AudioTranscription>(
@@ -95,8 +91,7 @@ public sealed partial class ResourceManager
           query.Where(
             (audioTranscription) =>
               (audioTranscription.FileId == file.Id)
-              && (audioTranscription.FileContentId == fileContent.Id)
-              && (audioTranscription.FileSnapshotId == fileSnapshot.Id)
+              && (audioTranscription.FileDataId == fileSnapshot.Id)
           )
       )
       .FirstOrDefaultAsync(transaction);
@@ -108,8 +103,7 @@ public sealed partial class ResourceManager
         new()
         {
           FileId = file.Id,
-          FileContentId = fileContent.Id,
-          FileSnapshotId = fileSnapshot.Id,
+          FileDataId = fileSnapshot.Id,
           Text = [],
           Status = AudioTranscriptionStatus.NotRunning,
         }

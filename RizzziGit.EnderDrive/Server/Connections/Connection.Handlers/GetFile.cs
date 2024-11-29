@@ -8,7 +8,6 @@ public sealed partial class Connection
 
   private sealed record class GetFileResponse
   {
-    [BsonElement("file")]
     public required string File;
   }
 

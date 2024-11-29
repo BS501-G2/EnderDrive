@@ -1,252 +1,240 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using MongoDB.Bson;
-using MongoDB.Driver;
+using MongoDB.Bson.Serialization.Attributes;
+using Newtonsoft.Json;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
 using Commons.Memory;
-using Newtonsoft.Json;
-using Services;
 
-public record class FileData : ResourceData
+public record FileData : ResourceData
 {
-  [JsonIgnore]
+  [JsonProperty("createTime")]
+  [BsonRepresentation(representation: BsonType.DateTime)]
+  public required DateTimeOffset CreateTime;
+
+  [JsonProperty("fileId")]
   public required ObjectId FileId;
 
-  [JsonIgnore]
-  public required ObjectId FileContentId;
+  [JsonProperty("authorUserId")]
+  public required ObjectId? AuthorUserId;
+
+  [JsonProperty("baseFileDataId")]
+  public required ObjectId? BaseFileDataId;
 
   [JsonIgnore]
-  public required ObjectId FileSnapshotId;
+  public required List<FileSegment> Segments;
 
-  [JsonIgnore]
-  public required ObjectId AuthorUserId;
-
-  [JsonIgnore]
-  public required ObjectId BufferId;
-
-  [JsonIgnore]
-  public required long Index;
-}
-
-public record class FileBuffer : ResourceData
-{
-  [JsonIgnore]
-  public required ObjectId FileId;
-
-  [JsonIgnore]
-  public required ObjectId FileContentId;
-
-  [JsonIgnore]
-  public required ObjectId FileSnapshotId;
-
-  [JsonIgnore]
-  public required byte[] EncryptedBuffer;
+  public long Size => Segments.Sum((e) => e.End - e.Start);
 }
 
 public sealed partial class ResourceManager
 {
-  public async Task<CompositeBuffer> ReadFileBlock(
+  public async Task<Resource<FileData>> CreateFileData(
     ResourceTransaction transaction,
     UnlockedFile file,
-    Resource<FileContent> fileContent,
-    Resource<FileSnapshot> fileSnapshot,
-    long index
+    Resource<FileData>? baseFileData,
+    Resource<User>? authorUser
   )
   {
-    Resource<FileData>? data = await Query<FileData>(
-        transaction,
-        (query) =>
-          query.Where(
-            (item) =>
-              item.FileId == file.File.Id
-              && item.Index == index
-              && item.FileSnapshotId == fileSnapshot.Id
-              && item.FileContentId == fileContent.Id
-          )
-      )
-      .FirstOrDefaultAsync(transaction.CancellationToken);
-
-    Resource<FileBuffer>? bufferResource =
-      data != null
-        ? await Query<FileBuffer>(
-            transaction,
-            (query) => query.Where((item) => item.Id == data.Data.BufferId)
-          )
-          .FirstOrDefaultAsync(transaction.CancellationToken)
-        : null;
-
-    CompositeBuffer buffer =
-      bufferResource != null
-        ? KeyManager.Decrypt(file, bufferResource.Data.EncryptedBuffer)
-        : CompositeBuffer.Allocate(FILE_BUFFER_SIZE);
-
-    return buffer;
-  }
-
-  public async Task WriteFileBlock(
-    ResourceTransaction transaction,
-    UnlockedFile file,
-    Resource<FileContent> fileContent,
-    Resource<FileSnapshot> fileSnapshot,
-    long index,
-    UnlockedUserAuthentication userAuthentication,
-    CompositeBuffer bytes
-  )
-  {
-    Resource<FileData>? data = await Query<FileData>(
-        transaction,
-        (query) =>
-          query.Where(
-            (item) =>
-              item.FileId == file.File.Id
-              && item.Index == index
-              && item.FileSnapshotId == fileSnapshot.Id
-              && item.FileContentId == fileContent.Id
-          )
-      )
-      .FirstOrDefaultAsync(transaction.CancellationToken);
-
-    bytes =
-      bytes.Length < FILE_BUFFER_SIZE
-        ? bytes.PadEnd(FILE_BUFFER_SIZE)
-        : bytes.Slice(0, FILE_BUFFER_SIZE);
-
-    Resource<FileBuffer> buffer = ToResource<FileBuffer>(
+    Resource<FileData> fileSnapshot = ToResource<FileData>(
       transaction,
       new()
       {
+        Id = ObjectId.Empty,
+
+        CreateTime = DateTimeOffset.UtcNow,
+
         FileId = file.File.Id,
-        FileContentId = fileContent.Id,
-        FileSnapshotId = fileSnapshot.Id,
-        EncryptedBuffer = KeyManager.Encrypt(file, bytes.ToByteArray()),
+        AuthorUserId = authorUser?.Id,
+        BaseFileDataId = baseFileData?.Id,
+
+        Segments = baseFileData?.Data.Segments ?? [],
       }
     );
 
-    await buffer.Save(transaction);
+    await fileSnapshot.Save(transaction);
 
-    if (data == null)
-    {
-      data = ToResource<FileData>(
-        transaction,
-        new()
-        {
-          FileId = file.File.Id,
-          FileContentId = fileContent.Id,
-          FileSnapshotId = fileSnapshot.Id,
-          AuthorUserId = userAuthentication.UserAuthentication.Data.UserId,
-          BufferId = buffer.Id,
-
-          Index = index,
-        }
-      );
-    }
-    else
-    {
-      data.Data.BufferId = buffer.Id;
-    }
-
-    await data.Save(transaction);
+    return fileSnapshot;
   }
 
-  public async Task<CompositeBuffer> ReadFile(
-    ResourceTransaction transaction,
+  public const int MAX_SEGMENT_SIZE = 1024 * 1024;
+
+  private void InternalUncommitedWriteToFile(
     UnlockedFile file,
-    Resource<FileContent> fileContent,
-    Resource<FileSnapshot> fileSnapshot,
+    Resource<FileData> fileData,
     long position,
-    long size
+    byte[] bytes
   )
   {
-    long readStart = position;
-    long readEnd = long.Min(readStart + size, fileSnapshot.Data.Size);
+    List<FileSegment> leftSegments = [];
+    List<FileSegment> rightSegments = [];
 
-    long bytesRead = 0;
-    long indexStart = Math.DivRem(position, FILE_BUFFER_SIZE, out long indexStartOffset);
+    foreach (FileSegment segment in fileData.Data.Segments)
+    {
+      long inputStart = position - segment.Start;
+      long inputEnd = inputStart + bytes.Length;
+
+      if (inputEnd <= 0)
+      {
+        leftSegments.Add(segment);
+      }
+      else if (inputStart >= segment.Size)
+      {
+        rightSegments.Add(segment);
+      }
+      else
+      {
+        byte[] segmentData = ReadSegment(segment, file.AesKey);
+
+        if (inputStart > 0)
+        {
+          leftSegments.Add(
+            CreateSegment(file.AesKey, segment.Start, segmentData[..(int)inputStart])
+          );
+        }
+
+        if (inputEnd < segment.Size)
+        {
+          rightSegments.Add(
+            CreateSegment(file.AesKey, segment.Start + inputEnd, segmentData[(int)inputEnd..])
+          );
+        }
+      }
+    }
+
+    FileSegment centerSegment = CreateSegment(
+      file.AesKey,
+      leftSegments.Sum((segment) => segment.Size),
+      bytes
+    );
+
+    fileData.Data.Segments = [.. leftSegments, centerSegment, .. rightSegments];
+  }
+
+  public ValueTask WriteToFile(
+    ResourceTransaction transaction,
+    UnlockedFile file,
+    Resource<FileData> fileData,
+    long position,
+    byte[] bytes
+  )
+  {
+    for (int offset = 0; offset < bytes.Length; offset += MAX_SEGMENT_SIZE)
+    {
+      InternalUncommitedWriteToFile(
+        file,
+        fileData,
+        position + offset,
+        bytes[offset..int.Min(MAX_SEGMENT_SIZE, bytes.Length - offset)]
+      );
+    }
+
+    return fileData.Save(transaction);
+  }
+
+  public ValueTask WriteToFile(
+    ResourceTransaction transaction,
+    UnlockedFile file,
+    Resource<FileData> fileData,
+    long position,
+    CompositeBuffer bytes
+  )
+  {
+    for (int offset = 0; offset < bytes.Length; offset += MAX_SEGMENT_SIZE)
+    {
+      InternalUncommitedWriteToFile(
+        file,
+        fileData,
+        position + offset,
+        bytes.Slice(offset, long.Min(MAX_SEGMENT_SIZE, bytes.Length - offset)).ToByteArray()
+      );
+    }
+
+    return fileData.Save(transaction);
+  }
+
+  public CompositeBuffer ReadFromFile(
+    UnlockedFile file,
+    Resource<FileData> fileData,
+    long position,
+    long length
+  )
+  {
     CompositeBuffer bytes = [];
 
-    for (long index = indexStart; bytesRead < (readEnd - readStart); index++)
+    foreach (FileSegment segment in fileData.Data.Segments)
     {
-      long bufferStart = indexStart == index ? indexStartOffset : 0;
-      long bufferEnd = long.Clamp(
-        bufferStart + long.Min(size - bytesRead, FILE_BUFFER_SIZE),
-        0,
-        fileSnapshot.Data.Size - readStart
-      );
+      long inputStart = position - segment.Start;
+      long inputEnd = inputStart + length;
 
-      if (bufferEnd - bufferStart > 0)
+      if (inputEnd <= 0)
       {
-        CompositeBuffer buffer = await ReadFileBlock(
-          transaction,
-          file,
-          fileContent,
-          fileSnapshot,
-          index
-        );
-
-        CompositeBuffer toRead = buffer.Slice(bufferStart, bufferEnd);
-
-        bytes.Append(toRead);
-        bytesRead += toRead.Length;
+        break;
       }
+
+      if (inputStart >= segment.Size)
+      {
+        continue;
+      }
+
+      byte[] segmentData = ReadSegment(segment, file.AesKey);
+
+      bytes.Append(
+        CompositeBuffer.From(
+          segmentData,
+          (int)long.Max(0, inputStart),
+          (int)long.Min(segment.Size, inputEnd)
+        )
+      );
     }
 
     return bytes;
   }
 
-  public async Task WriteFile(
+  public async ValueTask TruncateFile(
     ResourceTransaction transaction,
     UnlockedFile file,
-    Resource<FileContent> fileContent,
-    Resource<FileSnapshot> fileSnapshot,
-    UnlockedUserAuthentication userAuthentication,
-    long position,
-    CompositeBuffer bytes
+    Resource<FileData> fileData,
+    long length
   )
   {
-    long writeStart = position;
-    long writeEnd = position + bytes.Length;
-
-    long bytesWritten = 0;
-    long indexStart = Math.DivRem(position, FILE_BUFFER_SIZE, out long indexStartOffset);
-
-    for (long index = indexStart; bytes.Length > bytesWritten; )
+    if (fileData.Data.Size > length)
     {
-      long currentStart = indexStart == index ? indexStartOffset : 0;
-      long currentEnd = currentStart + long.Min(bytes.Length - bytesWritten, FILE_BUFFER_SIZE);
+      List<FileSegment> segments = [];
 
-      if (currentEnd - currentStart > 0)
+      foreach (FileSegment segment in fileData.Data.Segments)
       {
-        CompositeBuffer current = await ReadFileBlock(
-          transaction,
-          file,
-          fileContent,
-          fileSnapshot,
-          indexStart
-        );
+        long inputStart = 0 - segment.Start;
+        long inputEnd = inputStart + length;
 
-        CompositeBuffer toWrite = bytes.Slice(currentStart, currentEnd);
+        if (inputEnd <= 0)
+        {
+          segments.Add(segment);
+        }
+        else
+        {
+          byte[] segmentData = ReadSegment(segment, file.AesKey);
 
-        current.Write(currentStart, toWrite);
-
-        await WriteFileBlock(
-          transaction,
-          file,
-          fileContent,
-          fileSnapshot,
-          index,
-          userAuthentication,
-          current
-        );
-
-        bytesWritten += toWrite.Length;
+          segments.Add(CreateSegment(file.AesKey, segment.Start, segmentData[..(int)inputEnd]));
+          break;
+        }
       }
+
+      fileData.Data.Segments = segments;
+
+      await fileData.Save(transaction);
     }
+    else if (fileData.Data.Size < length)
+    {
+      fileData.Data.Segments.Add(
+        CreateSegment(file.AesKey, fileData.Data.Size, new byte[length - fileData.Data.Size])
+      );
 
-    fileSnapshot.Data.Size = long.Max(position + bytes.Length, fileSnapshot.Data.Size);
-
-    await fileSnapshot.Save(transaction);
+      await fileData.Save(transaction);
+    }
   }
 }

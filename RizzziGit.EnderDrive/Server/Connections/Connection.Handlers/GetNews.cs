@@ -11,19 +11,13 @@ public sealed partial class Connection
 {
   private sealed record class GetNewsRequest
   {
-    [BsonElement("pagination")]
     public required PaginationOptions? Pagination;
-
-    [BsonElement("afterId")]
     public required ObjectId? AfterId;
-
-    [BsonElement("published")]
     public required bool? Published;
   }
 
   private sealed record class GetNewsResponse
   {
-    [BsonElement("newsIds")]
     public required string[] NewsIds;
   }
 

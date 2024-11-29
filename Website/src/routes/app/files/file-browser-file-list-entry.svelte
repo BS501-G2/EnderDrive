@@ -26,7 +26,7 @@
     getFileContents,
     getFileMime,
     me,
-    getFileSnapshots,
+    getFileDataList: getFileSnapshots,
     getFiles,
     getMainFileContent,
     getUser,

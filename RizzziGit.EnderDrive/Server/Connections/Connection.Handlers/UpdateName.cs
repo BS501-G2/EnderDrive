@@ -7,16 +7,9 @@ public sealed partial class Connection
 {
   private sealed record class UpdateNameRequest
   {
-    [BsonElement("firstName")]
     public required string FirstName;
-
-    [BsonElement("middleName")]
     public required string? MiddleName;
-
-    [BsonElement("lastName")]
     public required string LastName;
-
-    [BsonElement("displayName")]
     public required string? DisplayName;
   }
 

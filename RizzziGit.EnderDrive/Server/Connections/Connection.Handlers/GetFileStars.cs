@@ -13,19 +13,13 @@ public sealed partial class Connection
 {
   private sealed record class GetFileStarsRequest
   {
-    [BsonElement("fileId")]
     public required ObjectId? FileId;
-
-    [BsonElement("userId")]
     public required ObjectId? UserId;
-
-    [BsonElement("pagination")]
     public required PaginationOptions? Pagination;
   };
 
   private sealed record class GetFileStarsResponse
   {
-    [BsonElement("fileStars")]
     public required string[] FileStars;
   };
 

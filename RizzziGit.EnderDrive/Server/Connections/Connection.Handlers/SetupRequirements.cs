@@ -10,7 +10,6 @@ public sealed partial class Connection
 
   private sealed record class SetupRequirementsResponse
   {
-    [BsonElement("adminSetupRequired")]
     public required bool AdminSetupRequired;
   };
 

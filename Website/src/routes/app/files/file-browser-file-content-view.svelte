@@ -3,7 +3,7 @@
     useServerContext,
     type FileContentResource,
     type FileResource,
-    type FileSnapshotResource
+    type FileDataResource
   } from '$lib/client/client'
   import { writable, type Writable } from 'svelte/store'
 
@@ -16,7 +16,7 @@
     mime: string
     file: FileResource
     fileContent: FileContentResource
-    fileSnapshot: FileSnapshotResource
+    fileSnapshot: FileDataResource
   } = $props()
   const { openStream, getStreamPosition, getStreamSize, closeStream, readStream } =
     useServerContext()

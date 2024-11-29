@@ -10,7 +10,6 @@ public sealed partial class Connection
 {
   private sealed record class DeleteNewsRequest
   {
-    [BsonElement("newsId")]
     public required ObjectId NewsId;
   }
 

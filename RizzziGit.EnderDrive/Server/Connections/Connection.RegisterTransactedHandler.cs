@@ -12,13 +12,11 @@ public sealed partial class Connection
   );
 
   private void RegisterTransactedHandler<S, R>(
-    ConnectionContext context,
-    ServerSideRequestCode code,
+    string name,
     TransactedRequestHandler<S, R> handler
   ) =>
     RegisterHandler<S, R>(
-      context,
-      code,
+      name,
       (request, cancellationToken) =>
         Resources.Transact((transaction) => handler(transaction, request), cancellationToken)
     );

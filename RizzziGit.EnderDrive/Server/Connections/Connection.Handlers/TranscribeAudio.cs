@@ -10,36 +10,27 @@ public sealed partial class Connection
 {
   private sealed record class TranscribeAudioRequest : BaseFileRequest
   {
-    [BsonElement("fileSnapshot")]
-    public required ObjectId? FileSnapshotId;
+    public required ObjectId? FileDataId;
   }
 
   private sealed record class TranscribeAudioResponse
   {
-    [BsonElement("text")]
     public required string[] Text;
-
-    [BsonElement("status")]
     public required AudioTranscriptionStatus Status;
   }
 
   private FileRequestHandler<TranscribeAudioRequest, TranscribeAudioResponse> TranscribeAudio =>
     async (transaction, request, userAuthentication, me, myAdminAccess, fileAccess) =>
     {
-      Resource<FileContent> fileContent = await Resources.GetMainFileContent(
+      Resource<FileData> fileSnapshot = await Internal_EnsureFirst(
         transaction,
-        fileAccess.UnlockedFile.File
-      );
-
-      Resource<FileSnapshot> fileSnapshot = await Internal_EnsureFirst(
-        transaction,
-        Resources.Query<FileSnapshot>(
+        Resources.Query<FileData>(
           transaction,
           (query) =>
             query
               .Where(
                 (fileSnapshot) =>
-                  (request.FileSnapshotId == null || fileSnapshot.Id == request.FileSnapshotId)
+                  (request.FileDataId == null || fileSnapshot.Id == request.FileDataId)
                   && fileSnapshot.FileId == fileAccess.UnlockedFile.File.Id
               )
               .OrderByDescending((fileSnapshot) => fileSnapshot.CreateTime)
@@ -49,7 +40,6 @@ public sealed partial class Connection
       Resource<AudioTranscription> audioTranscription = await Server.AudioTranscriber.Process(
         transaction,
         fileAccess.UnlockedFile,
-        fileContent,
         fileSnapshot
       );
 

@@ -6,17 +6,14 @@ using System.Threading.Tasks;
 
 namespace RizzziGit.EnderDrive.Server;
 
-using Commons.Logging;
-using Commons.Memory;
 using Core;
-using Resources;
 
 public static partial class Program
 {
   public static Task Main(string[] args) =>
     Task.Run(async () =>
     {
-      Server server = new(Environment.CurrentDirectory);
+      EnderDriveServer server = new(Environment.CurrentDirectory);
 
       ConsoleCancelEventHandler? handler = null;
       Console.CancelKeyPress += handler = (origin, args) =>

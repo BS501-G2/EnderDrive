@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
-using Newtonsoft.Json.Linq;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
@@ -13,28 +12,16 @@ public sealed partial class Connection
 {
   private sealed record class GetFileAccessesRequest
   {
-    [BsonElement("targetUserId")]
     public required ObjectId? TargetUserId;
-
-    [BsonElement("targetFileId")]
     public required ObjectId? TargetFileId;
-
-    [BsonElement("authorUserId")]
     public required ObjectId? AuthorUserId;
-
-    [BsonElement("level")]
     public required FileAccessLevel? Level;
-
-    [BsonElement("pagination")]
     public required PaginationOptions? Pagination;
-
-    [BsonElement("includePublic")]
     public required bool? IncludePublic;
   };
 
   private sealed record class GetFileAccessesResponse
   {
-    [BsonElement("fileAccesses")]
     public required string[] FileAccesses;
   };
 

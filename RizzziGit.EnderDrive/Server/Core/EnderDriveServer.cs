@@ -23,7 +23,7 @@ public sealed class ServerData
   public required AudioTranscriber AudioTranscriber;
 }
 
-public sealed class Server(
+public sealed class EnderDriveServer(
   string workingPath,
   string clamAvSocketPath = "/run/clamav/clamd.ctl",
   int httpPort = 8082,
@@ -31,6 +31,7 @@ public sealed class Server(
 ) : Service<ServerData>("Server")
 {
   private string ServerFolder => Path.Join(workingPath, ".EnderDrive");
+  private string BlobFolder => Path.Join(ServerFolder, ".BLOB");
 
   protected override async Task<ServerData> OnStart(
     CancellationToken startupCancellationToken,
@@ -38,7 +39,7 @@ public sealed class Server(
   )
   {
     KeyManager keyGenerator = new(this);
-    ResourceManager resourceManager = new(this);
+    ResourceManager resourceManager = new(this, Path.Join(BlobFolder, "DATA"), 4);
     AdminManager adminManager = new(resourceManager);
     VirusScanner virusScanner = new(this, clamAvSocketPath);
     ApiServer apiServer = new(this, httpPort, httpsPort);

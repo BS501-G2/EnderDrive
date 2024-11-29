@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,7 +9,6 @@ using MimeDetective.Definitions;
 using MimeDetective.Definitions.Licensing;
 using MimeDetective.Engine;
 using MimeDetective.Storage;
-using System.Linq;
 
 namespace RizzziGit.EnderDrive.Server.Services;
 
@@ -31,10 +31,10 @@ public sealed record MimeDetectorRequest(
   CancellationToken CancellationToken
 );
 
-public sealed partial class MimeDetector(Server server)
+public sealed partial class MimeDetector(EnderDriveServer server)
   : Service<MimeDetectorContext>("Mime Detector", server)
 {
-  public Server Server => server;
+  public EnderDriveServer Server => server;
   public ResourceManager Resources => Server.Resources;
 
   protected override Task<MimeDetectorContext> OnStart(
@@ -109,26 +109,19 @@ public sealed partial class MimeDetector(Server server)
   public async Task<Definition?> Inspect(
     ResourceTransaction transaction,
     UnlockedFile file,
-    Resource<FileContent> fileContent,
-    Resource<FileSnapshot> fileSnapshot
+    Resource<FileData> fileData
   )
   {
     MimeDetectorContext context = GetContext();
     Resource<MimeDetectionReport> mimeDetectionReport = await Resources.GetMimeDetectionReport(
       transaction,
       file.File,
-      fileContent,
-      fileSnapshot
+      fileData
     );
 
     if (mimeDetectionReport.Data.Mime == null)
     {
-      using Stream stream = await server.Resources.CreateReadStream(
-        transaction,
-        file,
-        fileContent,
-        fileSnapshot
-      );
+      using Stream stream = server.Resources.CreateFileStream(file, fileData);
 
       Definition? definition = await Inspect(stream, transaction.CancellationToken);
 

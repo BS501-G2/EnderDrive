@@ -1,12 +1,11 @@
-using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Bson;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
-using System.Collections.Generic;
-using System.Threading;
 using Resources;
 
 public sealed partial class Connection
@@ -37,11 +36,7 @@ public sealed partial class Connection
 
   private static Resource<T> Internal_EnsureExists<T>(Resource<T>? item)
     where T : ResourceData =>
-    item
-    ?? throw new ConnectionResponseException(
-      ResponseCode.ResourceNotFound,
-      new ConnectionResponseExceptionData.ResourceNotFound() { ResourceName = typeof(T).Name }
-    );
+    item ?? throw new NotFoundException() { ResourceName = typeof(T).Name };
 
   private async Task<Resource<File>> Internal_GetFile(
     ResourceTransaction transaction,
@@ -70,19 +65,5 @@ public sealed partial class Connection
       user,
       userAuthentication,
       fileAccessLevel ?? FileAccessLevel.Read
-    )
-    ?? throw new ConnectionResponseException(
-      ResponseCode.Forbidden,
-      new ConnectionResponseExceptionData.Forbidden() { FileId = file.Id }
-    );
-
-  private async Task Internal_CloseAllStreams()
-  {
-    ConnectionContext context = GetContext();
-
-    foreach ((_, ConnectionByteStream stream) in context.FileStreams)
-    {
-      await stream.Close(CancellationToken.None);
-    }
-  }
+    ) ?? throw new FileAccessForbiddenException() { FileId = file.Id };
 }

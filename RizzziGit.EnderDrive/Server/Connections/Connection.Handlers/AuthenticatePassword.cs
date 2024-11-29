@@ -12,19 +12,13 @@ public sealed partial class Connection
 {
   private sealed record class AuthenticatePasswordRequest
   {
-    [BsonElement("userId")]
     public required ObjectId UserId;
-
-    [BsonElement("password")]
     public required string Password;
   }
 
   private sealed record class AuthenticatePasswordResponse
   {
-    [BsonElement("userId")]
     public required ObjectId UserId;
-
-    [BsonElement("token")]
     public required string Token;
   }
 

@@ -9,7 +9,7 @@ using Newtonsoft.Json;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
-using System.Collections.Generic;
+using Resources;
 using Services;
 
 public enum FileType
@@ -49,14 +49,6 @@ public record class File : ResourceData
 
   [JsonProperty("type")]
   public required FileType Type;
-
-  [JsonProperty("createTime")]
-  [BsonRepresentation(BsonType.DateTime)]
-  public required DateTimeOffset CreateTime;
-
-  [JsonProperty("updateTime")]
-  [BsonRepresentation(BsonType.DateTime)]
-  public required DateTimeOffset UpdateTime;
 
   [JsonProperty("trashTime")]
   [BsonRepresentation(BsonType.DateTime)]
@@ -147,8 +139,6 @@ public sealed partial class ResourceManager
         EncryptedAesKey = encryptedAesKey,
         AdminEncryptedAesKey = adminEcnryptedAesKey,
 
-        CreateTime = DateTimeOffset.UtcNow,
-        UpdateTime = DateTimeOffset.UtcNow,
         TrashTime = null,
       }
     );
@@ -196,8 +186,6 @@ public sealed partial class ResourceManager
         EncryptedAesKey = encryptedAesKey,
         AdminEncryptedAesKey = adminEcnryptedAesKey,
 
-        CreateTime = DateTimeOffset.UtcNow,
-        UpdateTime = DateTimeOffset.UtcNow,
         TrashTime = null,
       }
     );
@@ -211,7 +199,6 @@ public sealed partial class ResourceManager
 
   public async Task<UnlockedFile> CreateFile(
     ResourceTransaction transaction,
-    Resource<User> user,
     UnlockedFile parent,
     FileType type,
     string name
@@ -227,7 +214,7 @@ public sealed partial class ResourceManager
       {
         Id = ObjectId.Empty,
         ParentId = parent.File.Id,
-        OwnerUserId = user.Id,
+        OwnerUserId = parent.File.Data.OwnerUserId,
 
         Name = name,
         Type = type,
@@ -235,8 +222,6 @@ public sealed partial class ResourceManager
         EncryptedAesKey = encryptedAesKey,
         AdminEncryptedAesKey = adminEcnryptedAesKey,
 
-        CreateTime = DateTimeOffset.UtcNow,
-        UpdateTime = DateTimeOffset.UtcNow,
         TrashTime = null,
       }
     );
@@ -269,36 +254,6 @@ public sealed partial class ResourceManager
   public async Task Delete(ResourceTransaction transaction, Resource<File> file)
   {
     await foreach (
-      Resource<FileContent> content in Query<FileContent>(
-        transaction,
-        (query) => query.Where((item) => item.FileId == file.Id)
-      )
-    )
-    {
-      await Delete(transaction, content);
-    }
-
-    await foreach (
-      Resource<FileSnapshot> snapshot in Query<FileSnapshot>(
-        transaction,
-        (query) => query.Where((item) => item.FileId == file.Id)
-      )
-    )
-    {
-      await Delete(transaction, snapshot);
-    }
-
-    await foreach (
-      Resource<FileBuffer> fileBuffer in Query<FileBuffer>(
-        transaction,
-        (query) => query.Where((item) => item.FileId == file.Id)
-      )
-    )
-    {
-      await Delete(transaction, fileBuffer);
-    }
-
-    await foreach (
       Resource<FileAccess> fileAccess in Query<FileAccess>(
         transaction,
         (query) => query.Where((item) => item.FileId == file.Id)
@@ -319,6 +274,11 @@ public sealed partial class ResourceManager
     }
 
     await Delete<File>(transaction, file);
+  }
+
+  internal bool TryGetActiveFileStream(object streamId, out FileResourceStream? stream)
+  {
+    throw new NotImplementedException();
   }
 }
 

@@ -30,17 +30,11 @@ public sealed partial class ResourceManager
     ResourceTransaction transaction,
     string title,
     UnlockedFile file,
-    Resource<FileContent> fileContent,
-    Resource<FileSnapshot> fileSnapshot,
+    Resource<FileData> fileData,
     Resource<User> newsAuthor,
     DateTimeOffset? publishTime
   )
   {
-    using MemoryStream stream = new();
-    using Stream a = await CreateReadStream(transaction, file, fileContent, fileSnapshot);
-
-    await a.CopyToAsync(stream, transaction.CancellationToken);
-
     Resource<News> news = ToResource<News>(
       transaction,
       new()
@@ -48,7 +42,7 @@ public sealed partial class ResourceManager
         Title = title,
         AuthorUserId = newsAuthor.Id,
         PublishTime = publishTime,
-        Image = stream.ToArray(),
+        Image = [.. ReadFromFile(file, fileData, 0, fileData.Data.Size)],
       }
     );
 

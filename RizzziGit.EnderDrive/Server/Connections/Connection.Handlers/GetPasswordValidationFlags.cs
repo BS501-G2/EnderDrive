@@ -8,16 +8,12 @@ public sealed partial class Connection
 {
   private sealed record class GetPasswordValidationFlagsRequest
   {
-    [BsonElement("password")]
     public required string Password;
-
-    [BsonElement("confirm-password")]
     public required string? ConfirmPassword;
   }
 
   private sealed record class GetPasswordValidationFlagsResponse
   {
-    [BsonElement("flags")]
     public required PasswordValidationFlags Flags;
   }
 

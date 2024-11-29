@@ -14,13 +14,11 @@ public sealed partial class Connection
 {
   private sealed record class GetFilePathRequest : BaseFileRequest
   {
-    [BsonElement("pagination")]
     public required PaginationOptions? Pagination;
   }
 
   private sealed record class GetFilePathResponse
   {
-    [BsonElement("path")]
     public required string[] Path;
   }
 

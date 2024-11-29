@@ -18,13 +18,13 @@
   onMount(() => {
     void (async () => {
       const fileContent = await server.getMainFileContent(imageId)
-      const fileSnapshot = await server.getLatestFileSnapshot(imageId, fileContent.id)
+      const fileData = await server.getLatestFileSnapshot(imageId, fileContent.id)
 
       let data = new Blob()
-      const streamId = await server.openStream(imageId, fileContent.id, fileSnapshot!.id)
+      const streamId = await server.openStream(imageId, fileContent.id, fileData!.id)
       const bufferSize = 1024 * 8
 
-      for (let index = 0; index < fileSnapshot!.size; index += bufferSize) {
+      for (let index = 0; index < fileData!.size; index += bufferSize) {
         const buffer = await server.readStream(streamId, bufferSize)
 
         data = new Blob([data, buffer])

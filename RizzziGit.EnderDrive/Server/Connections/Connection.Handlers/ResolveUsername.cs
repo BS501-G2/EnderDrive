@@ -9,13 +9,11 @@ public sealed partial class Connection
 {
   private sealed record class ResolveUsernameRequest
   {
-    [BsonElement("username")]
     public required string Username;
   }
 
   private sealed record class ResolveUsernameResponse
   {
-    [BsonElement("userId")]
     public required ObjectId? UserId;
   }
 

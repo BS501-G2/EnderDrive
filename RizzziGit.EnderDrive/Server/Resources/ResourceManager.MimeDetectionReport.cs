@@ -7,8 +7,7 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 public record class MimeDetectionReport : ResourceData
 {
   public required ObjectId FileId;
-  public required ObjectId FileContentId;
-  public required ObjectId FileSnapshotId;
+  public required ObjectId FileDataId;
 
   public required string? Mime;
 }
@@ -18,8 +17,7 @@ public sealed partial class ResourceManager
   public async ValueTask<Resource<MimeDetectionReport>> GetMimeDetectionReport(
     ResourceTransaction transaction,
     Resource<File> file,
-    Resource<FileContent> fileContent,
-    Resource<FileSnapshot> fileSnapshot
+    Resource<FileData> fileData
   )
   {
     Resource<MimeDetectionReport>? mimeDetectionReport = await Query<MimeDetectionReport>(
@@ -29,8 +27,7 @@ public sealed partial class ResourceManager
             .Where(
               (item) =>
                 item.FileId == file.Id
-                && item.FileContentId == fileContent.Id
-                && item.FileSnapshotId == fileSnapshot.Id
+                && item.FileDataId == fileData.Id
             )
             .OrderByDescending((item) => item.Id)
       )
@@ -43,8 +40,7 @@ public sealed partial class ResourceManager
         new()
         {
           FileId = file.Id,
-          FileContentId = fileContent.Id,
-          FileSnapshotId = fileSnapshot.Id,
+          FileDataId = fileData.Id,
           Mime = null,
         }
       );

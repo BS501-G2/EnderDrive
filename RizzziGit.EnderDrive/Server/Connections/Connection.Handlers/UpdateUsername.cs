@@ -8,7 +8,6 @@ public sealed partial class Connection
 {
   private sealed record class UpdateUsernameRequest
   {
-    [BsonElement("newUsername")]
     public required string NewUsername;
   }
 

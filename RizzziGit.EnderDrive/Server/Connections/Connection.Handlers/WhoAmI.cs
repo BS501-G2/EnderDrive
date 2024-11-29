@@ -1,8 +1,7 @@
-using MongoDB.Bson.Serialization.Attributes;
+
+using Newtonsoft.Json.Linq;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
-
-using Utilities;
 
 public sealed partial class Connection
 {
@@ -10,8 +9,7 @@ public sealed partial class Connection
 
   private sealed record class MeResponse
   {
-    [BsonElement("user")]
-    public required string? User;
+    public required JToken? User;
   }
 
   private AuthenticatedRequestHandler<MeRequest, MeResponse> Me =>

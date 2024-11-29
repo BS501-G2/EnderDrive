@@ -9,13 +9,11 @@ public sealed partial class Connection
 {
   private sealed record class IsUserAdminRequest
   {
-    [BsonElement("userId")]
     public required ObjectId? UserId;
   }
 
   private sealed record class IsUserAdminResponse
   {
-    [BsonElement("isAdmin")]
     public required bool IsAdmin;
   }
 

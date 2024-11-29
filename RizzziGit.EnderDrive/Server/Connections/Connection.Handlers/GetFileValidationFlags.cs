@@ -9,16 +9,12 @@ public sealed partial class Connection
 {
   private sealed record class GetFileNameValidationFlagsRequest
   {
-    [BsonElement("name")]
     public required string Name;
-
-    [BsonElement("parentId")]
     public required ObjectId ParentId;
   }
 
   private sealed record class GetFileNameValidationFlagsResponse
   {
-    [BsonElement("flags")]
     public FileNameValidationFlags Flags;
   }
 

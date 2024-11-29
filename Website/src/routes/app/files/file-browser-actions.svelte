@@ -36,7 +36,7 @@
     openStream,
     getFileAccessLevel,
     getFileContents,
-    getFileSnapshots,
+    getFileDataList: getFileSnapshots,
     getLatestFileSnapshot,
     getMainFileContent
   } = useServerContext()
@@ -235,7 +235,7 @@
       label="Permanently Delete"
       onclick={async () => {
         for (const fileId of nonReactiveSelectedFileIds) {
-          await server.deleteFile(fileId)
+          await server.fileDelete(fileId)
         }
 
         refresh?.()

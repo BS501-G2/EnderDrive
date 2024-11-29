@@ -10,25 +10,12 @@ public sealed partial class Connection
 {
   private sealed record class CreateAdminRequest()
   {
-    [BsonElement("username")]
     public required string Username;
-
-    [BsonElement("password")]
     public required string Password;
-
-    [BsonElement("confirmPassword")]
     public required string ConfirmPassword;
-
-    [BsonElement("lastName")]
     public required string LastName;
-
-    [BsonElement("firstName")]
     public required string FirstName;
-
-    [BsonElement("middleName")]
     public required string? MiddleName;
-
-    [BsonElement("displayName")]
     public required string? DisplayName;
   };
 

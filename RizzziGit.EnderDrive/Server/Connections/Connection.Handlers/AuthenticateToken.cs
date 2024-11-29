@@ -11,16 +11,12 @@ public sealed partial class Connection
 {
   private sealed record class AuthenticateTokenRequest
   {
-    [BsonElement("userId")]
     public required ObjectId UserId;
-
-    [BsonElement("token")]
     public required string Token;
   };
 
   private sealed record class AuthenticateTokenResponse
   {
-    [BsonElement("renewedToken")]
     public required string? RenewedToken;
   };
 

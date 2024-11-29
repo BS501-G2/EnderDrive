@@ -9,13 +9,11 @@ public sealed partial class Connection
 {
   private sealed record class GetFileAccessLevelRequest
   {
-    [BsonElement("fileId")]
     public required ObjectId FileId;
   }
 
   private sealed record class GetFileAccessLevelResponse
   {
-    [BsonElement("fileAccessLevel")]
     public required FileAccessLevel FileAccessLevel;
   }
 

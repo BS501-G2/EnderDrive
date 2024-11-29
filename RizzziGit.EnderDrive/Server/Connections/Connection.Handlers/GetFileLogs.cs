@@ -12,28 +12,15 @@ public sealed partial class Connection
 {
   private sealed record class GetFileLogsRequest
   {
-    [BsonElement("fileId")]
     public required ObjectId? FileId;
-
-    [BsonElement("fileContentId")]
-    public required ObjectId? FileContentId;
-
-    [BsonElement("fileSnapshotId")]
-    public required ObjectId? FileSnapshotId;
-
-    [BsonElement("userId")]
+    public required ObjectId? FileDataId;
     public required ObjectId? UserId;
-
-    [BsonElement("pagination")]
     public required PaginationOptions? Pagination;
-
-    [BsonElement("uniqueFileId")]
     public bool UniqueFileId;
   }
 
   private sealed record class GetFileLogsResponse
   {
-    [BsonElement("fileLogs")]
     public required string[] FileLogs;
   }
 
@@ -63,29 +50,18 @@ public sealed partial class Connection
           )
           : null;
 
-      Resource<FileContent>? fileContent =
-        request.FileContentId != null
-          ? await Internal_EnsureFirst(
-            transaction,
-            Resources.Query<FileContent>(
-              transaction,
-              (query) => query.Where((item) => item.Id == request.FileContentId)
-            )
-          )
-          : null;
-
-      Resource<FileSnapshot>? fileSnapshot = null;
+      Resource<FileData>? fileSnapshot = null;
 
       fileSnapshot =
-        request.FileSnapshotId != null
+        request.FileDataId != null
           ? await Internal_EnsureFirst(
             transaction,
-            Resources.Query<FileSnapshot>(
+            Resources.Query<FileData>(
               transaction,
               (query) =>
                 query.Where(
                   (item) =>
-                    (file == null || item.FileId == file.Id) && item.Id == request.FileSnapshotId
+                    (file == null || item.FileId == file.Id) && item.Id == request.FileDataId
                 )
             )
           )
@@ -99,8 +75,7 @@ public sealed partial class Connection
               .Where(
                 (item) =>
                   (file == null || item.FileId == file.Id)
-                  && (fileContent == null || item.FileContentId == fileContent.Id)
-                  && (fileSnapshot == null || item.FileSnapshotId == fileSnapshot.Id)
+                  && (fileSnapshot == null || item.FileDataId == fileSnapshot.Id)
                   && (user == null || item.ActorUserId == user.Id)
               )
               .OrderByDescending((fileLog) => fileLog.CreateTime)

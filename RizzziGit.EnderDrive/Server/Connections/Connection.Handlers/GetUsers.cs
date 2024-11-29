@@ -12,31 +12,17 @@ public sealed partial class Connection
 {
   private sealed record class GetUsersRequest
   {
-    [BsonElement("searchString")]
     public required string? SearchString;
-
-    [BsonElement("includeRole")]
     public required UserRole[]? IncludeRole;
-
-    [BsonElement("excludeRole")]
     public required UserRole[]? ExcludeRole;
-
-    [BsonElement("username")]
     public required string? Username;
-
-    [BsonElement("id")]
     public required ObjectId? Id;
-
-    [BsonElement("pagination")]
     public required PaginationOptions? Pagination;
-
-    [BsonElement("excludeSelf")]
     public bool ExcludeSelf = true;
   }
 
   private sealed record class GetUsersResponse
   {
-    [BsonElement("users")]
     public required string[] Users;
   }
 

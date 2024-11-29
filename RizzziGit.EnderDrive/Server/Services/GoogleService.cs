@@ -17,10 +17,10 @@ public sealed record class GoogleContext
   public required WaitQueue<GoogleService.Feed> Feed;
 }
 
-public sealed partial class GoogleService(Server server)
+public sealed partial class GoogleService(EnderDriveServer server)
   : Service<GoogleContext>("Google API", server)
 {
-  public Server Server => server;
+  public EnderDriveServer Server => server;
   public ResourceManager Resources => Server.Resources;
 
   public abstract record Feed

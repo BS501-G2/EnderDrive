@@ -18,7 +18,7 @@
     file: FileResource
     actions: Readable<FileBrowserAction[]>
   } = $props()
-  const { getFile, getFileContents, getFileSnapshots, scanFile } = useServerContext()
+  const { getFile, getFileContents, getFileDataList: getFileSnapshots, scanFile } = useServerContext()
   const { setFileListContext } = useFileBrowserContext()
 
   const { isMobile, isDesktop } = useAppContext()

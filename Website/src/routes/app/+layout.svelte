@@ -20,7 +20,6 @@
   import { writable } from 'svelte/store'
   import InstallButtonDesktop from './install-button-desktop.svelte'
   import AppButton from './app-button.svelte'
-  import { createSyncContext } from './sync'
   import News from './news.svelte'
   const {
     mobileAppButtons,
@@ -52,10 +51,6 @@
   }: {
     children: Snippet
   } = $props()
-
-  if ('showOpenFilePicker' in window) {
-    createSyncContext(useServerContext())
-  }
 
   const logoutConfirmation = writable(false)
 

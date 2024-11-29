@@ -11,7 +11,6 @@ public sealed partial class Connection
 
   private sealed record class GetFileStarResponse
   {
-    [BsonElement("starred")]
     public required bool Starred;
   }
 

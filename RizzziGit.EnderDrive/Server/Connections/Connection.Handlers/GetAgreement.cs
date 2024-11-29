@@ -8,7 +8,6 @@ public sealed partial class Connection
 
   private sealed record class GetAgreementResponse
   {
-    [BsonElement("agreed")]
     public required bool Agreed;
   }
 

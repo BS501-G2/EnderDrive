@@ -2,22 +2,20 @@ using System;
 using System.Linq;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
-using Newtonsoft.Json.Linq;
-using RizzziGit.EnderDrive.Server.Resources;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
+
+using Resources;
 
 public sealed partial class Connection
 {
   private sealed record class CreateFolderRequest : BaseFileRequest
   {
-    [BsonElement("name")]
     public required string Name;
   }
 
   private sealed record class CreateFolderResponse
   {
-    [BsonElement("file")]
     public required string File;
   }
 
@@ -46,15 +44,15 @@ public sealed partial class Connection
           .AnyAsync(transaction.CancellationToken)
       )
       {
-        throw new ConnectionResponseException(
-          ResponseCode.FileNameConflict,
-          new ConnectionResponseExceptionData.FileNameConflict() { Name = request.Name }
-        );
+        throw new FileNameConflictException()
+        {
+          Name = request.Name,
+          ParentFileId = request.FileId
+        };
       }
 
       UnlockedFile newFile = await Resources.CreateFile(
         transaction,
-        me,
         fileAccess.UnlockedFile,
         FileType.Folder,
         request.Name

@@ -76,12 +76,8 @@ public sealed partial class ResourceManager
 
   private static byte[] HashPayload(byte[] salt, int iterations, byte[] payload)
   {
-    using Rfc2898DeriveBytes rfc2898DeriveBytes = new(
-      payload,
-      salt,
-      iterations,
-      HashAlgorithmName.SHA256
-    );
+    using Rfc2898DeriveBytes rfc2898DeriveBytes =
+      new(payload, salt, iterations, HashAlgorithmName.SHA256);
 
     return rfc2898DeriveBytes.GetBytes(32);
   }

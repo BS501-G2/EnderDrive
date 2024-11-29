@@ -1,62 +1,24 @@
-using System;
 using System.Collections.Concurrent;
-using System.IO;
 using System.Net.WebSockets;
-using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
-using MongoDB.Bson.IO;
-using MongoDB.Bson.Serialization;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
-using Commons.Memory;
-using Commons.Net.WebConnection;
+using Commons.Collections;
 using Commons.Services;
 using Core;
-using MongoDB.Bson;
 using Resources;
 
 public sealed partial class ConnectionContext
 {
-  public required WebConnection Internal;
-
   public required UnlockedUserAuthentication? CurrentUser;
 
-  public required ConcurrentDictionary<ServerSideRequestCode, RawRequestHandler> Handlers;
-
-  public required ulong NextFileStreamId;
-  public required ConcurrentDictionary<ObjectId, ConnectionByteStream> FileStreams;
-}
-
-public sealed partial class ConnectionPacket<T>
-  where T : Enum
-{
-  public static ConnectionPacket<T> Deserialize(CompositeBuffer bytes) =>
-    new() { Code = (T)Enum.ToObject(typeof(T), bytes[0]), Data = bytes.Slice(1) };
-
-  public static ConnectionPacket<T> Create<V>(T code, V data)
-  {
-    using MemoryStream stream = new();
-    using BsonBinaryWriter writer = new(stream);
-    BsonSerializer.Serialize(writer, data);
-
-    return new() { Code = code, Data = stream.ToArray() };
-  }
-
-  public required T Code;
-  public required CompositeBuffer Data;
-
-  public V DeserializeData<V>()
-  {
-    using MemoryStream stream = new(Data.ToByteArray());
-    using BsonBinaryReader reader = new(stream);
-
-    return BsonSerializer.Deserialize<V>(reader);
-  }
-
-  public CompositeBuffer Serialize() =>
-    CompositeBuffer.Concat(new byte[] { Convert.ToByte(Code) }, Data);
+  public required WaitQueue<Connection.WorkerFeed> WorkerFeed;
+  public required ConcurrentDictionary<string, RawRequestHandler> Handlers;
+  public required ConcurrentDictionary<string, TaskCompletionSource<byte[]>> PendingRequests;
 }
 
 public sealed partial class Connection(
@@ -66,7 +28,7 @@ public sealed partial class Connection(
 ) : Service<ConnectionContext>($"Connection #{connectionId}")
 {
   public ConnectionManager Manager => manager;
-  public Server Server => Manager.Server;
+  public EnderDriveServer Server => Manager.Server;
   public ResourceManager Resources => Server.Resources;
   public UnlockedUserAuthentication? CurrentUser => GetContext().CurrentUser;
 
@@ -75,24 +37,16 @@ public sealed partial class Connection(
     CancellationToken serviceCancellationToken
   )
   {
-    WebConnection connection = new(
-      webSocket,
-      new() { Name = $"Connection #{ConnectionId}", Logger = ((IService)manager).Logger }
-    );
+    ConnectionContext context =
+      new()
+      {
+        CurrentUser = null,
+        Handlers = new(),
+        PendingRequests = new(),
+        WorkerFeed = new()
+      };
 
-    await StartServices([connection], startupCancellationToken);
-
-    ConnectionContext context = new()
-    {
-      Internal = connection,
-      CurrentUser = null,
-      Handlers = new(),
-
-      NextFileStreamId = 0,
-      FileStreams = new(),
-    };
-
-    RegisterHandlers(context);
+    RegisterHandlers();
 
     return context;
   }
@@ -106,35 +60,11 @@ public sealed partial class Connection(
   {
     Task[] tasks =
     [
-      WatchService(context.Internal, serviceCancellationToken),
-      RunWorker(context, serviceCancellationToken),
+      RunReceiveLoop(context, serviceCancellationToken),
+      RunWorker(context, serviceCancellationToken)
     ];
 
-    await await Task.WhenAny(tasks);
-  }
-
-  private async Task RunWorker(ConnectionContext context, CancellationToken cancellationToken)
-  {
-    while (true)
-    {
-      cancellationToken.ThrowIfCancellationRequested();
-
-      WebConnectionRequest? request = await context.Internal.ReceiveRequest(cancellationToken);
-
-      if (request == null)
-      {
-        break;
-      }
-
-      _ = Task.Run(() => HandleRequest(context, request, cancellationToken), cancellationToken);
-    }
-  }
-
-  protected override async Task OnStop(ConnectionContext context, ExceptionDispatchInfo? exception)
-  {
-    await Internal_CloseAllStreams();
-    context.FileStreams.Clear();
-
-    await StopServices(context.Internal);
+    await Task.WhenAny(tasks);
+    WaitTasksBeforeStopping.AddRange(tasks);
   }
 }

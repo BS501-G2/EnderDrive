@@ -33,10 +33,10 @@ public abstract record ConnectionManagerFeed
   public sealed record Error(ExceptionDispatchInfo Exception) : ConnectionManagerFeed();
 }
 
-public sealed partial class ConnectionManager(Server server)
+public sealed partial class ConnectionManager(EnderDriveServer server)
   : Service<ConnectionManagerContext>("Connections", server)
 {
-  public Server Server => server;
+  public EnderDriveServer Server => server;
 
   protected override Task<ConnectionManagerContext> OnStart(
     CancellationToken startupCancellationToken,

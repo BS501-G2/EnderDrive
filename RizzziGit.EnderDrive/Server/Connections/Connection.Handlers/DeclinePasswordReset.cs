@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
@@ -9,7 +10,6 @@ public sealed partial class Connection
 {
   private sealed record class DeclinePasswordResetRequestRequest
   {
-    [BsonElement("passwordResetRequestId")]
     public required ObjectId PasswordResetRequestId;
   }
 
@@ -34,11 +34,7 @@ public sealed partial class Connection
 
       if (passwordResetRequest.Data.Status != PasswordResetRequestStatus.Pending)
       {
-        throw new ConnectionResponseException(
-          ResponseCode.InvalidOperation,
-          new ConnectionResponseExceptionData.InvalidOperation() { },
-          "Password reset request is not pending"
-        );
+        throw new InvalidOperationException("Specified password reset request is not pending.");
       }
 
       await passwordResetRequest.Update(

@@ -11,16 +11,12 @@ public sealed partial class Connection
 {
   private sealed record class AuthenticateGoogleRequest
   {
-    [BsonElement("token")]
     public required string Token;
   }
 
   private sealed record class AuthenticateGoogleResponse
   {
-    [BsonElement("userId")]
     public required string UserId;
-
-    [BsonElement("token")]
     public required string Token;
   }
 

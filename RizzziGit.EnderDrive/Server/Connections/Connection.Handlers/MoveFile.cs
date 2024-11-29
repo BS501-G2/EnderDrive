@@ -11,10 +11,7 @@ public sealed partial class Connection
 {
   private sealed record MoveFileRequest : BaseFileRequest
   {
-    [BsonElement("newParentId")]
     public required ObjectId? NewParentId;
-
-    [BsonElement("newName")]
     public required string? NewName;
   }
 
@@ -52,6 +49,7 @@ public sealed partial class Connection
       }
 
       string newName = request.NewName ?? fileAccess.UnlockedFile.File.Data.Name;
+      ObjectId checkParentId = (newParent != null ? newParent.Id : oldParent.Id);
 
       if (
         await Resources
@@ -60,7 +58,7 @@ public sealed partial class Connection
             (query) =>
               query.Where(
                 (file) =>
-                  file.ParentId == (newParent != null ? newParent.Id : oldParent.Id)
+                  file.ParentId == checkParentId
                   && file.TrashTime == null
                   && file.Name.Equals(newName, StringComparison.OrdinalIgnoreCase)
               )
@@ -68,10 +66,7 @@ public sealed partial class Connection
           .AnyAsync(transaction.CancellationToken)
       )
       {
-        throw new ConnectionResponseException(
-          ResponseCode.FileNameConflict,
-          new ConnectionResponseExceptionData.FileNameConflict() { Name = newName }
-        );
+        throw new FileNameConflictException() { Name = newName, ParentFileId = checkParentId };
       }
 
       if (newParentAccessResult != null)

@@ -14,21 +14,22 @@
 <FileBrowserPropertiesTab label="File Revisions" icon={{ icon: 'history', thickness: 'solid' }}>
   {#await (async () => {
     const fileContent = await server.getMainFileContent(file.file.id)
-    const fileSnapshots = await server.getFileSnapshots(file.file.id, fileContent.id)
+    const fileSnapshots = await server.getFileDataList(file.file.id, fileContent.id)
 
     return { fileSnapshots }
   })() then { fileSnapshots }}
     <div class="list">
       {#each fileSnapshots as fileSnapshot}
-      {#if fileSnapshot.size > 0}
-      <p>
-        <a href="/app/files?fileId={file.file.id}&snapshotId={fileSnapshot.id}"
-          >{moment(new Date(fileSnapshot.createTime))}</a
-        >
-        by <UserLink userId={fileSnapshot.authorUserId} />
-      </p>
-
-      {/if}
+        {#if fileSnapshot.size > 0}
+          <p>
+            Revision
+            <a href="/app/files?fileId={file.file.id}&snapshotId={fileSnapshot.id}">
+              #{fileSnapshot.id.slice(fileSnapshot.id.length - 4, fileSnapshot.id.length)}
+            </a>
+            by <UserLink userId={fileSnapshot.authorUserId} />
+            {moment(new Date(fileSnapshot.createTime)).fromNow()}
+          </p>
+        {/if}
       {/each}
     </div>
   {/await}

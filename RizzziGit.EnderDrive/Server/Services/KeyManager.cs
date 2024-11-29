@@ -19,7 +19,7 @@ public sealed class KeyGeneratorParams
   public required WaitQueue<Aes> SymmetricKeys;
 }
 
-public sealed class KeyManager(Server server) : Service<KeyGeneratorParams>("Key Manager", server)
+public sealed class KeyManager(EnderDriveServer server) : Service<KeyGeneratorParams>("Key Manager", server)
 {
   private static async Task RunAsymmetricKeyGenerator(
     WaitQueue<RSA> queue,

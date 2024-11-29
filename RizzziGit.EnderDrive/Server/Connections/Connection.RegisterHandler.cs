@@ -1,6 +1,9 @@
 using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using MongoDB.Bson.IO;
+using MongoDB.Bson.Serialization;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
@@ -8,33 +11,29 @@ public sealed partial class Connection
 {
   private delegate Task<R> RequestHandler<S, R>(S request, CancellationToken cancellationToken);
 
-  private static void RegisterHandler<S, R>(
-    ConnectionContext context,
-    ServerSideRequestCode code,
-    RequestHandler<S, R> handler
-  )
-  {
-    if (
-      !context.Handlers.TryAdd(
-        code,
-        async (requestBuffer, cancellationToken) =>
+  private void RegisterHandler<S, R>(string name, RequestHandler<S, R> handler) =>
+    RegisterRawRequestHandler(
+      name,
+      async (rawRequest, cancellationToken) =>
+      {
+        static T deserialize<T>(byte[] bytes)
         {
-          try
-          {
-            S request = requestBuffer.DeserializeData<S>();
-            R response = await handler(request, cancellationToken);
+          using MemoryStream stream = new(bytes);
+          using BsonBinaryReader reader = new(stream);
 
-            return ConnectionPacket<ResponseCode>.Create(ResponseCode.OK, response);
-          }
-          catch (ConnectionResponseException exception)
-          {
-            return ConnectionPacket<ResponseCode>.Create(exception.Code, exception.Data);
-          }
+          return BsonSerializer.Deserialize<T>(reader);
         }
-      )
-    )
-    {
-      throw new InvalidOperationException("Handler is already added.");
-    }
-  }
+
+        static byte[] serialize<T>(T obj)
+        {
+          using MemoryStream stream = new();
+          using BsonBinaryWriter writer = new(stream);
+
+          BsonSerializer.Serialize(writer, obj);
+          return stream.ToArray();
+        }
+
+        return serialize(await handler(deserialize<S>(rawRequest), cancellationToken));
+      }
+    );
 }

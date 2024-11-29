@@ -9,13 +9,11 @@ public sealed partial class Connection
 {
   private sealed record class GetRootIdRequest
   {
-    [BsonElement("userId")]
     public required ObjectId UserId;
   }
 
   private sealed record class GetRootIdResponse
   {
-    [BsonElement("fileId")]
     public required ObjectId? FileId;
   }
 

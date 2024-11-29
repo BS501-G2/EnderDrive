@@ -1,35 +1,27 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using MimeDetective.Storage;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
-using MimeDetective.Storage;
-using Newtonsoft.Json.Linq;
 using Resources;
-using Utilities;
 using FileType = Resources.FileType;
 
 public sealed partial class Connection
 {
   private sealed record CreateNewsRequest
   {
-    [BsonElement("title")]
     public required string Title;
-
-    [BsonElement("imageFileId")]
     public required ObjectId ImageFileId;
-
-    [BsonElement("publishTime")]
     [BsonRepresentation(BsonType.DateTime)]
     public required DateTimeOffset? PublishTime;
   }
 
   private sealed record CreateNewsResponse
   {
-    [BsonElement("news")]
     public required string News;
   }
 
@@ -70,28 +62,19 @@ public sealed partial class Connection
         throw new InvalidOperationException("File is in the trash.");
       }
 
-      Resource<FileContent> fileContent = await Resources.GetMainFileContent(transaction, file);
-
-      Resource<FileSnapshot> fileSnapshot =
+      Resource<FileData> fileSnapshot =
         await Resources
-          .Query<FileSnapshot>(
+          .Query<FileData>(
             transaction,
             (query) =>
               query.Where((item) => item.FileId == file.Id).OrderByDescending((item) => item.Id)
           )
           .FirstOrDefaultAsync(transaction.CancellationToken)
-        ?? await Resources.CreateFileSnapshot(
-          transaction,
-          UnlockedFile.WithAesKey(file, fileAccess.Data.EncryptedAesKey),
-          fileContent,
-          userAuthentication,
-          null
-        );
+        ?? throw new InvalidOperationException("File does not yet have content.");
 
       Definition? mimeResult = await Server.MimeDetector.Inspect(
         transaction,
         UnlockedFile.WithAesKey(file, fileAccess.Data.EncryptedAesKey),
-        fileContent,
         fileSnapshot
       );
 
@@ -108,7 +91,6 @@ public sealed partial class Connection
         transaction,
         request.Title,
         fileAccessResult.UnlockedFile,
-        fileContent,
         fileSnapshot,
         me,
         request.PublishTime

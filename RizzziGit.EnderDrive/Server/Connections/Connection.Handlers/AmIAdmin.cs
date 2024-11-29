@@ -3,16 +3,13 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
-using Resources;
-
 public sealed partial class Connection
 {
   private sealed record class AmIAdminRequest { }
 
   private sealed record class AmIAdminResponse
   {
-    [BsonElement("isAdmin")]
-    public required bool isAdmin;
+    public required bool IsAdmin;
   }
 
   private AuthenticatedRequestHandler<AmIAdminRequest, AmIAdminResponse> AmIAdmin =>
@@ -20,6 +17,6 @@ public sealed partial class Connection
     {
       ConnectionContext context = GetContext();
 
-      return new() { isAdmin = myAdminAccess != null };
+      return new() { IsAdmin = myAdminAccess != null };
     };
 }

@@ -11,10 +11,7 @@ public sealed partial class Connection
 {
   private sealed record class SetFileAccessRequest : BaseFileRequest
   {
-    [BsonElement("targetUserId")]
     public required ObjectId? TargetUserId;
-
-    [BsonElement("level")]
     public required FileAccessLevel Level;
   }
 

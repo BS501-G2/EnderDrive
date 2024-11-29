@@ -14,8 +14,6 @@ public sealed partial class Connection
   > Deauthenticate =>
     async (_, _, _, _, _) =>
     {
-      await Internal_CloseAllStreams();
-
       GetContext().CurrentUser = null;
       return new();
     };

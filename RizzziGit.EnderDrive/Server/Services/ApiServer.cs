@@ -25,10 +25,10 @@ public sealed partial class ApiServerParams
   public required SocketIoBridge SocketIoBridge;
 }
 
-public sealed partial class ApiServer(Server server, int httpPort, int httpsPort)
+public sealed partial class ApiServer(EnderDriveServer server, int httpPort, int httpsPort)
   : Service<ApiServerParams>("API", server)
 {
-  public Server Server => server;
+  public EnderDriveServer Server => server;
 
   protected override async Task<ApiServerParams> OnStart(
     CancellationToken startupCancellationToken,

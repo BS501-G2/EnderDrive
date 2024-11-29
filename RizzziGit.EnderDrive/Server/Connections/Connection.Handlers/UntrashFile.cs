@@ -38,13 +38,11 @@ public sealed partial class Connection
           .AnyAsync(transaction)
       )
       {
-        throw new ConnectionResponseException(
-          ResponseCode.FileNameConflict,
-          new ConnectionResponseExceptionData.FileNameConflict()
-          {
-            Name = fileAccess.UnlockedFile.File.Data.Name,
-          }
-        );
+        throw new FileNameConflictException()
+        {
+          Name = fileAccess.UnlockedFile.File.Data.Name,
+          ParentFileId = fileAccess.UnlockedFile.File.Id
+        };
       }
 
       fileAccess.UnlockedFile.File.Data.TrashTime = null;

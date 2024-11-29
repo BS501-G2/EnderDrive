@@ -12,11 +12,8 @@ public record class VirusReport : ResourceData
   [JsonProperty("fileId")]
   public required ObjectId FileId;
 
-  [JsonProperty("fileContentId")]
-  public required ObjectId FileContentId;
-
-  [JsonProperty("fileSnapshotId")]
-  public required ObjectId FileSnapshotId;
+  [JsonProperty("fileDataId")]
+  public required ObjectId FileDataId;
 
   [JsonProperty("status")]
   public required VirusReportStatus Status;
@@ -37,8 +34,7 @@ public sealed partial class ResourceManager
   public async ValueTask<Resource<VirusReport>> GetVirusReport(
     ResourceTransaction transaction,
     Resource<File> file,
-    Resource<FileContent> fileContent,
-    Resource<FileSnapshot> fileSnapshot
+    Resource<FileData> fileSnapshot
   )
   {
     Resource<VirusReport>? virusReport = await Query<VirusReport>(
@@ -48,8 +44,7 @@ public sealed partial class ResourceManager
             .Where(
               (virusReport) =>
                 virusReport.FileId == file.Id
-                && virusReport.FileContentId == fileContent.Id
-                && virusReport.FileSnapshotId == fileSnapshot.Id
+                && virusReport.FileDataId == fileSnapshot.Id
             )
             .OrderByDescending((item) => item.Id)
       )
@@ -62,8 +57,7 @@ public sealed partial class ResourceManager
         new()
         {
           FileId = file.Id,
-          FileContentId = fileContent.Id,
-          FileSnapshotId = fileSnapshot.Id,
+          FileDataId = fileSnapshot.Id,
           Status = VirusReportStatus.Pending,
           Viruses = null,
         }

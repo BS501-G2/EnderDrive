@@ -4,14 +4,13 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
+using Resources;
+
 public sealed partial class Connection
 {
   private sealed record class SetPositionRequest
   {
-    [BsonElement("streamId")]
     public required ObjectId StreamId;
-
-    [BsonElement("newPosition")]
     public required long NewPosition;
   }
 
@@ -22,12 +21,17 @@ public sealed partial class Connection
     {
       ConnectionContext context = GetContext();
 
-      if (!context.FileStreams.TryGetValue(request.StreamId, out ConnectionByteStream? stream))
+      if (
+        !Resources.TryGetActiveFileStream(
+          request.StreamId,
+          out ResourceManager.FileResourceStream? stream
+        )
+      )
       {
         throw new InvalidOperationException("File stream not found.");
       }
 
-      await stream.SetPosition(request.NewPosition, cancellationToken);
+      await stream.SeekAsync(request.NewPosition, System.IO.SeekOrigin.Begin, cancellationToken);
 
       return new();
     };

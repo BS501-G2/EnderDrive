@@ -17,7 +17,7 @@ import { page } from '$app/stores'
   } = $props()
   const {
     getFileContents,
-    getFileSnapshots,
+    getFileDataList: getFileSnapshots,
     getLatestFileSnapshot,
     getFile,
     scanFile,

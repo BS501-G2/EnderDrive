@@ -11,10 +11,7 @@ public sealed partial class Connection
 {
   private sealed record class RequestPasswordResetRequest
   {
-    [BsonElement("userId")]
     public required ObjectId? UserId;
-
-    [BsonElement("username")]
     public required string? Username;
   }
 

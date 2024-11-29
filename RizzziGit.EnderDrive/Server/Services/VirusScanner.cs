@@ -27,7 +27,7 @@ public sealed class VirusScannerContext
   public required VirusScanner.TcpForwarder TcpForwarder;
 }
 
-public sealed partial class VirusScanner(Server server, string unixSocketPath)
+public sealed partial class VirusScanner(EnderDriveServer server, string unixSocketPath)
   : Service<VirusScannerContext>("Virus Scanner", server)
 {
   protected override async Task<VirusScannerContext> OnStart(
@@ -150,23 +150,20 @@ public sealed partial class VirusScanner(Server server, string unixSocketPath)
   public async Task<Resource<VirusReport>> Scan(
     ResourceTransaction transaction,
     UnlockedFile file,
-    Resource<FileContent> fileContent,
-    Resource<FileSnapshot> fileSnapshot,
+    Resource<FileData> fileData,
     bool forceRescan
   )
   {
     Resource<VirusReport> virusReport = await server.Resources.GetVirusReport(
       transaction,
       file.File,
-      fileContent,
-      fileSnapshot
+      fileData
     );
 
     MimeDetective.Storage.Definition? definition = await server.MimeDetector.Inspect(
       transaction,
       file,
-      fileContent,
-      fileSnapshot
+      fileData
     );
 
     if (
@@ -191,12 +188,7 @@ public sealed partial class VirusScanner(Server server, string unixSocketPath)
     {
       try
       {
-        using Stream stream = await server.Resources.CreateReadStream(
-          transaction,
-          file,
-          fileContent,
-          fileSnapshot
-        );
+        using Stream stream = server.Resources.CreateFileStream(file, fileData);
 
         ScanResult result = await Scan(stream, transaction.CancellationToken);
 

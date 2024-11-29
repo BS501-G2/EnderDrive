@@ -8,7 +8,6 @@ public sealed partial class Connection
 
   private sealed record class AmILoggedInResponse
   {
-    [BsonElement("isLoggedIn")]
     public required bool IsLoggedIn;
   }
 

@@ -1,10 +1,10 @@
+using System;
 using System.Threading.Tasks;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
-using System;
 using Resources;
 
 public sealed partial class Connection
@@ -26,16 +26,14 @@ public sealed partial class Connection
     where S : BaseFileRequest;
 
   private void RegisterFileHandler<S, R>(
-    ConnectionContext context,
-    ServerSideRequestCode code,
+    string name,
     FileRequestHandler<S, R> requestHandler,
     FileAccessLevel? fileAccessLevel = null,
     FileType? fileType = null
   )
     where S : BaseFileRequest =>
     RegisterAuthenticatedHandler<S, R>(
-      context,
-      code,
+      name,
       async (transaction, request, userAuthentication, me, myAdminAccess) =>
       {
         Resource<File> file = await Internal_GetFile(

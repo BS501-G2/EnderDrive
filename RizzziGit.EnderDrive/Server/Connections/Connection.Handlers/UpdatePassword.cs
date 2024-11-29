@@ -10,13 +10,8 @@ public sealed partial class Connection
 {
   private sealed partial class UpdatePasswordRequest
   {
-    [BsonElement("current-password")]
     public required string CurrentPassword;
-
-    [BsonElement("newPassword")]
     public required string NewPassword;
-
-    [BsonElement("confirm-password")]
     public required string ConfirmPassword;
   }
 

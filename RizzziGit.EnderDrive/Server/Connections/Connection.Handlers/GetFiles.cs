@@ -13,34 +13,18 @@ public sealed partial class Connection
 {
   private sealed record class GetFilesRequest
   {
-    [BsonElement("searchString")]
     public required string? SearchString;
-
-    [BsonElement("parentFolderId")]
     public required ObjectId? ParentFolderId;
-
-    [BsonElement("fileType")]
     public required FileType? FileType;
-
-    [BsonElement("ownerUserId")]
     public required ObjectId? OwnerUserId;
-
-    [BsonElement("name")]
     public required string? Name;
-
-    [BsonElement("id")]
     public required ObjectId? Id;
-
-    [BsonElement("trashOptions")]
     public TrashOptions TrashOptions = TrashOptions.NonInclusive;
-
-    [BsonElement("pagination")]
     public required PaginationOptions? Pagination;
   }
 
   private sealed record class GetFilesResponse
   {
-    [BsonElement("files")]
     public required string[] Files;
   }
 

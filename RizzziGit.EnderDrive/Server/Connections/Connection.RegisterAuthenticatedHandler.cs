@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
-using System;
 using Resources;
 
 public sealed partial class Connection
@@ -17,91 +16,58 @@ public sealed partial class Connection
   );
 
   private void RegisterAuthenticatedHandler<S, R>(
-    ConnectionContext context,
-    ServerSideRequestCode code,
+    string name,
     AuthenticatedRequestHandler<S, R> handler,
-    UserRole[]? requiredIncludeRole = null,
-    UserRole[]? requiredExcludeRole = null
+    UserRole[]? includeRole = null,
+    UserRole[]? excludeRole = null
   ) =>
     RegisterTransactedHandler<S, R>(
-      context,
-      code,
+      name,
       async (transaction, request) =>
       {
-        context = GetContext();
-
         UnlockedUserAuthentication unlockedUserAuthentication =
-          GetContext().CurrentUser
-          ?? throw new ConnectionResponseException(
-            ResponseCode.AuthenticationRequired,
-            new ConnectionResponseExceptionData.AuthenticationRequired()
-          );
+          GetContext().CurrentUser ?? throw new ConnectionResponseException("Login required.");
 
         Resource<User>? me =
           await Internal_Me(transaction, unlockedUserAuthentication)
-          ?? throw new ConnectionResponseException(
-            ResponseCode.AuthenticationRequired,
-            new ConnectionResponseExceptionData.AuthenticationRequired()
-          );
+          ?? throw new ConnectionResponseException("Login required.");
 
-        try
+        if (
+          (includeRole != null || excludeRole != null)
+          && !await Resources
+            .Query<AdminAccess>(transaction, (query) => query.Where((item) => item.UserId == me.Id))
+            .AnyAsync(transaction.CancellationToken)
+        )
         {
           if (
-            (requiredIncludeRole != null || requiredExcludeRole != null)
-            && !await Resources
-              .Query<AdminAccess>(
-                transaction,
-                (query) => query.Where((item) => item.UserId == me.Id)
-              )
-              .AnyAsync(transaction.CancellationToken)
+            (includeRole != null && !me.Data.Roles.Intersect(includeRole).Any())
+            || (excludeRole != null && me.Data.Roles.Intersect(excludeRole).Any())
           )
           {
-            if (requiredIncludeRole != null && !me.Data.Roles.Intersect(requiredIncludeRole).Any())
+            throw new InsufficientRoleException()
             {
-              throw new ConnectionResponseException(
-                ResponseCode.InsufficientRole,
-                new ConnectionResponseExceptionData.RequiredRoles()
-                {
-                  ExcludeRoles = requiredExcludeRole,
-                  IncludeRoles = requiredIncludeRole,
-                }
-              );
-            }
-
-            if (requiredExcludeRole != null && me.Data.Roles.Intersect(requiredExcludeRole).Any())
-            {
-              throw new ConnectionResponseException(
-                ResponseCode.InsufficientRole,
-                new ConnectionResponseExceptionData.RequiredRoles()
-                {
-                  ExcludeRoles = requiredExcludeRole,
-                  IncludeRoles = requiredIncludeRole,
-                }
-              );
-            }
+              IncludeRoles = includeRole,
+              ExcludeRoles = excludeRole
+            };
           }
-
-          Resource<AdminAccess>? adminAccess = await Resources
-            .Query<AdminAccess>(transaction, (query) => query.Where((item) => item.UserId == me.Id))
-            .FirstOrDefaultAsync(transaction.CancellationToken);
-
-          UnlockedAdminAccess? unlockedAdminAccess =
-            adminAccess != null
-              ? UnlockedAdminAccess.Unlock(adminAccess, unlockedUserAuthentication)
-              : null;
-
-          return await handler(
-            transaction,
-            request,
-            unlockedUserAuthentication,
-            me,
-            unlockedAdminAccess
-          );
         }
-        catch (Exception exception)
-        {
-          throw;
-        }
+
+        Resource<AdminAccess>? adminAccess = await Resources
+          .Query<AdminAccess>(transaction, (query) => query.Where((item) => item.UserId == me.Id))
+          .FirstOrDefaultAsync(transaction.CancellationToken);
+
+        UnlockedAdminAccess? unlockedAdminAccess =
+          adminAccess != null
+            ? UnlockedAdminAccess.Unlock(adminAccess, unlockedUserAuthentication)
+            : null;
+
+        return await handler(
+          transaction,
+          request,
+          unlockedUserAuthentication,
+          me,
+          unlockedAdminAccess
+        );
       }
     );
 }

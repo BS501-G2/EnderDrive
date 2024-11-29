@@ -9,16 +9,12 @@ public sealed partial class Connection
 {
   private sealed record class GetPasswordResetRequestsRequest
   {
-    [BsonElement("status")]
     public required PasswordResetRequestStatus? Status;
-
-    [BsonElement("pagination")]
     public required PaginationOptions? Pagination;
   }
 
   private sealed record class GetPasswordResetRequestsResponse
   {
-    [BsonElement("requests")]
     public required string[] Requests;
   }
 

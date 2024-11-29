@@ -8,13 +8,11 @@ public sealed partial class Connection
 {
   private sealed record class GetUsernameValidationFlagsRequest
   {
-    [BsonElement("username")]
     public required string Username;
   }
 
   private sealed record class GetUsernameValidationFlagsResponse
   {
-    [BsonElement("flags")]
     public required UsernameValidationFlags Flags;
   }
 

@@ -26,15 +26,14 @@ public sealed record class AudioTranscriptionContext
 public sealed record AudioTranscriptionRequest(
   TaskCompletionSource Source,
   UnlockedFile File,
-  Resource<FileContent> FileContent,
-  Resource<FileSnapshot> FileSnapshot,
+  Resource<FileData> FileData,
   Resource<AudioTranscription> AudioTranscription
 );
 
-public sealed partial class AudioTranscriber(Server server, string modelPath)
+public sealed partial class AudioTranscriber(EnderDriveServer server, string modelPath)
   : Service<AudioTranscriptionContext>("Audio Transcription", server)
 {
-  public Server Server => server;
+  public EnderDriveServer Server => server;
   public ResourceManager Resources => Server.Resources;
 
   protected override async Task<AudioTranscriptionContext> OnStart(
@@ -84,8 +83,7 @@ public sealed partial class AudioTranscriber(Server server, string modelPath)
       (
         TaskCompletionSource source,
         UnlockedFile file,
-        Resource<FileContent> fileContent,
-        Resource<FileSnapshot> fileSnapshot,
+        Resource<FileData> fileData,
         Resource<AudioTranscription> audioTranscription
       ) in context.WaitQueue.WithCancellation(serviceCancellationToken)
     )
@@ -94,15 +92,7 @@ public sealed partial class AudioTranscriber(Server server, string modelPath)
       {
         await Resources.Transact(
           (transaction) =>
-            InternalProcess(
-              transaction,
-              source,
-              file,
-              fileContent,
-              fileSnapshot,
-              factory,
-              audioTranscription
-            ),
+            InternalProcess(transaction, source, file, fileData, factory, audioTranscription),
           serviceCancellationToken
         );
       }
@@ -114,8 +104,7 @@ public sealed partial class AudioTranscriber(Server server, string modelPath)
     ResourceTransaction transaction,
     TaskCompletionSource source,
     UnlockedFile file,
-    Resource<FileContent> fileContent,
-    Resource<FileSnapshot> fileSnapshot,
+    Resource<FileData> fileData,
     WhisperFactory factory,
     Resource<AudioTranscription> audioTranscription
   )
@@ -132,26 +121,7 @@ public sealed partial class AudioTranscriber(Server server, string modelPath)
         transaction
       );
 
-      using MemoryStream memoryStream = new();
-
-      {
-        using Stream stream2 = await Resources.CreateReadStream(
-          transaction,
-          file,
-          fileContent,
-          fileSnapshot
-        );
-
-        await using Stream a = System.IO.File.OpenWrite("/tmp/test.wav");
-        await stream2.CopyToAsync(a);
-      }
-
-      using Stream stream = await Resources.CreateReadStream(
-        transaction,
-        file,
-        fileContent,
-        fileSnapshot
-      );
+      using Stream stream = Resources.CreateFileStream(file, fileData);
 
       AudioTranscriptionData[] data = [];
 
@@ -209,16 +179,10 @@ public sealed partial class AudioTranscriber(Server server, string modelPath)
   public async Task<Resource<AudioTranscription>> Process(
     ResourceTransaction transaction,
     UnlockedFile file,
-    Resource<FileContent> fileContent,
-    Resource<FileSnapshot> fileSnapshot
+    Resource<FileData> fileData
   )
   {
-    Definition? definition = await Server.MimeDetector.Inspect(
-      transaction,
-      file,
-      fileContent,
-      fileSnapshot
-    );
+    Definition? definition = await Server.MimeDetector.Inspect(transaction, file, fileData);
 
     if (
       !(
@@ -238,8 +202,7 @@ public sealed partial class AudioTranscriber(Server server, string modelPath)
     Resource<AudioTranscription> audioTranscription = await Resources.GetAudioTranscription(
       transaction,
       file.File,
-      fileContent,
-      fileSnapshot
+      fileData
     );
 
     if (audioTranscription.Data.Status == AudioTranscriptionStatus.NotRunning)
@@ -256,8 +219,7 @@ public sealed partial class AudioTranscriber(Server server, string modelPath)
             audioTranscription.Data.Status = AudioTranscriptionStatus.Pending;
             await audioTranscription.Save(transaction);
 
-            await GetContext()
-              .WaitQueue.Enqueue(new(source, file, fileContent, fileSnapshot, audioTranscription));
+            await GetContext().WaitQueue.Enqueue(new(source, file, fileData, audioTranscription));
 
             onStart.SetResult();
           }

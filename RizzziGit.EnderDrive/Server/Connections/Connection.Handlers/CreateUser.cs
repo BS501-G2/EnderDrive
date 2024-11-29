@@ -3,37 +3,23 @@ namespace RizzziGit.EnderDrive.Server.Connections;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using Resources;
-using RizzziGit.Commons.Memory;
+using Commons.Memory;
 
 public sealed partial class Connection
 {
   private sealed record class CreateUserRequest
   {
-    [BsonElement("username")]
     public required string Username;
-
-    [BsonElement("firstName")]
     public required string FirstName;
-
-    [BsonElement("middleName")]
     public required string? MiddleName;
-
-    [BsonElement("lastName")]
     public required string LastName;
-
-    [BsonElement("displayName")]
     public required string? DisplayName;
-
-    [BsonElement("password")]
     public required string? Password;
   }
 
   private sealed record class CreateUserResponse
   {
-    [BsonElement("userId")]
     public required ObjectId UserId;
-
-    [BsonElement("password")]
     public required string Password;
   }
 

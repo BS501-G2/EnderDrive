@@ -1,6 +1,7 @@
+using System.Threading.Tasks;
+
 namespace RizzziGit.EnderDrive.Server.Connections;
 
-using System.Threading.Tasks;
 using Resources;
 
 public sealed partial class Connection
@@ -14,27 +15,18 @@ public sealed partial class Connection
   );
 
   private void RegisterAdminHandler<S, R>(
-    ConnectionContext context,
-    ServerSideRequestCode code,
+    string name,
     AdminRequestHandler<S, R> handler,
     UserRole[]? requiredIncludeRole = null,
     UserRole[]? requiredExcludeRole = null
   ) =>
     RegisterAuthenticatedHandler<S, R>(
-      context,
-      code,
+      name,
       async (transaction, request, userAuthentication, me, myAdminAccess) =>
       {
         if (myAdminAccess == null)
         {
-          throw new ConnectionResponseException(
-            ResponseCode.InsufficientRole,
-            new ConnectionResponseExceptionData.RequiredRoles()
-            {
-              IncludeRoles = requiredIncludeRole,
-              ExcludeRoles = requiredExcludeRole,
-            }
-          );
+          throw new AdminRequired();
         }
 
         return await handler(transaction, request, userAuthentication, me, myAdminAccess);

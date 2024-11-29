@@ -18,11 +18,8 @@ public sealed record class FileLog : ResourceData
   [JsonProperty("fileId")]
   public required ObjectId FileId;
 
-  [JsonProperty("fileContentId")]
-  public required ObjectId? FileContentId;
-
-  [JsonProperty("fileSnapshotId")]
-  public required ObjectId? FileSnapshotId;
+  [JsonProperty("fileDataId")]
+  public required ObjectId? FileDataId;
 
   [JsonProperty("createTime")]
   public required DateTimeOffset CreateTime;
@@ -47,8 +44,7 @@ public sealed partial class ResourceManager
     Resource<File> file,
     Resource<User> actorUser,
     FileLogType type,
-    Resource<FileContent>? fileContent = null,
-    Resource<FileSnapshot>? fileSnapshot = null
+    Resource<FileData>? fileSnapshot = null
   )
   {
     Resource<FileLog> log = ToResource<FileLog>(
@@ -58,8 +54,7 @@ public sealed partial class ResourceManager
         Type = type,
         ActorUserId = actorUser.Id,
         FileId = file.Id,
-        FileContentId = fileContent?.Id,
-        FileSnapshotId = fileSnapshot?.Id,
+        FileDataId = fileSnapshot?.Id,
         CreateTime = DateTimeOffset.UtcNow,
       }
     );

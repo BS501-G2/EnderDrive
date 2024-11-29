@@ -9,10 +9,7 @@ public sealed partial class Connection
 {
   private sealed record class SetUserRolesRequest
   {
-    [BsonElement("userId")]
     public required ObjectId UserId;
-
-    [BsonElement("roles")]
     public required UserRole[] Roles;
   }
 
