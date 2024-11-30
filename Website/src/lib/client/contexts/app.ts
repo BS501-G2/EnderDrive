@@ -31,7 +31,7 @@ export function createAppContext() {
       title: string
     }[]
   > = writable([])
-  const pwaAvailable: Writable<{ pwa: boolean; install: () => void } | null> = writable(null)
+  const pwaAvailable: Writable<{ pwa: boolean; install: () => Promise<void> } | null> = writable(null)
 
   const context = setContext(appContextName, {
     pushOverlayContent: (view: Snippet, dim: boolean) => {

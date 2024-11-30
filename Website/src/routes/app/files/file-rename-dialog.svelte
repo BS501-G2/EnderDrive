@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { FileNameValidationFlags, useServerContext, type FileResource } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
+  import { FileNameValidationFlags, type FileResource } from '$lib/client/resource'
   import Button from '$lib/client/ui/button.svelte'
   import Input from '$lib/client/ui/input.svelte'
   import Window from '$lib/client/ui/window.svelte'
@@ -8,13 +9,16 @@
 
   const { file, ondismiss }: { file: FileResource; ondismiss: () => void } = $props()
 
-  const server = useServerContext()
+  const { server } = useClientContext()
 
   const rename = writable('')
   const errors = writable<string[]>([])
 
   async function check(name: string) {
-    const flags = await server.getFileNameValidationFlags(file.parentId, name)
+    const flags = await server.GetFileNameValidationFlags({
+      ParentId: file.ParentId!,
+      Name: name
+    })
     const newErrors: string[] = []
 
     if (flags & FileNameValidationFlags.FileExists) {

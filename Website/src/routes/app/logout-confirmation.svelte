@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { useClientContext } from '$lib/client/client'
   import Button from '$lib/client/ui/button.svelte'
   import Separator from '$lib/client/ui/separator.svelte'
   import Window from '$lib/client/ui/window.svelte'
@@ -9,8 +10,8 @@
   }: {
     ondismiss: () => void
   } = $props()
-  import { useServerContext } from '$lib/client/client'
-  const { deauthenticate } = useServerContext()
+
+  const { server } = useClientContext()
 </script>
 
 <Window {ondismiss} title="Logout Confirmation">
@@ -34,7 +35,7 @@
     <Button
       foreground={primaryForeground}
       onclick={async () => {
-        await deauthenticate()
+        await server.Deauthenticate({})
       }}>Yes</Button
     >
     <Button {foreground} onclick={ondismiss}>No</Button>

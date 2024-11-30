@@ -19,7 +19,7 @@ public sealed partial class Connection
     public required string File;
   }
 
-  private FileRequestHandler<CreateFolderRequest, CreateFolderResponse> CreateFolder =>
+  private FileRequestHandler<CreateFolderRequest, CreateFolderResponse> FolderCreate =>
     async (transaction, request, userAuthentication, me, myAdminAccess, fileAccess) =>
     {
       ConnectionContext context = GetContext();

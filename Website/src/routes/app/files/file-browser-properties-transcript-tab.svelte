@@ -1,30 +1,31 @@
 <script lang="ts">
-  import { AudioTranscriptionStatus, useServerContext, type FileResource } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client';
   import type { FileProperties } from '$lib/client/contexts/file-browser'
+  import { AudioTranscriptionStatus } from '$lib/client/resource'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import FileBrowserPropertiesTab from './file-browser-properties-tab.svelte'
 
   const { file }: { file: FileProperties } = $props()
-  const { transcribeAudio } = useServerContext()
+  const { server } = useClientContext()
 </script>
 
 <FileBrowserPropertiesTab
   label="Audio Transcript"
   icon={{ icon: 'microphone', thickness: 'solid' }}
 >
-  {#await transcribeAudio(file.file.id)}
+  {#await server.TranscribeAudio({FileId: file.file.Id})}
     <div class="loading">
       <LoadingSpinner size="3em" />
     </div>
-  {:then { text, status }}
+  {:then { Text, Status }}
     <div class="transcript">
-      <p><b>Status:</b> {AudioTranscriptionStatus[status]}</p>
-      {#if status === AudioTranscriptionStatus.Error}
+      <p><b>Status:</b> {AudioTranscriptionStatus[Status]}</p>
+      {#if Status === AudioTranscriptionStatus.Error}
         <p>Audio transcription only works on WAV files using 16KHz.</p>
       {:else}
         <p><b>Transcript:</b></p>
 
-        {#each text as entry}
+        {#each Text as entry}
           <p>{entry}</p>
         {/each}
       {/if}

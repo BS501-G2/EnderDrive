@@ -1,44 +1,44 @@
 <script lang="ts">
-  import {
-    useServerContext,
-    type FileContentResource,
-    type FileResource,
-    type FileDataResource
-  } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
+  import type { FileDataResource, FileResource } from '$lib/client/resource'
   import { writable, type Writable } from 'svelte/store'
 
   const {
     file,
-    fileContent,
-    fileSnapshot,
+    fileData,
     mime
   }: {
     mime: string
     file: FileResource
-    fileContent: FileContentResource
-    fileSnapshot: FileDataResource
+    fileData: FileDataResource
   } = $props()
-  const { openStream, getStreamPosition, getStreamSize, closeStream, readStream } =
-    useServerContext()
+  const { server } = useClientContext()
 
   const progress: Writable<[current: number, total: number]> = writable([0, 0])
 
   async function load(): Promise<string> {
-    const streamId = await openStream(file.id, fileContent.id, fileSnapshot.id)
-    const length = await getStreamSize(streamId)
+    const streamId = await server.StreamOpen({
+      FileId: file.Id,
+      FileDataId: fileData.Id,
+      ForWriting: false
+    })
+    const length = await server.StreamGetLength({ StreamId: streamId })
 
     let blob = new Blob()
     let offset = 0
 
     while (offset < length) {
-      const buffer = await readStream(streamId, 1024 * 1024)
+      const buffer = await server.StreamRead({
+        StreamId: streamId,
+        Length: 64 * 1024
+      })
       blob = new Blob([blob, buffer], { type: mime })
       offset += blob.size
 
       progress.set([offset, length])
     }
 
-    await closeStream(streamId)
+    await server.StreamClose({ StreamId: streamId })
 
     return URL.createObjectURL(blob)
   }

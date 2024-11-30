@@ -1,26 +1,33 @@
 <script lang="ts">
-  import { useServerContext } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
   import Button from '$lib/client/ui/button.svelte'
   import Input from '$lib/client/ui/input.svelte'
   import { onMount, type Snippet } from 'svelte'
   import { writable } from 'svelte/store'
   import AuthenticateDialogLoginForms from './authenticate-dialog-login-actions.svelte'
 
-  const { redirect, ondismiss, onreset }: { redirect: () => Promise<void>, ondismiss: () => void, onreset: ()=> void } = $props()
+  const {
+    redirect,
+    ondismiss,
+    onreset
+  }: { redirect: () => Promise<void>; ondismiss: () => void; onreset: () => void } = $props()
 
   const username = writable<string>('')
   const password = writable<string>('')
 
-  const { authenticatePassword, resolveUsername } = useServerContext()
-
+  const { server } = useClientContext()
   async function onclick() {
-    const userId = await resolveUsername($username)
+    const userId = await server.ResolveUsername({ Username: $username })
 
     if (userId == null) {
       throw new Error('Inavlid username or password.')
     }
 
-    await authenticatePassword(userId, $password)
+    await server.AuthenticatePassword({
+      UserId: userId,
+      Password: $password
+    })
+    
     ondismiss()
     await redirect()
   }

@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { useServerContext, type UserResource } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
+  import { type UserResource } from '$lib/client/resource'
   import Icon, { type IconOptions } from '$lib/client/ui/icon.svelte'
   import { type Snippet } from 'svelte'
   import Overlay from '../../../overlay.svelte'
@@ -32,7 +33,7 @@
   const y = $derived(
     menuButton.getBoundingClientRect().y + menuButton.getBoundingClientRect().height
   )
-  const server = useServerContext()
+  const { server } = useClientContext()
 </script>
 
 {#snippet menu(x?: number, y?: number, dim: boolean = false)}
@@ -54,7 +55,7 @@
       {/snippet}
 
       {@render button('Go To Profile', { icon: 'person', thickness: 'solid' }, () => {
-        goto(`/app/profile?id=${user.id}`)
+        goto(`/app/profile?id=${user.Id}`)
         ondismiss()
       })}
       {@render button('Manage Roles', { icon: 'users', thickness: 'solid' }, () => {
@@ -62,7 +63,7 @@
         ondismiss()
       })}
 
-      {#await server.getRootId(user.id) then rootId}
+      {#await server.getRootId(user.Id) then rootId}
         {#if rootId != null}
           {@render button('View Files', { icon: 'file', thickness: 'solid' }, async () => {
             await goto(`/app/files?fileId=${rootId}`)

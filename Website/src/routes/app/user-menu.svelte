@@ -1,21 +1,16 @@
 <script lang="ts">
-  import { useServerContext, type UserResource } from '$lib/client/client'
   import Button from '$lib/client/ui/button.svelte'
   import Icon, { type IconOptions } from '$lib/client/ui/icon.svelte'
   import { type Snippet } from 'svelte'
   import { goto } from '$app/navigation'
-  import LogoutConfirmation from './logout-confirmation.svelte'
 
   let {
-    user,
     ondismiss,
     logoutConfirmation = $bindable()
   }: {
-    user: UserResource
     ondismiss: () => void
     logoutConfirmation: boolean
   } = $props()
-  const { deauthenticate } = useServerContext()
 </script>
 
 {#snippet action(name: string, icon: IconOptions, onclick: () => void)}

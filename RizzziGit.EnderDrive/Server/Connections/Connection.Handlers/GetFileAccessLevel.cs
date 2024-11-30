@@ -14,7 +14,7 @@ public sealed partial class Connection
 
   private sealed record class GetFileAccessLevelResponse
   {
-    public required FileAccessLevel FileAccessLevel;
+    public required FileAccessLevel Level;
   }
 
   private AuthenticatedRequestHandler<
@@ -39,6 +39,6 @@ public sealed partial class Connection
         FileAccessLevel.None
       );
 
-      return new() { FileAccessLevel = fileAccessResult?.AccessLevel ?? FileAccessLevel.None };
+      return new() { Level = fileAccessResult?.AccessLevel ?? FileAccessLevel.None };
     };
 }

@@ -23,7 +23,6 @@ using Services;
 public abstract record ResourceData
 {
   [BsonId]
-  [JsonProperty("id")]
   public ObjectId Id;
 
   internal object ToJSON()

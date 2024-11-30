@@ -5,18 +5,18 @@
   import CreateNewsDialog from './create-news-dialog.svelte'
   import { writable, type Writable } from 'svelte/store'
   import EditNews from './edit-news.svelte'
-  import { useServerContext } from '$lib/client/client'
+
   import NewsEntry from './news-entry.svelte'
+  import { useClientContext } from '$lib/client/client'
 
   const { pushTitle, pushSidePanel } = useAdminContext()
   onMount(() => pushTitle('News'))
 
-  const server = useServerContext()
+  const { server } = useClientContext()
 
   const createDialog = writable<[newsId?: number] | null>(null)
   const editDialog: Writable<{ imageId: string; id: string | null } | null> = writable(null)
 </script>
-
 
 <CreateNewsButton
   onopen={() => {
@@ -30,7 +30,7 @@
   <CreateNewsDialog
     {newsId}
     onresult={(file) => {
-      $editDialog = { imageId: file.id, id: null }
+      $editDialog = { imageId: file.Id, id: null }
 
       $createDialog = null
     }}
@@ -50,12 +50,12 @@
 {/if}
 
 {#await (async () => {
-  const newsEntries = await server.getNews()
+  const newsIds = await server.GetNews({})
 
-  return { newsEntries }
-})() then { newsEntries }}
+  return { newsIds }
+})() then { newsIds }}
   <div class="page">
-    {#each newsEntries as newsId}
+    {#each newsIds as newsId}
       {#await server.getNewsEntry(newsId) then news}
         <NewsEntry {news} />
       {/await}

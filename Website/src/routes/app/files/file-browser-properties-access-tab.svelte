@@ -1,7 +1,7 @@
 <script lang="ts" module>
   export interface FileAccessEntry {
     access: FileAccessResource
-    user: UserResource | null
+    user?: UserResource
   }
 </script>
 
@@ -9,13 +9,7 @@
   import type { FileProperties } from '$lib/client/contexts/file-browser'
   import { writable, type Writable } from 'svelte/store'
   import FileBrowserPropertiesTab from './file-browser-properties-tab.svelte'
-  import {
-    FileAccessLevel,
-    useServerContext,
-    type FileAccessResource,
-    type FileResource,
-    type UserResource
-  } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import Button from '$lib/client/ui/button.svelte'
   import { type Snippet } from 'svelte'
@@ -24,21 +18,22 @@
   import FileBrowserPropertiesAccessTabEdit from './file-browser-properties-access-tab-edit.svelte'
   import Overlay from '../../overlay.svelte'
   import FileBrowserPropertiesAccessTabUserEntry from './file-browser-properties-access-tab-user-entry.svelte'
-
+  import { FileAccessLevel, type FileAccessResource, type FileResource, type UserResource } from '$lib/client/resource'
 
   const { file }: { file: FileProperties } = $props()
-  const { getFileAccesses, getUser, me } = useServerContext()
+  const { server } = useClientContext()
 
   async function load(): Promise<FileAccessEntry[]> {
-    const fileAccesses = await getFileAccesses({
-      targetFileId: file.file.id,
-      level: FileAccessLevel.Read,
-      includePublic: true
+    const fileAccesses = await server.GetFileAccesses({
+      TargetFileId: file.file.Id,
+      Level: FileAccessLevel.Read,
+      IncludePublic: true
     })
 
     return await Promise.all(
       fileAccesses.map(async (access): Promise<FileAccessEntry> => {
-        const user = access.targetUserId != null ? await getUser(access.targetUserId) : null
+        const user =
+          access.TargetUserId != null ? await server.GetUser({ UserId: access.TargetUserId }) : undefined
 
         return {
           access,
@@ -115,22 +110,22 @@
       {#await $promise}
         <LoadingSpinner size="3em" />
       {:then accesses}
-        {@const publicAccess = accesses.find(({ access }) => access.targetUserId == null)}
+        {@const publicAccess = accesses.find(({ access }) => access.TargetUserId == null)}
         {#if publicAccess != null}
           <FileBrowserPropertiesAccessTabUserEntry
             access={publicAccess}
             onedit={() => {
-              $editDialog = [null, file.file, publicAccess.access.level]
+              $editDialog = [null, file.file, publicAccess.access.Level]
               $showEditDialog = true
             }}
           />
         {/if}
 
-        {#each accesses.filter(({ access }) => access.targetUserId != null) as access}
+        {#each accesses.filter(({ access }) => access.TargetUserId != null) as access}
           <FileBrowserPropertiesAccessTabUserEntry
             {access}
             onedit={() => {
-              $editDialog = [access.user, file.file, access.access.level]
+              $editDialog = [access.user || null, file.file, access.access.Level]
               $showEditDialog = true
             }}
           />

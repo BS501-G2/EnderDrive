@@ -8,13 +8,14 @@
   import { writable } from 'svelte/store'
   import Window from '$lib/client/ui/window.svelte'
   import CreateUserDialog from './create-user-dialog.svelte'
-  import { UserRole, useServerContext } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
+  import { UserRole } from '$lib/client/resource'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import UserTable from './user-table.svelte'
 
   const { pushSidePanel, pushTitle } = useAdminContext()
   const { searchString, includeRole, excludeRole } = createUserContext()
-  const { getUsers } = useServerContext()
+  const { server } = useClientContext()
 
   onMount(() => pushTitle('Users'))
 
@@ -23,11 +24,11 @@
     includeRole: UserRole[] | null,
     excludeRole: UserRole[] | null
   ) {
-    const users = await getUsers({
-      searchString,
-      includeRole: includeRole ?? void 0,
-      excludeRole: excludeRole ?? void 0,
-      excludeSelf: false
+    const users = await server.GetUsers({
+      SearchString: searchString,
+      IncludeRole: includeRole ?? void 0,
+      ExcludeRole: excludeRole ?? void 0,
+      ExcludeSelf: false
     })
 
     return users

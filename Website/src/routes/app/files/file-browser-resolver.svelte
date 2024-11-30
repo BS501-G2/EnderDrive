@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { FileType, TrashOptions, useServerContext, type FileResource } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
   import {
     FileBrowserResolveType,
     useFileBrowserContext,
@@ -15,6 +15,7 @@
   import FileBrowserFileList from './file-browser-file-list.svelte'
   import FileBrowserFileView from './file-browser-file-view.svelte'
   import Button from '$lib/client/ui/button.svelte'
+  import { FileType, TrashOptions } from '$lib/client/resource'
 
   const {
     resolve,
@@ -25,8 +26,7 @@
     current: Writable<CurrentFile>
     actions: Readable<FileBrowserAction[]>
   } = $props()
-  const { getFiles, getFileAccesses, getFilePath, getFileStars, getFile, getFileMime, me } =
-    useServerContext()
+  const { server } = useClientContext()
   const { pushRefresh } = useFileBrowserContext()
 
   const displayedFiles = writable<FileEntry[]>([])
@@ -34,37 +34,46 @@
 
   async function load(resolve: FileBrowserResolve, offset?: number, count?: number): Promise<void> {
     const load = async (): Promise<CurrentFile> => {
-      const self = await me()
+      const me = await server.Me({})
 
       switch (resolve[0]) {
         case FileBrowserResolveType.File: {
           const [, fileId] = resolve
+          const targetId = (fileId ?? (await server.GetRootId({ UserId: me.Id })))!
+          const fileData = await server
+            .FileGetDataEntries({ FileId: targetId })
+            .then((result) => result[0])
 
-          const file = await getFile(fileId ?? void 0)
-          const path = await getFilePath(file.id)
+          const file = await server.GetFile({ FileId: targetId })
+          const path = await server.GetFilePath({ FileId: targetId })
 
-          if (file.type === FileType.File) {
+          if (file.Type === FileType.File) {
             return {
               type: 'file',
-              mime: await getFileMime(file.id, void 0, void 0),
+              mime: await server.FileGetMime({
+                FileId: targetId,
+                FileDataId: fileData.Id
+              }),
               path,
               file,
-              me: self
+              me: me
             }
-          } else if (file.type === FileType.Folder) {
-            const files = await getFiles(file.id, void 0, void 0, void 0, undefined, offset, count)
+          } else if (file.Type === FileType.Folder) {
+            const files = await server.GetFiles({
+              // file.id, void 0, void 0, void 0, undefined, offset, count
+            })
 
             return {
               type: 'folder',
               path,
               files: await Promise.all(
                 files.map(async (file): Promise<FileEntry> => {
-                  if (file.type === FileType.File) {
+                  if (file.Type === FileType.File) {
                     return {
                       type: 'file',
                       file
                     } as FileEntry
-                  } else if (file.type === FileType.Folder) {
+                  } else if (file.Type === FileType.Folder) {
                     return {
                       type: 'folder',
                       file
@@ -75,7 +84,7 @@
                 })
               ),
               file,
-              me: self
+              me: me
             }
           } else {
             throw new Error('Invalid file type.')
@@ -83,12 +92,20 @@
         }
 
         case FileBrowserResolveType.Shared: {
-          const fileAccesses = await getFileAccesses({ targetUserId: self.id, offset, count, includePublic: true })
+          const fileAccesses = await server.GetFileAccesses({
+            TargetUserId: me.Id,
+            IncludePublic: true,
+            Pagination: {
+              Offset: offset,
+              Count: count
+            }
+          })
+
           return {
             type: 'shared',
             files: await Promise.all(
               fileAccesses.map(async (fileAccess): Promise<FileEntry> => {
-                const file = await getFile(fileAccess.fileId)
+                const file = await server.GetFile({ FileId: fileAccess.FileId })
                 return {
                   type: 'shared',
                   file,
@@ -96,20 +113,24 @@
                 }
               })
             ),
-            me: self
+            me: me
           }
         }
 
         case FileBrowserResolveType.Starred: {
-          const fileStars = await getFileStars(undefined, self.id, offset, count)
-
-          console.log(fileStars)
+          const fileStars = await server.GetFileStars({
+            UserId: me.Id,
+            Pagination: {
+              Offset: offset,
+              Count: count
+            }
+          })
 
           return {
             type: 'starred',
             files: await Promise.all(
               fileStars.map(async (fileStar): Promise<FileEntry> => {
-                const file = await getFile(fileStar.fileId)
+                const file = await server.GetFile({ FileId: fileStar.FileId })
 
                 return {
                   type: 'starred',
@@ -118,20 +139,19 @@
                 }
               })
             ),
-            me: self
+            me: me
           }
         }
 
         case FileBrowserResolveType.Trash: {
-          const files = await getFiles(
-            void 0,
-            void 0,
-            void 0,
-            self.id,
-            TrashOptions.Exclusive,
-            offset,
-            count
-          )
+          const files = await server.GetFiles({
+            TrashOptions: TrashOptions.Exclusive,
+            OwnerUserId: me.Id,
+            Pagination: {
+              Offset: offset,
+              Count: count
+            }
+          })
 
           return {
             type: 'trash',
@@ -143,7 +163,7 @@
                 }
               })
             ),
-            me: self
+            me: me
           }
         }
       }
@@ -226,7 +246,7 @@
 {:else if $current.type === 'folder' || $current.type === 'shared' || $current.type === 'starred' || $current.type === 'trash'}
   <FileBrowserFileList displayedFiles={$displayedFiles} current={$current} />
 {:else if $current.type === 'file'}
-  <FileBrowserFileView file={$current.file} {actions} />
+  <FileBrowserFileView file={$current.file} />
 {/if}
 
 <style lang="scss">

@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { FileType, type FileResource } from '$lib/client/client'
   import Icon from '$lib/client/ui/icon.svelte'
   import Separator from '$lib/client/ui/separator.svelte'
   import { writable } from 'svelte/store'
   import FileBrowserPathMenu from './file-browser-path-menu.svelte'
+  import { FileType, type FileResource } from '$lib/client/resource'
 
   const {
     file
@@ -17,18 +17,18 @@
 
 <div class="list-entry">
   <div class="icon">
-    <Icon icon={file.type === FileType.Folder ? 'folder' : 'file'} size="1em" />
+    <Icon icon={file.Type === FileType.Folder ? 'folder' : 'file'} size="1em" />
   </div>
 
   <div class="name">
-    <a href="/app/files?fileId={file.id}">
-      <p class="name" title={file.name}>
-        {file.name}
+    <a href="/app/files?fileId={file.Id}">
+      <p class="name" title={file.Name}>
+        {file.Name}
       </p>
     </a>
   </div>
 
-  {#if file.type === FileType.Folder}
+  {#if file.Type === FileType.Folder}
     <Separator vertical />
 
     <button

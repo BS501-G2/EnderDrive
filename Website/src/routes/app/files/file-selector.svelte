@@ -4,13 +4,12 @@
     FileBrowserResolveType,
     type FileBrowserOptions,
     type FileBrowserResolve,
-
     type FileEntry
-
   } from '$lib/client/contexts/file-browser'
   import { derived, writable, type Writable } from 'svelte/store'
   import FileSelectorInner from './file-selector-inner.svelte'
-  import { FileType, useServerContext, type FileResource } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
+  import { FileType, type FileResource } from '$lib/client/resource'
 
   const {
     maxFileCount,
@@ -26,7 +25,7 @@
     oncancel: () => void
   } = $props()
 
-  const { getFile } = useServerContext()
+  const { server } = useClientContext()
 
   const resolve: Writable<Exclude<FileBrowserResolve, [FileBrowserResolveType.Trash]>> = writable([
     FileBrowserResolveType.File,
@@ -51,21 +50,21 @@
 
     const files = await Promise.all(
       fileIds.map(async (fileId) => {
-        const file = await getFile(fileId)
+        const file = await server.GetFile({ FileId: fileId })
 
         return file
       })
     )
 
     if (files.length === 1) {
-      if (files[0].type === FileType.Folder) {
-        resolve.set([FileBrowserResolveType.File, files[0].id])
+      if (files[0].Type === FileType.Folder) {
+        resolve.set([FileBrowserResolveType.File, files[0].Id])
         return
       }
 
       onresult([files[0]])
     } else {
-      const filtered = files.filter((file) => file.type === FileType.Folder)
+      const filtered = files.filter((file) => file.Type === FileType.Folder)
 
       onresult(filtered)
     }

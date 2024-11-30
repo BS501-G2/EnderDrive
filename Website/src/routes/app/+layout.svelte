@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation'
   import { page } from '$app/stores'
 
-  import { useClientContext, useServerContext } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
   import { useAppContext, ViewMode, WindowMode } from '$lib/client/contexts/app'
   import { createDashboardContext } from '$lib/client/contexts/dashboard'
   import Button from '$lib/client/ui/button.svelte'
@@ -43,8 +43,7 @@
     isFullscreen,
     titleStack
   } = useAppContext()
-  const { authentication } = useClientContext()
-  const { me, didIAgree } = useServerContext()
+  const { authentication, server } = useClientContext()
 
   const {
     children
@@ -60,7 +59,7 @@
         await goto(`/landing?login&return=${encodeURIComponent($page.url.pathname)}`, {
           replaceState: true
         })
-      } else if (!(await didIAgree()) && !$page.url.pathname.startsWith('/agreement')) {
+      } else if (!(await server.DidIAgree({})) && !$page.url.pathname.startsWith('/agreement')) {
         await goto(`/app/agreement?return=${encodeURIComponent($page.url.pathname)}`)
       }
     })
@@ -192,7 +191,7 @@
       <InstallButtonDesktop install={$pwaAvailable.install} />
     {/if}
 
-    {#await me() then user}
+    {#await server.Me({}) then user}
       {#if user != null}
         <User bind:logoutConfirmation={$logoutConfirmation} {user} />
       {/if}

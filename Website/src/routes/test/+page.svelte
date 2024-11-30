@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
-  import { useClientContext, UserRole, useServerContext } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
   import Button from '$lib/client/ui/button.svelte'
   import RequireClient from '$lib/client/ui/require-client.svelte'
   import { onMount, type Snippet } from 'svelte'
@@ -46,62 +46,53 @@
   const adminUsername = 'testuser'
   const adminPassword = 'TestUser123;'
 
-  const {
-    getSetupRequirements,
-    createAdmin,
-    me,
-    deauthenticate,
-    createUser,
-    resolveUsername,
-    authenticatePassword
-  } = useServerContext()
+  const { authentication, server } = useClientContext()
 
-  const { authentication } = useClientContext()
-
-  onMount(() => pushAction('Get Setup Requirements', () => getSetupRequirements()))
+  onMount(() => pushAction('Get Setup Requirements', () => server.SetupRequirements({})))
 
   onMount(() => pushAction('Go To Landing', () => goto('/landing')))
 
   onMount(() => pushAction('Go To App', () => goto('/app/files')))
 
-  onMount(() => pushAction('Resolve Username', async () => resolveUsername(adminUsername)))
+  onMount(() =>
+    pushAction('Resolve Username', async () => server.ResolveUsername({ Username: adminUsername }))
+  )
 
   onMount(() =>
     pushAction('Create Administrator', async () => {
-      await createAdmin(
-        adminUsername,
-        adminPassword,
-        adminPassword,
-        'Admin',
-        'Nis',
-        'Trator',
-        'Administrator'
-      )
+      await server.CreateAdmin({
+        Username: adminUsername,
+        Password: adminPassword,
+        ConfirmPassword: adminPassword,
+        FirstName: 'John',
+        LastName: 'Doe',
+        DisplayName: 'JohnDoe'
+      })
     })
   )
 
   onMount(() =>
     pushAction('Login As Administrator', async () => {
-      const userId = await resolveUsername(adminUsername)
+      const userId = await server.ResolveUsername({ Username: adminUsername })
 
       if (userId == null) {
         throw new Error('User not found.')
       }
 
-      await authenticatePassword(userId, adminPassword)
+      await server.AuthenticatePassword({ UserId: userId, Password: adminPassword })
     })
   )
 
-  onMount(() => pushAction('Logout', async () => deauthenticate()))
+  onMount(() => pushAction('Logout', async () => server.Deauthenticate({})))
 
   onMount(() =>
     pushAction('Create Test Users', async () => {
       for (let iteration = 0; iteration < 10; iteration++) {
-        await createUser({
-          username: `testuser${iteration}`,
-          password: 'TestUser123;',
-          firstName: 'Test',
-          lastName: 'User'
+        await server.CreateUser({
+          Username: `testuser${iteration}`,
+          Password: 'TestUser123;',
+          FirstName: 'Test',
+          LastName: 'User'
         })
       }
     })
@@ -112,10 +103,10 @@
 
     onMount(() =>
       pushAction(`Login As User ${capturedIteration}`, async () => {
-        await authenticatePassword(
-          (await resolveUsername(`testuser${capturedIteration}`))!,
-          'TestUser123;'
-        )
+        await server.AuthenticatePassword({
+          UserId: (await server.ResolveUsername({ Username: `testuser${capturedIteration}` }))!,
+          Password: 'TestUser123;'
+        })
       })
     )
   }
@@ -142,8 +133,8 @@
         <p>Current Account</p>
 
         {#if $authentication != null}
-          {#await me() then myAccount}
-            <p>{myAccount.displayName ?? myAccount.firstName} (@{myAccount.username})</p>
+          {#await server.Me({}) then me}
+            <p>{me.DisplayName ?? me.FirstName} (@{me.Username})</p>
           {/await}
         {:else}
           (none)

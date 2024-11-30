@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { useServerContext, type UserResource } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
+  import { type UserResource } from '$lib/client/resource'
   import { useAppContext } from '$lib/client/contexts/app'
   import UserLink from '$lib/client/model/user-link.svelte'
   import Button from '$lib/client/ui/button.svelte'
@@ -11,7 +12,7 @@
   import RoleEditor from './role-editor.svelte'
 
   const { user }: { user: UserResource } = $props()
-  const { amIAdmin, isUserAdmin } = useServerContext()
+  const { server } = useClientContext()
   const { isDesktop, isMobile } = useAppContext()
 
   const hover = writable(false)
@@ -63,8 +64,8 @@
   <td class="main">
     <div class="main">
       <div class="user-name">
-        <UserLink userId={user.id} />
-        <p class="username">@{user.username}</p>
+        <UserLink userId={user.Id} />
+        <p class="username">@{user.Username}</p>
       </div>
 
       {#if ($hover || $showMenu) && $isDesktop}
@@ -99,13 +100,13 @@
 
   {#if $isDesktop}
     <td class="roles">
-      {#each user.roles as role, index (role)}
+      {#each user.Roles as role, index (role)}
         {#if index !== 0},{/if}{role}
       {/each}
     </td>
 
     <td class="admin">
-      {#await isUserAdmin(user.id)}
+      {#await server.IsUserAdmin({ UserId: user.Id })}
         <LoadingSpinner size="1rem" />
       {:then isAdmin}
         {#if isAdmin}

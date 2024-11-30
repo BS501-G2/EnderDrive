@@ -9,15 +9,9 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 
 public record class FileStar : ResourceData
 {
-  [JsonProperty("fileId")]
   public required ObjectId FileId;
-
-  [JsonProperty("userId")]
   public required ObjectId UserId;
-
-  [JsonProperty("createTime")]
-  [BsonRepresentation(BsonType.DateTime)]
-  public required DateTimeOffset CreateTime;
+  public required long CreateTime;
 
   public required bool Starred;
 }
@@ -44,7 +38,7 @@ public sealed partial class ResourceManager
         {
           FileId = file.Id,
           UserId = user.Id,
-          CreateTime = DateTimeOffset.Now,
+          CreateTime = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
           Starred = false,
         }
       );

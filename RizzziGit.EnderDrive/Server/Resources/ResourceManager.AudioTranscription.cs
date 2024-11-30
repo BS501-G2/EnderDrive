@@ -9,16 +9,9 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 
 public sealed record class AudioTranscription : ResourceData
 {
-  [JsonProperty("fileId")]
   public required ObjectId FileId;
-
-  [JsonProperty("fileDataId")]
   public required ObjectId FileDataId;
-
-  [JsonProperty("status")]
   public required AudioTranscriptionStatus Status;
-
-  [JsonProperty("text")]
   public required AudioTranscriptionData[] Text;
 }
 

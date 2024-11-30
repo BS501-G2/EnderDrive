@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { FileType, useServerContext } from '$lib/client/client'
   import { useFileBrowserContext, type CurrentFile } from '$lib/client/contexts/file-browser'
   import Button from '$lib/client/ui/button.svelte'
   import Icon from '$lib/client/ui/icon.svelte'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import { onMount, type Snippet } from 'svelte'
   import FileBrowserPathEntry from './file-browser-path-entry.svelte'
+  import { FileType } from '$lib/client/resource'
 
   const { pushTop, onFileId } = useFileBrowserContext()
 
@@ -51,26 +51,25 @@
         background={rootBackground}
         foreground={rootForeground}
         onclick={(event) => {
-          onFileId?.(event, root.id)
+          onFileId?.(event, root.Id)
         }}
       >
-
-        {#if root.type === FileType.File}
+        {#if root.Type === FileType.File}
           <Icon icon="file" />
         {:else}
           <Icon icon="folder" />
         {/if}
 
-        {#if root.ownerUserId == me.id}
+        {#if root.OwnerUserId == me.Id}
           <p>My Files</p>
         {:else}
           <Icon icon="users" thickness="solid" />
-          <p>{root.name}</p>
+          <p>{root.Name}</p>
         {/if}
       </Button>
 
       <div class="path">
-        {#each current.path.slice(1) as file (file.id)}
+        {#each current.path.slice(1) as file (file.Id)}
           <FileBrowserPathEntry {file} />
         {/each}
       </div>

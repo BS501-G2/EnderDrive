@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useServerContext } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
   import type { FileProperties } from '$lib/client/contexts/file-browser'
   import { derived } from 'svelte/store'
   import FileBrowserPropertiesTab from './file-browser-properties-tab.svelte'
@@ -8,26 +8,31 @@
   import UserLink from '$lib/client/model/user-link.svelte'
   const { file }: { file: FileProperties } = $props()
 
-  const server = useServerContext()
+  const { server } = useClientContext()
 </script>
 
 <FileBrowserPropertiesTab label="File Revisions" icon={{ icon: 'history', thickness: 'solid' }}>
   {#await (async () => {
-    const fileContent = await server.getMainFileContent(file.file.id)
-    const fileSnapshots = await server.getFileDataList(file.file.id, fileContent.id)
+    const fileDataEntries = await server
+      .FileGetDataEntries({ FileId: file.file.Id })
+      .then((fileEntries) => Promise.all(fileEntries.map(async (fileData) => {
+            const size = await server.FileDataGetSize( { FileId: file.file.Id, FileDataId: fileData.Id } )
 
-    return { fileSnapshots }
-  })() then { fileSnapshots }}
+            return { fileData, size }
+          })))
+
+    return { fileDataEntries }
+  })() then { fileDataEntries }}
     <div class="list">
-      {#each fileSnapshots as fileSnapshot}
-        {#if fileSnapshot.size > 0}
+      {#each fileDataEntries as { fileData, size }}
+        {#if size > 0}
           <p>
             Revision
-            <a href="/app/files?fileId={file.file.id}&snapshotId={fileSnapshot.id}">
-              #{fileSnapshot.id.slice(fileSnapshot.id.length - 4, fileSnapshot.id.length)}
+            <a href="/app/files?fileId={file.file.Id}&snapshotId={fileData.Id}">
+              #{fileData.Id.slice(fileData.Id.length - 4, fileData.Id.length)}
             </a>
-            by <UserLink userId={fileSnapshot.authorUserId} />
-            {moment(new Date(fileSnapshot.createTime)).fromNow()}
+            by <UserLink userId={fileData.AuthorUserId!} />
+            {moment(new Date(fileData.CreateTime)).fromNow()}
           </p>
         {/if}
       {/each}

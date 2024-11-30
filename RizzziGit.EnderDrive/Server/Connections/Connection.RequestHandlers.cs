@@ -29,7 +29,7 @@ public sealed partial class Connection
     RegisterFileHandler(nameof(GetFileStar), GetFileStar);
     RegisterFileHandler(nameof(GetFilePath), GetFilePath, FileAccessLevel.Read, null);
     RegisterFileHandler(nameof(GetFile), GetFile, FileAccessLevel.Read, null);
-    RegisterFileHandler(nameof(CreateFolder), CreateFolder, FileAccessLevel.ReadWrite, null);
+    RegisterFileHandler(nameof(FolderCreate), FolderCreate, FileAccessLevel.ReadWrite, null);
     RegisterAuthenticatedHandler(nameof(DidIAgree), DidIAgree);
     RegisterAuthenticatedHandler(nameof(Agree), Agree);
     RegisterFileHandler(nameof(TrashFile), TrashFile, FileAccessLevel.ReadWrite, null);
@@ -59,6 +59,19 @@ public sealed partial class Connection
     RegisterTransactedHandler(nameof(GetFileNameValidationFlags), GetFileNameValidationFlags);
     RegisterAuthenticatedHandler(nameof(UpdateName), UpdateName);
     RegisterFileHandler(nameof(FileScan), FileScan, FileAccessLevel.Read, null);
+    RegisterFileHandler(nameof(FileGetMime), FileGetMime, FileAccessLevel.Read, FileType.File);
+    RegisterFileHandler(
+      nameof(FileGetDataEntries),
+      FileGetDataEntries,
+      FileAccessLevel.Read,
+      FileType.File
+    );
+    RegisterFileHandler(
+      nameof(FileDataGetSize),
+      FileDataGetSize,
+      FileAccessLevel.Read,
+      FileType.File
+    );
     RegisterFileHandler(nameof(FileCreate), FileCreate);
     RegisterStreamHandler(nameof(StreamWrite), StreamWrite);
     RegisterStreamHandler(nameof(StreamRead), StreamRead);

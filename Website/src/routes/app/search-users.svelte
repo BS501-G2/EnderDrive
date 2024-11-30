@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { useServerContext, type UserResource } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
   import Button from '$lib/client/ui/button.svelte'
   import Icon from '$lib/client/ui/icon.svelte'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import type { Snippet } from 'svelte'
+  import { type UserResource } from '$lib/client/resource'
 
-  const { getUsers } = useServerContext()
+  const { server } = useClientContext()
 
   const {
     searchString,
@@ -30,7 +31,7 @@
 
   <Button
     onclick={() => {
-      goto(`/app/profile?id=${user.id}`)
+      goto(`/app/profile?id=${user.Id}`)
       ondismiss()
     }}
     foreground={buttonForeground}
@@ -40,19 +41,19 @@
     </div>
     <div class="name">
       <p class="name">
-        {user.firstName}
-        {user.middleName}
-        {user.lastName}
+        {user.FirstName}
+        {user.MiddleName}
+        {user.LastName}
       </p>
       <p class="username">
-        @{user.username}
+        @{user.Username}
       </p>
     </div>
   </Button>
 {/snippet}
 
 {#snippet main()}
-  {#await getUsers({searchString})}
+  {#await server.GetUsers({ SearchString: searchString })}
     <LoadingSpinner size="1em" />
   {:then users}
     {#each users as entry}

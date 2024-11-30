@@ -1,24 +1,18 @@
 <script lang="ts">
-  import { useServerContext, type FileResource } from '$lib/client/client'
   import { onMount, type Snippet } from 'svelte'
   import Overlay from '../../overlay.svelte'
   import FileBrowserRefresh from './file-browser-refresh.svelte'
   import { useAppContext } from '$lib/client/contexts/app'
   import FileBrowserFileContent from './file-browser-file-content.svelte'
-  import { useFileBrowserContext, type FileBrowserAction } from '$lib/client/contexts/file-browser'
-  import FileBrowserActionHostMobile from './file-browser-action-host-mobile.svelte'
-  import { derived, writable, type Readable } from 'svelte/store'
+  import { useFileBrowserContext } from '$lib/client/contexts/file-browser'
   import { createFileBrowserListContext } from '$lib/client/contexts/file-browser-list'
-  import FileBrowserActions from './file-browser-actions.svelte'
+  import type { FileResource } from '$lib/client/resource'
 
   const {
-    file,
-    actions
+    file
   }: {
     file: FileResource
-    actions: Readable<FileBrowserAction[]>
   } = $props()
-  const { getFile, getFileContents, getFileDataList: getFileSnapshots, scanFile } = useServerContext()
   const { setFileListContext } = useFileBrowserContext()
 
   const { isMobile, isDesktop } = useAppContext()
@@ -26,7 +20,7 @@
 
   onMount(() => {
     const ondestroy = setFileListContext(context)
-    selectedFileIds.set([file.id])
+    selectedFileIds.set([file.Id])
 
     return ondestroy
   })
@@ -41,7 +35,7 @@
         <div class="header">
           <div class="title">
             <p>
-              {file?.name}
+              {file?.Name}
             </p>
           </div>
 
@@ -49,12 +43,8 @@
         </div>
 
         <div class="main">
-          <FileBrowserFileContent fileId={file.id} {selectedFileIds} />
+          <FileBrowserFileContent fileId={file.Id} {selectedFileIds} />
         </div>
-        <!--
-				<div class="footer">
-					<FileBrowserActionHostMobile {actions} />
-				</div> -->
       </div>
     {/snippet}
   </Overlay>
@@ -62,7 +52,7 @@
 
 {#if $isDesktop}
   <div class="content">
-    <FileBrowserFileContent fileId={file.id} {selectedFileIds} />
+    <FileBrowserFileContent fileId={file.Id} {selectedFileIds} />
   </div>
 {/if}
 

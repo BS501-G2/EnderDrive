@@ -1,13 +1,14 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
-  import { useServerContext, type FileAccessResource, type FileResource } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
   import Button from '$lib/client/ui/button.svelte'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import { type Snippet } from 'svelte'
   import FileBrowserFileIcon from '../files/file-browser-file-icon.svelte'
+  import type { FileAccessResource } from '$lib/client/resource'
 
   const { fileAccess }: { fileAccess: FileAccessResource } = $props()
-  const server = useServerContext()
+  const { server } = useClientContext()
 </script>
 
 {#snippet background(view: Snippet)}
@@ -22,12 +23,8 @@
   </div>
 {/snippet}
 
-<Button
-  {foreground}
-  {background}
-  onclick={ () => goto(`/app/files?fileId=${fileAccess.fileId}`)}
->
-  {#await Promise.all([server.getFileMime(fileAccess.fileId), server.getFile(fileAccess.fileId)])}
+<Button {foreground} {background} onclick={() => goto(`/app/files?fileId=${fileAccess.FileId}`)}>
+  {#await Promise.all([server.getFileMime(fileAccess.FileId), server.getFile(fileAccess.FileId)])}
     <div class="loading">
       <LoadingSpinner size="3rem" />
     </div>
@@ -55,7 +52,7 @@
     padding: 8px;
 
     justify-content: center;
-      align-items: center;
+    align-items: center;
 
     border-radius: 8px;
 
@@ -83,7 +80,7 @@
       text-overflow: ellipsis;
       text-wrap: nowrap;
 
-    @include force-size(calc(128px), &);
+      @include force-size(calc(128px), &);
     }
   }
 </style>

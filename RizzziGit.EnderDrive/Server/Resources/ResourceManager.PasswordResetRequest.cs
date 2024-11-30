@@ -6,10 +6,7 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 
 public record class PasswordResetRequest : ResourceData
 {
-  [JsonProperty("userId")]
   public required ObjectId UserId;
-
-  [JsonProperty("status")]
   public required PasswordResetRequestStatus Status;
 }
 

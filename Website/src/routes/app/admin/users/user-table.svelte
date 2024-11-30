@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { type UserResource } from '$lib/client/client'
+  import { type UserResource } from '$lib/client/resource';
   import { useAppContext } from '$lib/client/contexts/app'
   import Table from '$lib/client/ui/table.svelte'
   import UserEntry from './user-entry.svelte'

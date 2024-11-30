@@ -1,56 +1,48 @@
 <script lang="ts">
-  import { useServerContext } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
   import { useAppContext } from '$lib/client/contexts/app'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import { derived, writable, type Writable } from 'svelte/store'
   import FileBrowserActions from './file-browser-actions.svelte'
   import FileBrowserFileContentView from './file-browser-file-content-view.svelte'
   import { type Snippet } from 'svelte'
-import { page } from '$app/stores'
+  import { page } from '$app/stores'
+
   const {
     fileId,
     selectedFileIds
-  }:
- {
+  }: {
     fileId: string
     selectedFileIds: Writable<string[]>
   } = $props()
-  const {
-    getFileContents,
-    getFileDataList: getFileSnapshots,
-    getLatestFileSnapshot,
-    getFile,
-    scanFile,
-    getFileMime,
-    me
-  } = useServerContext()
+  const { server } = useClientContext()
   const { isDesktop } = useAppContext()
-  const snapshotId = derived(page, ({ url }) => url.searchParams.get('snapshotId'))
+  const fileDataId = derived(page, ({ url }) => url.searchParams.get('dataId') || undefined)
 
-  async function load(customSnapshotId?: string) {
-    const file = await getFile(fileId)
-    const self = await me()
+  async function load(customDataId?: string) {
+    const file = await server.GetFile({ FileId: fileId })
+    const me = await server.Me({})
+    const fileData = await server
+      .FileGetDataEntries({
+        FileId: file.Id,
+        FileDataId: customDataId,
+        Pagination: { Count: 1 }
+      })
+      .then((result) => result[0])
 
-    const mime = await getFileMime(fileId)
-    const fileContent = (await getFileContents(fileId, void 0, 0, 1))[0]
-    const fileSnapshot =
-      customSnapshotId != null
-        ? (await getFileSnapshots(file.id, fileContent.id, customSnapshotId, 0, 1))[0]
-        : (await getLatestFileSnapshot(file.id, fileContent.id))!
-
-    const virusResult = await scanFile(fileId, fileContent.id, fileSnapshot.id)
+    const mime = await server.FileGetMime({ FileId: fileId, FileDataId: fileData.Id })
+    const virus = await server.FileScan({ FileId: file.Id, FileDataId: fileData.Id })
 
     return {
       file,
       mime,
-      fileContent,
-      fileSnapshot,
-      virusResult,
-      me: self
+      fileData,
+      virus,
+      me
     }
   }
 
-  let promise = writable(load($snapshotId || undefined))
+  let promise = writable(load($fileDataId || undefined))
 </script>
 
 {#snippet loading()}
@@ -73,23 +65,23 @@ import { page } from '$app/stores'
 
 {#await $promise}
   {@render loading()}
-{:then { file, mime, fileContent, fileSnapshot, virusResult, me }}
+{:then { file, mime, fileData, virus, me }}
   {#if $isDesktop}
     <FileBrowserActions current={{ type: 'file', file, path: [], mime, me }} {selectedFileIds} />
   {/if}
 
-  {#if virusResult.viruses.length > 0}
+  {#if (virus.Viruses?.length ?? 0) > 0}
     {#snippet msg()}
       <p>Virus detected. The site has prevented you from opening this file.</p>
 
       <p>
-        {virusResult.viruses.join(', ')}
+        {(virus.Viruses ?? [])?.join(', ')}
       </p>
     {/snippet}
 
     {@render message(msg)}
   {:else if mime.startsWith('image/') || mime.startsWith('video/') || mime.startsWith('text/') || mime.startsWith('audio/') || mime === 'application/pdf'}
-    <FileBrowserFileContentView {fileContent} {fileSnapshot} {file} {mime} />
+    <FileBrowserFileContentView {fileData} {file} {mime} />
   {:else}
     {#snippet msg()}
       <p>No preview is available for this file.</p>

@@ -10,17 +10,10 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 
 public record class News : ResourceData
 {
-  [JsonProperty("title")]
   public required string Title;
 
-  [JsonProperty("publishTime")]
-  [BsonRepresentation(BsonType.DateTime)]
-  public required DateTimeOffset? PublishTime;
-
-  [JsonProperty("authorUserId")]
+  public required long? PublishTime;
   public required ObjectId AuthorUserId;
-
-  [JsonProperty("image")]
   public required byte[] Image;
 }
 
@@ -32,7 +25,7 @@ public sealed partial class ResourceManager
     UnlockedFile file,
     Resource<FileData> fileData,
     Resource<User> newsAuthor,
-    DateTimeOffset? publishTime
+    long? publishTime
   )
   {
     Resource<News> news = ToResource<News>(

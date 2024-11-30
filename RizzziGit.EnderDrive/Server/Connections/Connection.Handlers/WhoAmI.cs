@@ -9,7 +9,7 @@ public sealed partial class Connection
 
   private sealed record class MeResponse
   {
-    public required JToken? User;
+    public required string User;
   }
 
   private AuthenticatedRequestHandler<MeRequest, MeResponse> Me =>

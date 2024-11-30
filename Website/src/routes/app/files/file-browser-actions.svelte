@@ -1,10 +1,4 @@
 <script lang="ts">
-  import {
-    FileAccessLevel,
-    FileType,
-    useServerContext,
-    type FileResource
-  } from '$lib/client/client'
   import { useFileBrowserContext, type CurrentFile } from '$lib/client/contexts/file-browser'
   import { derived, writable, type Writable } from 'svelte/store'
   import FileBrowserAction from './file-browser-action.svelte'
@@ -13,7 +7,8 @@
   import { toReadableSize } from '$lib/client/utils'
   import { page } from '$app/stores'
   import FileRenameDialog from './file-rename-dialog.svelte'
-
+  import { useClientContext } from '$lib/client/client'
+  import { FileAccessLevel, type FileResource } from '$lib/client/resource'
   const {
     current,
     selectedFileIds
@@ -23,24 +18,7 @@
   } = $props()
   const { refresh, selectMode, onFileId, stored } = useFileBrowserContext()
   const { executeBackgroundTask } = useDashboardContext()
-  const {
-    createFile,
-    writeStream,
-    truncateStream,
-    closeStream,
-    getFileStar,
-    getFile,
-    setFileStar,
-    trashFile,
-    untrashFile,
-    openStream,
-    getFileAccessLevel,
-    getFileContents,
-    getFileDataList: getFileSnapshots,
-    getLatestFileSnapshot,
-    getMainFileContent
-  } = useServerContext()
-  const server = useServerContext()
+  const { server } = useClientContext()
 
   const snapshotId = derived(page, ({ url }) => url.searchParams.get('snapshotId'))
 
@@ -63,9 +41,9 @@
 </script>
 
 {#await (async (selectedFileIds) => {
-  const starred = await Promise.all(selectedFileIds.map((fileId) => getFileStar(fileId)))
-  const files = await Promise.all(selectedFileIds.map((fileId) => getFile(fileId)))
-  const fileAccessLevel = await Promise.all(selectedFileIds.map( (fileId) => getFileAccessLevel(fileId) ))
+  const starred = await Promise.all(selectedFileIds.map( (fileId) => server.GetFileStar( { FileId: fileId } ) ))
+  const files = await Promise.all(selectedFileIds.map( (fileId) => server.GetFile( { FileId: fileId } ) ))
+  const fileAccessLevel = await Promise.all(selectedFileIds.map( (fileId) => server.GetFileAccessLevel( { FileId: fileId } ) ))
 
   return { nonReactiveSelectedFileIds: selectedFileIds, starred, files, fileAccessLevel }
 })($selectedFileIds) then { starred, nonReactiveSelectedFileIds, files, fileAccessLevel }}
@@ -89,7 +67,7 @@
           icon: 'circle-check'
         }}
         onclick={() => {
-          selectedFileIds.set(current.files.map((file) => file.file.id))
+          selectedFileIds.set(current.files.map((file) => file.file.Id))
         }}
       />
     {/if}
@@ -126,17 +104,19 @@
                 throw new Error('Files exceeds upload limit.')
               }
 
-              const fileResource = await getFile(nonReactiveSelectedFileIds[0])
-              const fileContent = await getMainFileContent(fileResource.id)
-              let fileSnapshot = await getLatestFileSnapshot(fileResource.id, fileContent.id)
+              const fileResource = await server.GetFile({ FileId: nonReactiveSelectedFileIds[0] })
+              const fileData = await server
+                .FileGetDataEntries({
+                  FileId: fileResource.Id,
+                  Pagination: { Count: 1 }
+                })
+                .then((result) => result[0])
 
-              const streamId = await openStream(fileResource.id, fileContent.id, fileSnapshot!.id)
-              const newFileSnapshotId = await truncateStream(streamId, file.size)
-              if (newFileSnapshotId != null) {
-                fileSnapshot = (
-                  await getFileSnapshots(streamId, fileContent.id, newFileSnapshotId, 0, 1)
-                )[0]
-              }
+              const streamId = await server.StreamOpen({
+                FileId: fileResource.Id,
+                FileDataId: fileData.Id,
+                ForWriting: true
+              })
 
               const bufferSize = 1024 * 256
 
@@ -147,7 +127,7 @@
               for (let index = 0; index < file.size; ) {
                 const buffer = file.slice(index, index + bufferSize)
 
-                await writeStream(streamId, buffer)
+                await server.StreamWrite({ StreamId: streamId, Data: buffer })
 
                 uploadedLength += buffer.size
                 index += bufferSize
@@ -159,7 +139,7 @@
                 )
               }
 
-              await closeStream(streamId)
+              await server.StreamClose({ StreamId: streamId })
 
               refresh()
             } finally {
@@ -181,7 +161,7 @@
         }}
         label="Move"
         onclick={() => {
-          $stored = [current.file.id, nonReactiveSelectedFileIds]
+          $stored = [current.file.Id, nonReactiveSelectedFileIds]
         }}
       />
     {:else if $stored != null}
@@ -197,11 +177,11 @@
             return
           }
 
-          if ($stored[0] !== current.file.id) {
+          if ($stored[0] !== current.file.Id) {
             for (const fileId of $stored[1]) {
               await server.moveFile({
                 fileId,
-                newParentId: current.file.id
+                newParentId: current.file.Id
               })
             }
           }
@@ -288,7 +268,10 @@
               }
 
               for (const file of files) {
-                const streamId = await createFile(current.file.id, file.name)
+                const streamId = await server.FileCreate({
+                  FileId: current.file.Id,
+                  Name: file.name
+                })
                 const bufferSize = 1024 * 256
 
                 setMessage(`${Math.round((uploadedLength / totalLength) * 10000) / 100}%`)
@@ -298,7 +281,10 @@
                 for (let index = 0; index < file.size; ) {
                   const buffer = file.slice(index, index + bufferSize)
 
-                  await writeStream(streamId, buffer)
+                  await server.StreamWrite({
+                    StreamId: streamId,
+                    Data: buffer
+                  })
 
                   uploadedLength += buffer.size
                   index += bufferSize
@@ -312,7 +298,7 @@
                   )
                 }
 
-                await closeStream(streamId)
+                await server.StreamClose({ StreamId: streamId })
               }
 
               refresh()
@@ -335,7 +321,7 @@
   {/if}
 
   {#if nonReactiveSelectedFileIds.length > 0}
-    {#if files[0].trashTime == null}
+    {#if files[0].TrashTime == null}
       <FileBrowserAction
         type="left"
         icon={{
@@ -345,11 +331,11 @@
         label="Trash"
         onclick={async (event) => {
           for (const fileId of nonReactiveSelectedFileIds) {
-            await trashFile(fileId)
+            await server.TrashFile({ FileId: fileId })
           }
 
           if (current.type === 'file') {
-            onFileId?.(event, files[0].parentId)
+            onFileId?.(event, files[0].ParentId || null)
           } else {
             refresh()
           }
@@ -365,7 +351,7 @@
         label="Restore"
         onclick={async (event) => {
           for (const fileId of nonReactiveSelectedFileIds) {
-            await untrashFile(fileId)
+            await server.UntrashFile({ FileId: fileId })
           }
 
           refresh()
@@ -395,35 +381,43 @@
         }}
         label="Download"
         onclick={async () => {
-          const fileContent = await server.getMainFileContent(nonReactiveSelectedFileIds[0])
-          const fileSnapshot = (await server.getLatestFileSnapshot(
-            nonReactiveSelectedFileIds[0],
-            fileContent.id
-          ))!
+          const fileData = await server
+            .FileGetDataEntries({
+              FileId: nonReactiveSelectedFileIds[0],
+              Pagination: { Count: 1 }
+            })
+            .then((result) => result[0])
+          const fileDataSize = await server.FileDataGetSize({
+            FileId: nonReactiveSelectedFileIds[0],
+            FileDataId: fileData.Id
+          })
 
-          const virus = await server.scanFile(
-            nonReactiveSelectedFileIds[0],
-            fileContent.id,
-            $snapshotId ?? fileSnapshot.id
-          )
+          const virus = await server.scanFile({
+            FileId: nonReactiveSelectedFileIds[0]
+          })
 
           if (virus.viruses.length > 0) {
             throw new Error('Cannot download a file with viruses.')
           }
 
-          const stream = await server.openStream(
-            nonReactiveSelectedFileIds[0],
-            fileContent.id,
-            fileSnapshot.id
-          )
+          const streamId = await server.StreamOpen({
+            FileId: nonReactiveSelectedFileIds[0],
+            FileDataId: fileData.Id,
+            ForWriting: false
+          })
 
           let data = new Blob([], { type: 'application/octet-stream' })
-          for (let offset = 0; offset < fileSnapshot.size; offset += 1024 * 8) {
-            const buffer = await server.readStream(stream, 1024 * 8)
+          for (let offset = 0; offset < fileDataSize; offset += 1024 * 8) {
+            const buffer = await server
+              .StreamRead({
+                StreamId: streamId,
+                Length: 1024 * 8
+              })
 
             data = new Blob([data, buffer], { type: 'application/octet-stream' })
           }
-          await server.closeStream(stream)
+
+          await server.StreamClose({ StreamId: streamId })
 
           window.open(URL.createObjectURL(data))
         }}
@@ -450,7 +444,10 @@
         const isStarred = starred.some((file) => file)
 
         for (const fileId of nonReactiveSelectedFileIds) {
-          await setFileStar(fileId, !isStarred)
+          await server.SetFileStar({
+            FileId: fileId,
+            Starred: !isStarred
+          })
         }
 
         refresh()

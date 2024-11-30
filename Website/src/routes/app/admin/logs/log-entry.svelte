@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { FileLogType, useServerContext, type FileLogResource } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
   import UserLink from '$lib/client/model/user-link.svelte'
+  import { FileLogType, type FileLogResource } from '$lib/client/resource'
   import Icon from '$lib/client/ui/icon.svelte'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import Separator from '$lib/client/ui/separator.svelte'
@@ -8,7 +9,7 @@
 
   const { fileLog }: { fileLog: FileLogResource } = $props()
 
-  const server = useServerContext()
+  const { server } = useClientContext()
 </script>
 
 <div class="user">
@@ -18,22 +19,23 @@
 
   <div class="name">
     <p class="message">
-      <b class="user"><UserLink userId={fileLog.actorUserId} /></b> performed {FileLogType[
-        fileLog.type
+      <b class="user"><UserLink userId={fileLog.ActorUserId} /></b> performed {FileLogType[
+        fileLog.Type
       ]} operation on a file
     </p>
 
     <div class="file">
       {#await (async () => {
-        const file = await server.getFile(fileLog.fileId)
-        const mime = await server.getFileMime(file.id)
+        const file = await server.GetFile({ FileId: fileLog.FileId })
+        const fileData = (await server.FileGetDataEntries( { FileId: file.Id, Pagination: { Count: 1 } } ))[0]
+        const mime = await server.FileGetMime( { FileId: file.Id, FileDataId: fileData.Id } )
 
         return { file, mime }
       })()}
         <LoadingSpinner size="1rem" />
       {:then { file, mime }}
-        <FileBrowserFileIcon size="1rem" {mime} type={file.type} />
-        <a class="file" href="/app/files?fileId={file.id}">{file.name}</a>
+        <FileBrowserFileIcon size="1rem" {mime} type={file.Type} />
+        <a class="file" href="/app/files?fileId={file.Id}">{file.Name}</a>
       {/await}
     </div>
   </div>

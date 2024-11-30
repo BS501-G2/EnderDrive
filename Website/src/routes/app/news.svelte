@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { type NewsResource, useServerContext } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
+  import type { NewsResource } from '$lib/client/resource'
   import Window from '$lib/client/ui/window.svelte'
   import { Buffer } from 'buffer'
 
@@ -9,17 +10,18 @@
   import { writable } from 'svelte/store'
   const {}: {} = $props()
 
-  const server = useServerContext()
-
+  const { server } = useClientContext()
   const news = writable<NewsResource[]>([])
-  const newsIndex = tweened(0)
 
+  const newsIndex = tweened(0)
   const readNewsId = persisted<string | null>('read-news-id', null)
 
   onMount(() => {
     void (async () => {
-      if (await server.didIAgree()) {
-        const newsIds = await server.getNews($readNewsId ?? void 0)
+      if (await server.DidIAgree({})) {
+        const newsIds = await server.GetNews({
+          AfterId: $readNewsId ?? void 0
+        })
 
         $news = await Promise.all(newsIds.map((newsId) => server.getNewsEntry(newsId)))
       }
@@ -53,7 +55,7 @@
       const last = $news.at(-1)
 
       if (last != null) {
-        $readNewsId = last.id
+        $readNewsId = last.Id
       }
 
       $news = []
@@ -62,13 +64,13 @@
     titleIcon={{ icon: 'newspaper' }}
   >
     <div class="news" bind:this={$element}>
-      {#each $news as { title, image }}
+      {#each $news as { Title, Image }}
         <div class="entry">
           <img
-            src={URL.createObjectURL(new Blob([Buffer.from(`${image}`, 'base64')]))}
+            src={URL.createObjectURL(new Blob([Buffer.from(`${Image}`, 'base64')]))}
             alt="news"
           />
-          <p>{title}</p>
+          <p>{Title}</p>
         </div>
       {/each}
     </div>

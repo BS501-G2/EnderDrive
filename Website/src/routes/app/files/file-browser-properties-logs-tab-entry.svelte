@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { FileLogType, useServerContext, type FileLogResource } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client';
   import UserLink from '$lib/client/model/user-link.svelte'
+  import { FileLogType, type FileLogResource } from '$lib/client/resource'
   import Icon from '$lib/client/ui/icon.svelte'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import moment from 'moment'
   const { fileLog }: { fileLog: FileLogResource } = $props()
-  const server = useServerContext()
+  const {server} = useClientContext()
 </script>
 
 <div class="log-container">
@@ -20,11 +21,11 @@
       <Icon icon="pencil" thickness="solid" />
       <div class="message">
         <p class="message">
-          <UserLink userId={fileLog.actorUserId} /> performed
-          {[FileLogType[fileLog.type]]}
+          <UserLink userId={fileLog.ActorUserId} /> performed
+          {[FileLogType[fileLog.Type]]}
           operation
         </p>
-        <p class="time">{moment(fileLog.createTime).fromNow()}</p>
+        <p class="time">{moment(fileLog.CreateTime).fromNow()}</p>
       </div>
     </div>
   {/await}

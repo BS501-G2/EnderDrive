@@ -9,16 +9,9 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 
 public record class VirusReport : ResourceData
 {
-  [JsonProperty("fileId")]
   public required ObjectId FileId;
-
-  [JsonProperty("fileDataId")]
   public required ObjectId FileDataId;
-
-  [JsonProperty("status")]
   public required VirusReportStatus Status;
-
-  [JsonProperty("viruses")]
   public required string[]? Viruses;
 }
 

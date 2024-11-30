@@ -14,7 +14,7 @@ public sealed partial class Connection
     {
       Resource<File> parentFolder = await Internal_GetFile(transaction, me, userAuthentication, fileAccess.UnlockedFile.File.Id);
 
-      fileAccess.UnlockedFile.File.Data.TrashTime = DateTimeOffset.UtcNow;
+      fileAccess.UnlockedFile.File.Data.TrashTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
       await fileAccess.UnlockedFile.File.Save(transaction);
 
       await Resources.CreateFileLog(

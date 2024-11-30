@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { FileAccessLevel, type UserResource } from '$lib/client/client'
   import { writable } from 'svelte/store'
   import type { FileAccessEntry } from './file-browser-properties-access-tab.svelte'
   import Icon, { type IconOptions } from '$lib/client/ui/icon.svelte'
   import UserLink from '$lib/client/model/user-link.svelte'
   import { type Snippet } from 'svelte'
   import Button from '$lib/client/ui/button.svelte'
+  import { FileAccessLevel, type UserResource } from '$lib/client/resource'
 
   const {
     access,
@@ -49,13 +49,13 @@
   <div class="info">
     <p class="name">
       {#if access.user != null}
-        <UserLink userId={access.user.id} />
+        <UserLink userId={access.user.Id} />
       {:else}
         Public Access
       {/if}
     </p>
     <p class="level">
-      Has <span class="emphasis">{FileAccessLevel[access.access.level]}</span> accsess
+      Has <span class="emphasis">{FileAccessLevel[access.access.Level]}</span> accsess
     </p>
   </div>
 
@@ -75,7 +75,7 @@
         </Button>
       {/snippet}
 
-      {@render button('Edit', { icon: 'pencil', thickness: 'solid' }, () => onedit(access.user, access.access.level))}
+      {@render button('Edit', { icon: 'pencil', thickness: 'solid' }, () => onedit(access.user ?? null, access.access.Level))}
     </div>
   {/if}
 </div>

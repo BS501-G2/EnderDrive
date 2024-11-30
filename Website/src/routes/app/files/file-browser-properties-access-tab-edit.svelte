@@ -1,10 +1,6 @@
 <script lang="ts">
-  import {
-    FileAccessLevel,
-    useServerContext,
-    type FileResource,
-    type UserResource
-  } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
+  import { type FileResource, type UserResource, FileAccessLevel } from '$lib/client/resource'
   import Button from '$lib/client/ui/button.svelte'
   import Icon, { type IconOptions } from '$lib/client/ui/icon.svelte'
   import SelectOption from '$lib/client/ui/select-option.svelte'
@@ -26,7 +22,7 @@
     ondismiss: () => void
     existingValue?: FileAccessLevel
   } = $props()
-  const { setFileAccess } = useServerContext()
+  const { server } = useClientContext()
 
   const fileAccessLevel: Writable<FileAccessLevel | null> = writable(existingValue ?? null)
 </script>
@@ -34,7 +30,7 @@
 <Window
   {ondismiss}
   title="Set{user == null ? ' Public' : ''} File Access {user != null
-    ? `for ${user.displayName ?? user.firstName}`
+    ? `for ${user.DisplayName ?? user.FirstName}`
     : null}"
 >
   <div class="content">
@@ -112,7 +108,11 @@
       {@render action(
         'Save',
         async () => {
-          await setFileAccess(file.id, $fileAccessLevel!, user?.id)
+          await server.SetFileAccess({
+            FileId: file.Id,
+            Level: $fileAccessLevel!,
+            TargetUserId: user?.Id
+          })
 
           refresh()
 

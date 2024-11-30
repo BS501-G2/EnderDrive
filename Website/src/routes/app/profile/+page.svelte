@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useServerContext, type UserResource } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
   import { page } from '$app/stores'
   import { derived, writable, type Writable } from 'svelte/store'
   import { onMount } from 'svelte'
@@ -15,17 +15,16 @@
   import AboutMe from './about-me.svelte'
 
   const userId = derived(page, (page) => page.url.searchParams.get('id') || null)
-  const { me, getUser } = useServerContext()
+  const { server } = useClientContext()
   const { isMobile } = useAppContext()
   const { tabs, currentTabIndex } = createUserContext()
-
 </script>
 
 {#await (async (userId) => {
-  const self = await me()
-  const user = await getUser(userId ?? self.id)
+  const me = await server.Me({})
+  const user = await server.GetUser({ UserId: userId ?? me.Id })
 
-  return { user, me: self }
+  return { user, me: me }
 })($userId)}
   <div class="loading">
     <LoadingSpinner size="3rem" />
@@ -40,8 +39,8 @@
           </div>
 
           <div class="info">
-            <h2 class="name">{user.displayName ?? `${user.firstName} ${user.lastName}`}</h2>
-            <p class="username">@{user.username}</p>
+            <h2 class="name">{user.DisplayName ?? `${user.FirstName} ${user.LastName}`}</h2>
+            <p class="username">@{user.Username}</p>
           </div>
         </div>
       </div>
@@ -51,13 +50,16 @@
       <UserTabs {tabs} {currentTabIndex} />
 
       <UserTab
-        label="Shared {user.id === me.id ? 'Files' : 'With You'}"
+        label="Shared {user.Id === me.Id ? 'Files' : 'With You'}"
         icon={{ icon: 'users', thickness: 'solid' }}
       >
         <SharedWithMe {user} />
       </UserTab>
 
-      <UserTab label="About {user.id === me.id ? 'You' : 'Me'}" icon={{ icon: 'info', thickness: 'solid' }}>
+      <UserTab
+        label="About {user.Id === me.Id ? 'You' : 'Me'}"
+        icon={{ icon: 'info', thickness: 'solid' }}
+      >
         <AboutMe {user} {me} />
       </UserTab>
 

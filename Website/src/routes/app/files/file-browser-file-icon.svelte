@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { FileType } from '$lib/client/client'
+  import { FileType } from '$lib/client/resource'
+
   import Icon from '$lib/client/ui/icon.svelte'
   import type { Size } from '$lib/client/ui/loading-spinner.svelte'
 
-  const { mime, size, type }: { mime: string, size: Size, type?: FileType } = $props()
+  const { mime, size, type }: { mime: string; size: Size; type?: FileType } = $props()
 </script>
 
 {#if mime.startsWith('image/')}

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useServerContext } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
   import { useAppContext } from '$lib/client/contexts/app'
   import Button from '$lib/client/ui/button.svelte'
   import Separator from '$lib/client/ui/separator.svelte'
@@ -8,17 +8,17 @@
   import { goto } from '$app/navigation'
   import RecentFiles from './recent-files.svelte'
   const {} = $props()
-  const { me } = useServerContext()
+  const { server } = useClientContext()
   const { isDesktop } = useAppContext()
 </script>
 
-{#await me() then user}
+{#await server.Me({}) then user}
   {#if $isDesktop}
     <div class="page">
       <div class="welcome">
         <h2>
           Welcome,
-          {user!.firstName}!
+          {user!.FirstName}!
         </h2>
       </div>
 

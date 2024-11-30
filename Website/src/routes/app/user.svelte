@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { useServerContext, type UserResource } from '$lib/client/client'
   import { useDashboardContext } from '$lib/client/contexts/dashboard'
   import Button from '$lib/client/ui/button.svelte'
   import Icon from '$lib/client/ui/icon.svelte'
@@ -10,6 +9,7 @@
   import Separator from '$lib/client/ui/separator.svelte'
   import { fly } from 'svelte/transition'
   import { writable } from 'svelte/store'
+  import type { UserResource } from '$lib/client/resource'
 
   const { pushDesktopTopRight } = useDashboardContext()
 
@@ -83,7 +83,7 @@
       <Button
         {foreground}
         onclick={() => {
-          goto(`/app/profile?id=${user.id}`)
+          goto(`/app/profile?id=${user.Id}`)
           $showUserMenu = false
         }}
         hint="Go to your profile"
@@ -94,10 +94,10 @@
           </div>
           <div class="info">
             <h2 class="name">
-              {user.firstName}
+              {user.FirstName}
             </h2>
             <p>
-              @{user.username}
+              @{user.Username}
             </p>
           </div>
         </div>
@@ -106,7 +106,6 @@
       <Separator horizontal />
 
       <UserMenu
-        {user}
         bind:logoutConfirmation
         ondismiss={() => {
           $showUserMenu = false

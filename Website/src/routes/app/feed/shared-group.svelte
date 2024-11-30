@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { FileAccessResource } from '$lib/client/client'
+  import { type FileAccessResource } from '$lib/client/resource';
   import UserLink from '$lib/client/model/user-link.svelte'
   import Icon from '$lib/client/ui/icon.svelte'
   import SharedEntry from './shared-entry.svelte'

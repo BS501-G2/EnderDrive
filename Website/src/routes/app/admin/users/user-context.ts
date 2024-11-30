@@ -1,4 +1,4 @@
-import type { UserRole } from '$lib/client/client'
+import type { UserRole } from '$lib/client/resource'
 import { getContext, setContext } from 'svelte'
 import { writable } from 'svelte/store'
 

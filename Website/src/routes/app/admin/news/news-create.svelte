@@ -1,12 +1,10 @@
 <script lang="ts">
-  import { useServerContext } from '$lib/client/client'
   import { useAppContext } from '$lib/client/contexts/app'
   import Button from '$lib/client/ui/button.svelte'
   import type { IconOptions } from '$lib/client/ui/icon.svelte'
   import { type Snippet } from 'svelte'
   import AppButton from '../../app-button.svelte'
   import AdminSidePanel from '../admin-side-panel.svelte'
-  import Overlay from '../../../overlay.svelte'
 
   const { isMobile, isDesktop } = useAppContext()
 
@@ -14,6 +12,7 @@
     icon: 'plus',
     thickness: 'solid'
   }
+
   const {
     onopen
   }: {

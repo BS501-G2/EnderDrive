@@ -1,31 +1,25 @@
 using System.Linq;
+using MimeDetective.Storage;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
 using RizzziGit.EnderDrive.Server.Resources;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
 public sealed partial class Connection
 {
-  private sealed record StreamOpenRequest : BaseFileRequest
+  private sealed record class FileGetMimeRequest : BaseFileRequest
   {
     public required ObjectId FileDataId;
-    public required bool ForWriting;
   }
 
-  private sealed record StreamOpenResponse
+  private sealed record class FileGetMimeResponse
   {
-    public required ObjectId StreamId;
+    public required string MimeType;
   }
 
-  private FileRequestHandler<StreamOpenRequest, StreamOpenResponse> StreamOpen =>
+  private FileRequestHandler<FileGetMimeRequest, FileGetMimeResponse> FileGetMime =>
     async (transaction, request, userAuthentication, me, myAdminAccess, fileAccess) =>
     {
-      if (request.ForWriting && fileAccess.AccessLevel < FileAccessLevel.ReadWrite)
-      {
-        throw new FileAccessForbiddenException() { FileId = fileAccess.UnlockedFile.File.Id };
-      }
-
       Resource<FileData> fileData = await Internal_EnsureFirst(
         transaction,
         Resources.Query<FileData>(
@@ -37,12 +31,12 @@ public sealed partial class Connection
         )
       );
 
-      ResourceManager.FileResourceStream stream = Resources.CreateFileStream(
+      Definition? report = await Server.MimeDetector.Inspect(
+        transaction,
         fileAccess.UnlockedFile,
-        fileData,
-        true
+        fileData
       );
 
-      return new() { StreamId = stream.Id };
+      return new() { MimeType = report?.File.MimeType ?? "application/octet-stream" };
     };
 }

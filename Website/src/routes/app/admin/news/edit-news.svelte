@@ -1,14 +1,13 @@
 <script lang="ts">
   import Window from '$lib/client/ui/window.svelte'
   import { writable } from 'svelte/store'
-  import Overlay from '../../../overlay.svelte'
   import { onMount, type Snippet } from 'svelte'
-  import { useServerContext } from '$lib/client/client'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import Input from '$lib/client/ui/input.svelte'
   import Button from '$lib/client/ui/button.svelte'
+  import { useClientContext } from '$lib/client/client'
 
-  const server = useServerContext()
+  const { server } = useClientContext()
 
   const { id, imageId, ondismiss }: { id: string | null; imageId: string; ondismiss: () => void } =
     $props()
@@ -17,15 +16,21 @@
 
   onMount(() => {
     void (async () => {
-      const fileContent = await server.getMainFileContent(imageId)
-      const fileData = await server.getLatestFileSnapshot(imageId, fileContent.id)
+      const fileData = await server
+        .FileGetDataEntries({ FileId: imageId, Pagination: { Count: 1 } })
+        .then((result) => result[0])
+      const size = await server.FileDataGetSize({ FileId: imageId, FileDataId: fileData.Id })
 
       let data = new Blob()
-      const streamId = await server.openStream(imageId, fileContent.id, fileData!.id)
+      const streamId = await server.StreamOpen({
+        FileId: imageId,
+        FileDataId: fileData.Id,
+        ForWriting: true
+      })
       const bufferSize = 1024 * 8
 
-      for (let index = 0; index < fileData!.size; index += bufferSize) {
-        const buffer = await server.readStream(streamId, bufferSize)
+      for (let index = 0; index < size; index += bufferSize) {
+        const buffer = await server.StreamRead({ StreamId: streamId, Length: bufferSize })
 
         data = new Blob([data, buffer])
       }
@@ -60,10 +65,18 @@
         </div>
       {/snippet}
 
-      <Button {foreground} {background} onclick={async () => {
-        await server.createNews($value, imageId, new Date())
-        ondismiss()
-      }}>
+      <Button
+        {foreground}
+        {background}
+        onclick={async () => {
+          await server.CreateNews({
+            Title: $value,
+            ImageFileId: imageId,
+            PublishTime: Date.now()
+          })
+          ondismiss()
+        }}
+      >
         <p>Save</p>
       </Button>
     {/if}
@@ -79,7 +92,7 @@
   }
 
   div.foreground {
-    padding: 8px
+    padding: 8px;
   }
 
   div.edit-news {

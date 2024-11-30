@@ -17,9 +17,14 @@ public sealed partial class Connection
     public required ObjectId? FileId;
   }
 
-  private AdminRequestHandler<GetRootIdRequest, GetRootIdResponse> GetRootId =>
-    async (transaction, request, userAuthentication, me, _) =>
+  private AuthenticatedRequestHandler<GetRootIdRequest, GetRootIdResponse> GetRootId =>
+    async (transaction, request, userAuthentication, me, myAdminAccess) =>
     {
+      if (request.UserId != me.Id && myAdminAccess == null)
+      {
+        throw new AdminRequired();
+      }
+
       Resource<User> user = await Internal_EnsureFirst(
         transaction,
         Resources.Query<User>(

@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { FileType, type FileResource } from '$lib/client/client'
   import Icon from '$lib/client/ui/icon.svelte'
   import { writable } from 'svelte/store'
   import FileBrowserPathMenu from './file-browser-path-menu.svelte'
+  import { FileType, type FileResource } from '$lib/client/resource'
 
   const {
     file
@@ -26,14 +26,14 @@
       $show = true
     }}
   >
-    {#if file.type === FileType.Folder}
+    {#if file.Type === FileType.Folder}
       <Icon icon="folder" />
     {:else}
       <Icon icon="file" />
     {/if}
 
-    <p class="name" title={file.name}>
-      {file.name}
+    <p class="name" title={file.Name}>
+      {file.Name}
     </p>
   </button>
 </div>

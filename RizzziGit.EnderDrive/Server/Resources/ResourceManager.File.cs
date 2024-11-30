@@ -38,21 +38,11 @@ public enum FileNameValidationFlags
 
 public record class File : ResourceData
 {
-  [JsonProperty("parentId")]
   public required ObjectId? ParentId;
-
-  [JsonProperty("ownerUserId")]
   public required ObjectId OwnerUserId;
-
-  [JsonProperty("name")]
   public required string Name;
-
-  [JsonProperty("type")]
   public required FileType Type;
-
-  [JsonProperty("trashTime")]
-  [BsonRepresentation(BsonType.DateTime)]
-  public required DateTimeOffset? TrashTime;
+  public required long? TrashTime;
 
   [JsonIgnore]
   public required byte[] EncryptedAesKey;

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
   import { page } from '$app/stores'
-  import { useServerContext } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
   import { useAppContext } from '$lib/client/contexts/app'
   import Button from '$lib/client/ui/button.svelte'
   import Icon from '$lib/client/ui/icon.svelte'
@@ -9,15 +9,17 @@
   import { onMount, type Snippet } from 'svelte'
   import { writable } from 'svelte/store'
 
-  const { getSetupRequirements, createAdmin } = useServerContext()
   const { isMobile } = useAppContext()
+  const { server } = useClientContext()
 
-  onMount(async () => {
-    const response = await getSetupRequirements()
+  $effect(() => {
+    void (async () => {
+      const response = await server.SetupRequirements({})
 
-    if (!response.adminSetupRequired) {
-      await goto('/')
-    }
+      if (!response.AdminSetupRequired) {
+        await goto('/')
+      }
+    })()
   })
 
   const pages = writable<
@@ -54,15 +56,15 @@
   }
 
   async function finalize() {
-    await createAdmin(
-      $username,
-      $password,
-      $confirmPassword,
-      $firstName,
-      $middleName || null,
-      $lastName,
-      $displayName || null
-    )
+    await server.CreateAdmin({
+      Username: $username,
+      Password: $password,
+      ConfirmPassword: $confirmPassword,
+      FirstName: $firstName,
+      MiddleName: $middleName || undefined,
+      LastName: $lastName,
+      DisplayName: $displayName || undefined
+    })
 
     await goto($page.url.searchParams.get('return') ?? '/')
   }

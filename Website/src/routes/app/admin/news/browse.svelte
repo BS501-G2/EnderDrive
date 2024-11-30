@@ -1,13 +1,10 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte'
-  import Overlay from '../../../overlay.svelte'
-  import Button from '$lib/client/ui/button.svelte'
-  import Icon from '$lib/client/ui/icon.svelte'
-  import { writable, type Writable } from 'svelte/store'
+  import { type Writable } from 'svelte/store'
   import FileSelector from '../../files/file-selector.svelte'
-  import { FileAccessLevel, type FileResource, useServerContext } from '$lib/client/client'
-  import { useDashboardContext, type DashboardContext } from '$lib/client/contexts/dashboard'
 
+  import { useDashboardContext, type DashboardContext } from '$lib/client/contexts/dashboard'
+  import { FileAccessLevel, type FileResource } from '$lib/client/resource'
+  import { useClientContext } from '$lib/client/client'
   const {
     ondismiss,
     browse,
@@ -19,8 +16,9 @@
     browse: Writable<[fileId: string | null] | null>
     dashboard: DashboardContext
   } = $props()
-  const { getFileMime, getFileAccesses } = useServerContext()
-
+  // const { getFileMime, getFileAccesses } = useServerContext()
+  const { server } = useClientContext()
+  5
   useDashboardContext(dashboard)
 </script>
 
@@ -33,7 +31,21 @@
   <FileSelector
     maxFileCount={1}
     onresult={async (files: FileResource[]) => {
-      const fileMime = await getFileMime(files[0].id)
+      const fileData = (
+        await server.FileGetDataEntries({
+          FileId: files[0].Id,
+          Pagination: { Count: 1 }
+        })
+      )[1]
+
+      const mime = await server.FileGetMime({
+        FileId: files[0].Id,
+        FileDataId: fileData.Id
+      })
+
+      if (!mime.startsWith('image/')) {
+        throw new Error('Only image file type is allowed')
+      }
 
       onresult(files[0])
 
@@ -44,12 +56,14 @@
     }}
     mimeTypes={[new RegExp('^image/.*$')]}
     filter={async (file) => {
-      const a = await getFileAccesses({
-        targetFileId: file.file.id
+      const fileAccesses = await server.GetFileAccesses({
+        TargetFileId: file.file.Id,
+        IncludePublic: true
       })
 
-      const b = a.find((e) => e.targetUserId == null && e.level >= FileAccessLevel.Read) != null
-      return b
+      return (
+        fileAccesses.find((e) => e.TargetUserId == null && e.Level >= FileAccessLevel.Read) != null
+      )
     }}
   />
 </div>

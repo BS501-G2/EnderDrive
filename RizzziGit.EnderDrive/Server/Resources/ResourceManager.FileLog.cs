@@ -9,20 +9,11 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 
 public sealed record class FileLog : ResourceData
 {
-  [JsonProperty("type")]
   public required FileLogType Type;
-
-  [JsonProperty("actorUserId")]
   public required ObjectId ActorUserId;
-
-  [JsonProperty("fileId")]
   public required ObjectId FileId;
-
-  [JsonProperty("fileDataId")]
   public required ObjectId? FileDataId;
-
-  [JsonProperty("createTime")]
-  public required DateTimeOffset CreateTime;
+  public required long CreateTime;
 }
 
 public enum FileLogType : byte
@@ -55,7 +46,7 @@ public sealed partial class ResourceManager
         ActorUserId = actorUser.Id,
         FileId = file.Id,
         FileDataId = fileSnapshot?.Id,
-        CreateTime = DateTimeOffset.UtcNow,
+        CreateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
       }
     );
 

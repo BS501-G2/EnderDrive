@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { FileType, useServerContext, type FileResource } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
+  import { FileType, type FileResource } from '$lib/client/resource'
   import { useAppContext } from '$lib/client/contexts/app'
   import { useFileBrowserContext, type FileEntry } from '$lib/client/contexts/file-browser'
   import { useFileBrowserListContext } from '$lib/client/contexts/file-browser-list'
@@ -22,17 +23,7 @@
       }
     | { head: true } = $props()
   const { pushFile, selectedFileIds, selectFile, deselectFile } = useFileBrowserListContext()
-  const {
-    getFileContents,
-    getFileMime,
-    me,
-    getFileDataList: getFileSnapshots,
-    getFiles,
-    getMainFileContent,
-    getUser,
-    getFileSize,
-    getLatestFileSnapshot
-  } = useServerContext()
+  const { server } = useClientContext()
   const { isMobile, isDesktop } = useAppContext()
   const { onFileId } = useFileBrowserContext()
 
@@ -44,31 +35,46 @@
   }
 
   const getModified = async (file: FileEntry) => {
-    const fileContent = await getMainFileContent(file.file.id)
-    // const fileSnapshot = (await getFileSnapshots(file.file.id, fileContent.id, void 0, 0, 1))[0]
-    const fileSnapshot = (await getLatestFileSnapshot(file.file.id, fileContent.id))!
-    const user = await getUser(fileSnapshot.authorUserId)
+    const fileData = await server
+      .FileGetDataEntries({ FileId: file.file.Id, Pagination: { Count: 1 } })
+      .then((result) => result[0])
 
-    return [fileSnapshot, user!] as const
+    const user =
+      fileData.AuthorUserId != null ? await server.GetUser({ UserId: fileData.AuthorUserId }) : null
+
+    return [fileData, user] as const
   }
 
   const getSize = async (file: FileEntry) => {
-    let fileSize = await getFileSize(file.file.id)
+    const fileData = await server
+      .FileGetDataEntries({ FileId: file.file.Id, Pagination: { Count: 1 } })
+      .then((result) => result[0])
 
-    return toReadableSize(fileSize)
+    return toReadableSize(
+      await server.FileDataGetSize({ FileId: file.file.Id, FileDataId: fileData.Id })
+    )
   }
 
   const getFolderSize = async (file: FileEntry) => {
-    const self = await me()
-    const files = await getFiles(file.file.id, void 0, void 0, self.id, void 0)
+    const files = await server.GetFiles({
+      ParentFolderId: file.file.Id
+    })
 
     return files.length
+  }
+
+  const getMime = async (file: FileEntry) => {
+    const fileData = await server
+      .FileGetDataEntries({ FileId: file.file.Id, Pagination: { Count: 1 } })
+      .then((result) => result[0])
+
+    return await server.FileGetMime({ FileId: file.file.Id, FileDataId: fileData.Id })
   }
 </script>
 
 {#snippet size(file: FileEntry)}
   <p class="size">
-    {#if file.file.type === FileType.File}
+    {#if file.file.Type === FileType.File}
       {#await getSize(file)}
         <LoadingSpinner size="1em" />
       {:then size}
@@ -99,9 +105,9 @@
       event.preventDefault()
 
       if (!('head' in props)) {
-        $selectedFileIds.includes(props.file.file.id)
-          ? deselectFile(props.file.file.id)
-          : selectFile(props.file.file.id)
+        $selectedFileIds.includes(props.file.file.Id)
+          ? deselectFile(props.file.file.Id)
+          : selectFile(props.file.file.Id)
       }
     }
   }}
@@ -109,9 +115,9 @@
     if (get(isMobile) && $selectedFileIds.length) {
       event.preventDefault()
       if (!('head' in props)) {
-        $selectedFileIds.includes(props.file.file.id)
-          ? deselectFile(props.file.file.id)
-          : selectFile(props.file.file.id)
+        $selectedFileIds.includes(props.file.file.Id)
+          ? deselectFile(props.file.file.Id)
+          : selectFile(props.file.file.Id)
       }
     }
   }}
@@ -134,16 +140,16 @@
         duration: 150
       }}
     >
-      {#if $hover || $selectedFileIds.includes(file.file.id)}
+      {#if $hover || $selectedFileIds.includes(file.file.Id)}
         <button
           class="check"
           onclick={() => {
-            $selectedFileIds.includes(file.file.id)
-              ? deselectFile(file.file.id)
-              : selectFile(file.file.id)
+            $selectedFileIds.includes(file.file.Id)
+              ? deselectFile(file.file.Id)
+              : selectFile(file.file.Id)
           }}
         >
-          {#if $selectedFileIds.includes(file.file.id)}
+          {#if $selectedFileIds.includes(file.file.Id)}
             <Icon icon="circle-check" size="18px" />
           {:else}
             <Icon icon="circle" size="18px" />
@@ -157,10 +163,10 @@
     {#if !('head' in props)}
       {@const file = props.file}
 
-      {#if file.file.type !== FileType.File}
+      {#if file.file.Type !== FileType.File}
         <Icon icon="folder" size="32px" />
       {:else}
-        {#await getFileMime(file.file.id)}
+        {#await getMime(file)}
           <LoadingSpinner size="32px" />
         {:then mime}
           <FileBrowserFileIcon {mime} size="32px" />
@@ -174,25 +180,25 @@
       {@const file = props.file}
       <div class="file-name">
         <a
-          href="/app/files?fileId={file.file.id}"
+          href="/app/files?fileId={file.file.Id}"
           ondblclick={(event) => {
-            onFileId?.(event as never, file.file.id)
+            onFileId?.(event as never, file.file.Id)
           }}
           onclick={(event) => {
             event.preventDefault()
 
             if ($isMobile) {
               if ($selectedFileIds.length === 0) {
-                onFileId?.(event as never, file.file.id)
+                onFileId?.(event as never, file.file.Id)
               }
             } else {
-              $selectedFileIds = [file.file.id]
+              $selectedFileIds = [file.file.Id]
             }
           }}
           class:mobile={$isMobile}
         >
           <p class="name">
-            {file.file.name}
+            {file.file.Name}
           </p>
 
           {#if $isMobile}
@@ -210,7 +216,7 @@
       {#if !('head' in props)}
         {@render size(props.file)}
       {:else}
-      <h2>File Size</h2>
+        <h2>File Size</h2>
       {/if}
     </div>
   {/if}
@@ -219,14 +225,14 @@
     <div class="modified">
       {#if !('head' in props)}
         {@const file = props.file}
-        {#if file.file.type === FileType.File}
+        {#if file.file.Type === FileType.File}
           {#await getModified(file)}
             <LoadingSpinner size="1em" />
           {:then [fileSnapshot, user]}
             <p class="user">
-              {moment.unix(new Date(fileSnapshot.createTime).getTime() / 1000).fromNow()}
+              {moment.unix(new Date(fileSnapshot.CreateTime).getTime() / 1000).fromNow()}
               by
-              <UserLink userId={user.id} />
+              <UserLink userId={user!.Id} />
             </p>
           {/await}
         {/if}

@@ -1,17 +1,17 @@
 import { getContext, setContext, type Snippet } from 'svelte'
 import { persisted } from 'svelte-persisted-store'
 import { derived, get, writable, type Readable, type Writable } from 'svelte/store'
-import type {
-  FileResource,
-  FileAccessResource,
-  FileStarResource,
-  FileType,
-  VirusReportResource,
-  FileAccessLevel,
-  UserResource
-} from '../client'
 import type { IconOptions } from '../ui/icon.svelte'
 import type { FileBrowserListContext } from './file-browser-list'
+import type {
+  FileAccessLevel,
+  FileAccessResource,
+  FileResource,
+  FileStarResource,
+  FileType,
+  UserResource,
+  VirusReportResource
+} from '../resource'
 
 const contextName = 'File Browser Context'
 
@@ -99,7 +99,7 @@ export function createFileBrowserContext(
   const refresh = writable<(() => void) | null>(null)
 
   const fileListContext: Writable<FileBrowserListContext | null> = writable(null)
-  const stored: Writable<[source: string, files: string[]] | null> = writable( null)
+  const stored: Writable<[source: string, files: string[]] | null> = writable(null)
 
   const context = setContext(contextName, {
     stored,
@@ -286,13 +286,17 @@ export type CurrentFile =
       error: Error
     }
 
-export interface FileProperties {
+export type FileProperties = {
   file: FileResource
   fileAccessLevel: FileAccessLevel
-  viruses: VirusReportResource | null
-
   created: Date
   modified: Date
-  mime: string
-  size: number
-}
+} & (
+  | { type: 'folder'; count: number }
+  | {
+      type: 'file'
+      viruses: VirusReportResource | null
+      mime: string
+      size: number
+    }
+)

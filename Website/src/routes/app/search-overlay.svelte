@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte'
   import SearchUsers from './search-users.svelte'
-  import { useClientContext, useServerContext } from '$lib/client/client'
   import Button from '$lib/client/ui/button.svelte'
   import Input from '$lib/client/ui/input.svelte'
   import { useAppContext } from '$lib/client/contexts/app'

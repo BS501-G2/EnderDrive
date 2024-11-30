@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useServerContext } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
   import Button from '$lib/client/ui/button.svelte'
   import Input from '$lib/client/ui/input.svelte'
   import Window from '$lib/client/ui/window.svelte'
@@ -7,7 +7,7 @@
   import { writable } from 'svelte/store'
 
   const { ondismiss }: { ondismiss: () => void } = $props()
-  const server = useServerContext()
+  const { server } = useClientContext()
   const text = writable<string>('')
 
   const submitButton = writable<() => void>(null as never)
@@ -42,7 +42,7 @@
       {background}
       bind:click={$submitButton}
       onclick={async () => {
-        await server.requestPasswordReset($text)
+        await server.RequestPasswordReset({ Username: $text })
 
         $success = true
       }}
@@ -54,9 +54,7 @@
 
 {#if $success}
   <Window title="Success" {ondismiss}>
-    <div class="success">
-        Please wait for the administrator to accept your password request.
-    </div>
+    <div class="success">Please wait for the administrator to accept your password request.</div>
   </Window>
 {/if}
 

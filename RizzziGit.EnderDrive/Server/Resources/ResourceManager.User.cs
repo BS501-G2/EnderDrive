@@ -24,22 +24,11 @@ public record class User : ResourceData
   public static implicit operator RSA(User user) =>
     KeyManager.DeserializeAsymmetricKey(user.RsaPublicKey);
 
-  [JsonProperty("username")]
   public required string Username;
-
-  [JsonProperty("firstName")]
   public required string FirstName;
-
-  [JsonProperty("middleName")]
   public required string? MiddleName;
-
-  [JsonProperty("lastName")]
   public required string LastName;
-
-  [JsonProperty("displayName")]
   public required string? DisplayName;
-
-  [JsonProperty("roles")]
   public required UserRole[] Roles;
 
   [JsonIgnore]

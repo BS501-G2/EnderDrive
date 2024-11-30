@@ -4,14 +4,17 @@
   import Window from '$lib/client/ui/window.svelte'
   import { type Snippet } from 'svelte'
   import { derived, writable } from 'svelte/store'
-  import { UsernameValidationFlags, useServerContext } from '$lib/client/client'
+  // import { UsernameValidationFlags, useServerContext } from '$lib/client/client'
+  import { UsernameValidationFlags } from '$lib/client/resource'
+  import { useClientContext } from '$lib/client/client'
 
   const {
     ondismiss,
     onresult
-  }: { ondismiss: () => void; onresult: (output: { password: string, userId: string }) => void } = $props()
+  }: { ondismiss: () => void; onresult: (output: { password: string; userId: string }) => void } =
+    $props()
 
-  const { getUsernameValidationFlags, createUser } = useServerContext()
+  const { server } = useClientContext()
 
   const username = writable<string>('')
   const firstName = writable<string>('')
@@ -26,27 +29,25 @@
   const displayNameError = writable<string[] | null>(null)
 
   async function onsubmit(): Promise<void> {
-
-
     $usernameError = null
     $firstNameError = null
     $middleNameError = null
     $lastNameError = null
     $displayNameError = null
 
-    const usernameValidationFlags = await getUsernameValidationFlags($username)
+    const flags = await server.GetUsernameValidationFlags({ Username: $username })
 
-    if (usernameValidationFlags !== UsernameValidationFlags.OK) {
+    if (flags !== UsernameValidationFlags.OK) {
       const errors: string[] = []
-      if (usernameValidationFlags & UsernameValidationFlags.TooShort) {
+      if (flags & UsernameValidationFlags.TooShort) {
         errors.push('Username must be at least 6 characters long')
       }
 
-      if (usernameValidationFlags & UsernameValidationFlags.TooLong) {
+      if (flags & UsernameValidationFlags.TooLong) {
         errors.push('Username must be at most 12 characters long')
       }
 
-      if (usernameValidationFlags & UsernameValidationFlags.InvalidChars) {
+      if (flags & UsernameValidationFlags.InvalidChars) {
         errors.push('Username must only contain letters, numbers, and underscores')
       }
 
@@ -68,15 +69,15 @@
       $lastNameError == null &&
       $displayNameError == null
     ) {
-      const { password, userId } = await createUser({
-        username: $username,
-        firstName: $firstName,
-        middleName: $middleName,
-        lastName: $lastName,
-        displayName: $displayName
+      const { Password, UserId } = await server.CreateUser({
+        Username: $username,
+        FirstName: $firstName,
+        MiddleName: $middleName,
+        LastName: $lastName,
+        DisplayName: $displayName
       })
 
-      onresult({ password, userId })
+      onresult({ password: Password, userId: UserId })
     }
   }
 
@@ -85,9 +86,9 @@
 
 {#snippet error(error: string[] | null)}
   {#if error != null && error.length > 0}
-  {#each error as a}
-    <p class="error">{a}</p>
-  {/each}
+    {#each error as a}
+      <p class="error">{a}</p>
+    {/each}
   {/if}
 {/snippet}
 

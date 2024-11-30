@@ -16,8 +16,7 @@ public sealed partial class Connection
   {
     public required string Title;
     public required ObjectId ImageFileId;
-    [BsonRepresentation(BsonType.DateTime)]
-    public required DateTimeOffset? PublishTime;
+    public required long? PublishTime;
   }
 
   private sealed record CreateNewsResponse

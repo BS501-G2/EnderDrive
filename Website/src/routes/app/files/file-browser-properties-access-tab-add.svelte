@@ -2,23 +2,24 @@
   import Input from '$lib/client/ui/input.svelte'
   import Window from '$lib/client/ui/window.svelte'
   import { get, writable } from 'svelte/store'
-  import Overlay from '../../overlay.svelte'
-  import { useServerContext, type UserResource } from '$lib/client/client'
+
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import Button from '$lib/client/ui/button.svelte'
   import { type Snippet } from 'svelte'
   import Icon from '$lib/client/ui/icon.svelte'
+  import { useClientContext } from '$lib/client/client'
+  import type { UserResource } from '$lib/client/resource'
 
   const { ondismiss, onresult }: { ondismiss: () => void; onresult: (user: UserResource) => void } =
     $props()
-  const { getUsers } = useServerContext()
+  const { server } = useClientContext()
 
   async function load(searchString: string): Promise<UserResource[]> {
     if (!searchString) {
       return []
     }
 
-    return await getUsers({searchString})
+    return await server.GetUsers({ SearchString: searchString })
   }
 
   const searchString = writable('')
@@ -63,8 +64,8 @@
                   <Icon size="1.2rem" icon="user" />
                 </div>
                 <div class="name">
-                  <p class="name">{user.displayName ?? user.firstName}</p>
-                  <p class="username">@{user.username}</p>
+                  <p class="name">{user.DisplayName ?? user.FirstName}</p>
+                  <p class="username">@{user.Username}</p>
                 </div>
               </div>
             </Button>

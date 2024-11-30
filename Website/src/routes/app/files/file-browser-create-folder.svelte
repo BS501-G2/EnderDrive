@@ -6,10 +6,12 @@
   import Icon from '$lib/client/ui/icon.svelte'
   import Separator from '$lib/client/ui/separator.svelte'
   import { useAppContext } from '$lib/client/contexts/app'
-  import { useServerContext, type FileResource } from '$lib/client/client'
+
+  import { useClientContext } from '$lib/client/client'
   import { useFileBrowserContext } from '$lib/client/contexts/file-browser'
   import { useDashboardContext } from '$lib/client/contexts/dashboard'
   import { writable } from 'svelte/store'
+  import type { FileResource } from '$lib/client/resource'
 
   const {
     parentFolder,
@@ -19,7 +21,7 @@
     ondismiss: () => void
   } = $props()
   const { isMobile } = useAppContext()
-  const { createFolder } = useServerContext()
+  const { server } = useClientContext()
   const { onFileId } = useFileBrowserContext()
   const { executeBackgroundTask } = useDashboardContext()
 
@@ -32,11 +34,14 @@
   ): Promise<void> {
     await executeBackgroundTask('name', async ({ setProgress, setMessage, setTitle }) => {
       setMessage('Creating folder...')
-      const folder = await createFolder(parentFolder.id, $name)
+      const folder = await server.FolderCreate({
+        FileId: parentFolder.Id,
+        Name: $name
+      })
 
       setMessage('Folder successfully created..')
       ondismiss()
-      onFileId?.(event, folder.id)
+      onFileId?.(event, folder.Id)
     })
   }
 </script>

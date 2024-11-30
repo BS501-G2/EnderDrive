@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { FileAccessLevel, FileType, useServerContext } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
   import { useFileBrowserContext, type FileProperties } from '$lib/client/contexts/file-browser'
   import Icon from '$lib/client/ui/icon.svelte'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
@@ -16,22 +16,14 @@
   import FileBrowserPropertiesTranscriptTab from './file-browser-properties-transcript-tab.svelte'
   import FileBrowserPropertiesLogsTab from './file-browser-properties-logs-tab.svelte'
   import FileBrowserPropertiesSnapshots from './file-browser-properties-snapshots.svelte'
+  import { FileAccessLevel, FileType } from '$lib/client/resource'
 
   const {
     selectedFileIds
   }: {
     selectedFileIds: string[]
   } = $props()
-  const {
-    getFile,
-    scanFile,
-    getMainFileContent,
-    getOldestFileSnapshot,
-    getLatestFileSnapshot,
-    getFileMime,
-    getFileSize,
-    getFileAccessLevel
-  } = useServerContext()
+  const { server } = useClientContext()
 
   const { current } = useFileBrowserContext()
   const promises = writable<Promise<FileProperties[]>>(null as never)
@@ -50,37 +42,63 @@
     $promises = (() =>
       Promise.all(
         selectedFileIds.map(async (fileId): Promise<FileProperties> => {
-          const file = await getFile(fileId)
-          const fileAccessLevel = await getFileAccessLevel(file.id)
-          const fileContent = await getMainFileContent(file.id)
-          const fileOldestSnapshot = await getOldestFileSnapshot(file.id, fileContent.id)
-          const fileLatestSnapshot = await getLatestFileSnapshot(file.id, fileContent.id)
+          const file = await server.GetFile({ FileId: fileId })
+          const fileAccessLevel = await server.GetFileAccessLevel({ FileId: fileId })
 
-          const viruses =
-            fileLatestSnapshot != null
-              ? await scanFile(file.id, fileContent.id, fileLatestSnapshot.id)
-              : null
-          const mime = await getFileMime(file.id)
-          const size = await getFileSize(file.id, fileContent.id, fileLatestSnapshot?.id)
+          if (file.Type == FileType.File) {
+            const fileDataEntries = await server.FileGetDataEntries({ FileId: file.Id })
+            const oldData = fileDataEntries.at(-1)!
+            const newData = fileDataEntries[0]
 
-          const modified =
-            fileLatestSnapshot?.createTime != null
-              ? new Date(fileLatestSnapshot.createTime)
-              : new Date()
-          const created =
-            fileOldestSnapshot?.createTime != null
-              ? new Date(fileOldestSnapshot.createTime)
-              : new Date()
+            const viruses = await server.FileScan({
+              FileId: file.Id,
+              FileDataId: newData.Id
+            })
+            const mime = await server.FileGetMime({ FileId: file.Id, FileDataId: newData.Id })
+            const size = await server.FileDataGetSize({
+              FileId: file.Id,
+              FileDataId: newData.Id
+            })
 
-          return {
-            file,
-            fileAccessLevel,
-            viruses,
+            const modified = new Date(newData.CreateTime)
+            const created = new Date(oldData.CreateTime)
 
-            created,
-            modified,
-            mime,
-            size
+            return {
+              type: 'file',
+
+              file,
+              fileAccessLevel,
+              viruses,
+
+              created,
+              modified,
+              mime,
+              size
+            }
+          } else if (file.Type == FileType.Folder) {
+            const fileLogs = await server.GetFileLogs({ FileId: file.Id, UniqueFileId: false })
+            const oldLog = fileLogs.at(-1)!
+            const newLog = fileLogs[0]
+
+            const count = await server
+              .GetFiles({ ParentFolderId: file.Id })
+              .then((result) => result.length)
+
+            const modified = new Date(newLog.CreateTime)
+            const created = new Date(oldLog.CreateTime)
+
+            return {
+              type: 'folder',
+
+              count,
+
+              file,
+              modified,
+              created,
+              fileAccessLevel
+            }
+          } else {
+            throw new Error('Invalid file type: ' + file.Type)
           }
         })
       ))()
@@ -104,7 +122,7 @@
         <div class="header">
           <div class="preview">
             {#if files.length === 1}
-              <FileBrowserFileIcon mime={files[0]?.mime} size="72px" />
+              <FileBrowserFileIcon mime={files[0]?.file.Name} size="72px" />
             {:else if files.length === 0}
               <Icon icon="file" size="72px" />
             {:else}
@@ -117,7 +135,7 @@
             {#if files.length > 1}
               {files.length} files
             {:else}
-              {files[0]?.file.name}
+              {files[0]?.file.Name}
             {/if}
           </p>
         </div>
@@ -165,16 +183,16 @@
         <FileBrowserPropertiesDetailsTab {files} />
       {/if}
 
-      {#if files.length === 1 && files[0].file.parentId != null}
+      {#if files.length === 1 && files[0].file.ParentId != null}
         {#if files[0].fileAccessLevel >= FileAccessLevel.Manage}
           <FileBrowserPropertiesAccessTab file={files[0]} />
         {/if}
 
-        {#if files[0].file.type === FileType.File && $current.type === 'file'}
+        {#if files[0].file.Type === FileType.File && $current.type === 'file'}
           <FileBrowserPropertiesSnapshots file={files[0]} />
         {/if}
 
-        {#if files[0].mime.startsWith('audio/') || files[0].mime.startsWith('video/')}
+        {#if files[0].type === 'file' && (files[0].mime.startsWith('audio/') || files[0].mime.startsWith('video/'))}
           <FileBrowserPropertiesTranscriptTab file={files[0]} />
         {/if}
 

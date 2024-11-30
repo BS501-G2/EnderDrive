@@ -1,14 +1,16 @@
 <script lang="ts">
-  import { useServerContext, type FileAccessResource } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
+  import type { FileAccessResource } from '$lib/client/resource'
   import SharedGroup from './shared-group.svelte'
 
-  const server = useServerContext()
+  const { server } = useClientContext()
 
   async function files() {
-    const me = await server.me()
-    const fileAccesses = await server.getFileAccesses({
-      targetUserId: me.id,
-      count: 50
+    const me = await server.Me({})
+    const fileAccesses = await server.GetFileAccesses({
+      TargetUserId: me.Id,
+      Pagination: {
+      }
     })
 
     const groupedFileAccesses: {
@@ -19,10 +21,10 @@
     for (const fileAccess of fileAccesses) {
       const lastGroup = groupedFileAccesses[groupedFileAccesses.length - 1]
 
-      if (lastGroup != null && lastGroup.userId == fileAccess.authorUserId) {
+      if (lastGroup != null && lastGroup.userId == fileAccess.AuthorUserId) {
         lastGroup.fileAccesses.push(fileAccess)
       } else {
-        groupedFileAccesses.push({ userId: fileAccess.authorUserId, fileAccesses: [fileAccess] })
+        groupedFileAccesses.push({ userId: fileAccess.AuthorUserId, fileAccesses: [fileAccess] })
       }
     }
 

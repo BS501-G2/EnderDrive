@@ -1,11 +1,9 @@
 <script lang="ts">
-  import { FileType, useServerContext, type FileResource } from '$lib/client/client'
-  import Icon from '$lib/client/ui/icon.svelte'
+  import { useClientContext } from '$lib/client/client'
+  import type { FileResource } from '$lib/client/resource'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
-  import Separator from '$lib/client/ui/separator.svelte'
   import Overlay from '../../overlay.svelte'
   import FileBrowserPathMenuEntry from './file-browser-path-menu-entry.svelte'
-  import FileBrowserPathMenu from './file-browser-path-menu.svelte'
 
   const {
     button,
@@ -18,7 +16,7 @@
     ondismiss: () => void
     cascade?: boolean
   } = $props()
-  const { getFiles, me } = useServerContext()
+  const { server } = useClientContext()
 
   const entryBounds = $derived(button.getBoundingClientRect())
 
@@ -28,7 +26,7 @@
 
 <Overlay {x} {y} {ondismiss} nodim>
   <div class="menu">
-    {#await (async () => await getFiles(cascade ? file.id : file.parentId, void 0, void 0, (await me()).id))()}
+    {#await server.GetFiles({ ParentFolderId: cascade ? file.Id : file.ParentId })}
       <div class="loading">
         <LoadingSpinner size="3em" />
       </div>

@@ -7,22 +7,23 @@
   import Title from '../title.svelte'
   import Separator from '$lib/client/ui/separator.svelte'
   import Icon from '$lib/client/ui/icon.svelte'
-  import { useServerContext } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
+
   import { goto } from '$app/navigation'
   const {
     children
   }: {
     children: Snippet
   } = $props()
-  const { isDesktop, isMobile, pushTitle } = useAppContext()
+  const { isDesktop, isMobile } = useAppContext()
 
   const { tabs, sidePanel, titleStack } = createAdminContext()
 
-  const server = useServerContext()
+  const { server } = useClientContext()
 
   onMount(() => {
     void (async () => {
-      if (!(await server.amIAdmin())) {
+      if (!(await server.AmIAdmin({}))) {
         goto('/app', { replaceState: false })
       }
     })()
@@ -140,8 +141,8 @@
             }
           }
 
-          > div.content {
-          }
+          // > div.content {
+          // }
         }
       }
 

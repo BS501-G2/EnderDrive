@@ -5,11 +5,11 @@
   import { type NavigationEntry } from '$lib/client/contexts/navigation'
   import { derived, type Readable } from 'svelte/store'
   import Navigation from './navigation.svelte'
-  import { useClientContext, UserRole, useServerContext } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
 
   const { isMobile } = useAppContext()
-  const { clientState } = useClientContext()
-  const { me, getUser, amIAdmin } = useServerContext()
+  const { clientState, server } = useClientContext()
+
   const {
     navigationEntries
   }: {
@@ -134,7 +134,7 @@
 {/if}
 
 {#key $clientState[0]}
-  {#await Promise.all([me(), amIAdmin()]) then [me, isAdmin]}
+  {#await Promise.all([server.Me({}), server.AmIAdmin({})]) then [me, isAdmin]}
     {#if isAdmin}
       <Navigation
         label="Admin"
@@ -155,7 +155,7 @@
 
     <Navigation
       label="Profile"
-      onclick={async () => goto(`/app/profile?id=${me.id}`)}
+      onclick={async () => goto(`/app/profile?id=${me.Id}`)}
       icon={(isActive) => ({
         icon: 'user',
         thickness: isActive ? 'solid' : 'regular'

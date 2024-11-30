@@ -27,19 +27,12 @@ public enum FileAccessTargetEntityType
 
 public record class FileAccess : ResourceData
 {
-  [JsonProperty("fileId")]
   public required ObjectId FileId;
-
-  [JsonProperty("authorUserId")]
   public required ObjectId AuthorUserId;
-
-  [JsonProperty("targetUserId")]
   public required ObjectId? TargetUserId;
 
   [JsonIgnore]
   public required byte[] EncryptedAesKey;
-
-  [JsonProperty("level")]
   public required FileAccessLevel Level;
 }
 

@@ -4,16 +4,17 @@
   import { onMount, type Snippet } from 'svelte'
   import { writable, type Writable } from 'svelte/store'
 
-  import { useServerContext } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
   import { goto } from '$app/navigation'
   import { page } from '$app/stores'
   import MarkdownFile from '$lib/client/ui/markdown-file.svelte'
 
   const {}: {} = $props()
-  const { didIAgree, agree } = useServerContext()
+
+  const {server} = useClientContext()
 
   async function load(): Promise<void> {
-    if (await didIAgree()) {
+    if ((await server.DidIAgree({}))) {
       goto($page.url.searchParams.get('return') ?? '/app')
     }
   }
@@ -50,7 +51,7 @@
           disabled={!$checked}
           {foreground}
           onclick={async () => {
-            await agree()
+            await server.Agree({})
             await ($promise = load())
           }}
         >

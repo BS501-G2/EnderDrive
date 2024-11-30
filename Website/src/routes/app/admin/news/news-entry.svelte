@@ -1,11 +1,11 @@
 <script lang="ts">
-  import type { NewsResource } from '$lib/client/client'
+  import { type NewsResource } from '$lib/client/resource'
   import { Buffer } from 'buffer'
 
   const { news }: { news: NewsResource } = $props()
-  const { image, title } = news
+  const { Image, Title } = news
 
-  const url = URL.createObjectURL(new Blob([Buffer.from(`${image}`, 'base64')]))
+  const url = URL.createObjectURL(new Blob([Buffer.from(`${Image}`, 'base64')]))
 </script>
 
 <div class="entry">
@@ -14,12 +14,10 @@
   </div>
 
   <div class="title">
-    <p>{title}</p>
+    <p>{Title}</p>
   </div>
 
-  <div class="actions">
-    
-  </div>
+  <div class="actions"></div>
 </div>
 
 <style lang="scss">

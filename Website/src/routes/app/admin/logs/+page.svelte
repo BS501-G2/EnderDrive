@@ -2,16 +2,18 @@
   import { useAdminContext } from '$lib/client/contexts/admin'
   import { onMount } from 'svelte'
   import Title from '../../title.svelte'
-  import { type FileLogResource, useServerContext } from '$lib/client/client'
+
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import LogEntry from './log-entry.svelte'
   import { writable } from 'svelte/store'
   import LogFilter from './log-filter.svelte'
+  import { useClientContext } from '$lib/client/client'
+  import type { FileLogResource } from '$lib/client/resource'
 
   const { pushTitle } = useAdminContext()
 
   onMount(() => pushTitle('File Logs'))
-  const server = useServerContext()
+  const { server } = useClientContext()
 
   const logs = writable<FileLogResource[]>([])
 
@@ -19,11 +21,13 @@
     const run = async () => {
       while (true) {
         if ($logs.length !== 0 && div.scrollTop / div.scrollWidth < 0.75) {
-
           return
         }
 
-        const fileLogs = await server.getFileLogs({ offset: $logs.length, count: 75 })
+        const fileLogs = await server.GetFileLogs({
+          Pagination: { Offset: $logs.length, Count: 75 },
+          UniqueFileId: true
+        })
 
         logs.update((logs) => {
           logs.push(...fileLogs)

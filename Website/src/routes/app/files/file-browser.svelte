@@ -95,11 +95,11 @@
     >
       <FileBrowserProperties
         selectedFileIds={$current.type === 'file'
-          ? [$current.file.id]
+          ? [$current.file.Id]
           : $current.type === 'folder'
             ? $flattenedSelectedIds.length
               ? $flattenedSelectedIds
-              : [$current.file.id]
+              : [$current.file.Id]
             : $flattenedSelectedIds}
       />
     </div>

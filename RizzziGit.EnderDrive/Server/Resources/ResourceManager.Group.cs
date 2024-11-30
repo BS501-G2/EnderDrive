@@ -13,10 +13,7 @@ public record class Group : ResourceData
   public static implicit operator RSA(Group groupMembership) =>
     KeyManager.DeserializeAsymmetricKey(groupMembership.RsaPublicKey);
 
-  [JsonProperty("name")]
   public required string Name;
-
-  [JsonProperty("description")]
   public required string? Description;
 
   [JsonIgnore]

@@ -8,7 +8,7 @@
   import { onMount } from 'svelte'
   import FileBrowserFileListEntry from './file-browser-file-list-entry.svelte'
   import FileBrowserAction from './file-browser-action.svelte'
-  import { useServerContext } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
   import FileBrowserRefresh from './file-browser-refresh.svelte'
   import Title from '../title.svelte'
   import { useAppContext } from '$lib/client/contexts/app'
@@ -27,7 +27,7 @@
   } = $props()
 
   const { setFileListContext, refresh, selectMode } = useFileBrowserContext()
-  const { getFileMime, setFileStar, getFileStar } = useServerContext()
+  const { server } = useClientContext()
   const { context, selectedFileIds } = createFileBrowserListContext()
   const { isMobile, isDesktop } = useAppContext()
 
@@ -52,28 +52,31 @@
         {#if $isDesktop}
           <FileBrowserFileListEntry head />
         {/if}
-          {#each files as file}
-            {#if file.type === 'folder'}
-              <FileBrowserFileListEntry {file} />
-            {:else if selectMode}
-              {#if selectMode.allowedFileMimeTypes.length !== 0}
-                {#await (async () => {
-                  const mime = await getFileMime(file.file.id)
+        {#each files as file}
+          {#if file.type === 'folder'}
+            <FileBrowserFileListEntry {file} />
+          {:else if selectMode}
+            {#if selectMode.allowedFileMimeTypes.length !== 0}
+              {#await (async () => {
+                const fileData = await server
+                  .FileGetDataEntries({ FileId: file.file.Id, Pagination: { Count: 1 } })
+                  .then((result) => result[0])
 
-                  return { mime, filter: await selectMode.filter(file) }
-                })() then { mime, filter }}
-                
-                  {#if filter && selectMode.allowedFileMimeTypes.some( (mimeType) => (mimeType instanceof RegExp ? mimeType.test(mime) : mimeType === mime) )}
-                    <FileBrowserFileListEntry {file} />
-                  {/if}
-                {/await}
-              {:else}
-                <FileBrowserFileListEntry {file} />
-              {/if}
+                const mime = await server.FileGetMime( { FileId: file.file.Id, FileDataId: fileData.Id } )
+
+                return { mime, filter: await selectMode.filter(file) }
+              })() then { mime, filter }}
+                {#if filter && selectMode.allowedFileMimeTypes.some( (mimeType) => (mimeType instanceof RegExp ? mimeType.test(mime) : mimeType === mime) )}
+                  <FileBrowserFileListEntry {file} />
+                {/if}
+              {/await}
             {:else}
               <FileBrowserFileListEntry {file} />
             {/if}
-          {/each}
+          {:else}
+            <FileBrowserFileListEntry {file} />
+          {/if}
+        {/each}
 
         {#if !files.length}
           <div class="empty">

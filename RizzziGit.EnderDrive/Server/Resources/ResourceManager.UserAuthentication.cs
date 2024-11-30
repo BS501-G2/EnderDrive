@@ -26,10 +26,7 @@ public record class UserAuthentication : ResourceData
   public static implicit operator RSA(UserAuthentication user) =>
     KeyManager.DeserializeAsymmetricKey(user.UserPublicRsaKey);
 
-  [JsonProperty("userId")]
   public required ObjectId UserId;
-
-  [JsonProperty("type")]
   public required UserAuthenticationType Type;
 
   [JsonIgnore]
@@ -48,8 +45,7 @@ public record class UserAuthentication : ResourceData
   public required byte[] EncryptedUserPrivateRsaKey;
 
   [JsonIgnore]
-  [BsonRepresentation(representation: BsonType.DateTime)]
-  public required DateTimeOffset CreateTime;
+  public required long CreateTime;
 }
 
 [Flags]
@@ -143,7 +139,7 @@ public sealed partial class ResourceManager
         AesIv = iv,
         UserPublicRsaKey = rsaPublicKey,
         EncryptedUserPrivateRsaKey = encryptedRsaPrivateKey,
-        CreateTime = DateTimeOffset.UtcNow,
+        CreateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
       }
     );
 
@@ -195,7 +191,7 @@ public sealed partial class ResourceManager
         AesIv = iv,
         UserPublicRsaKey = sourceUserAuthentication.UserAuthentication.Data.UserPublicRsaKey,
         EncryptedUserPrivateRsaKey = encryptedRsaPrivateKey,
-        CreateTime = DateTimeOffset.UtcNow,
+        CreateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
       }
     );
 
@@ -270,7 +266,7 @@ public sealed partial class ResourceManager
         AesIv = iv,
         UserPublicRsaKey = user.Data.RsaPublicKey,
         EncryptedUserPrivateRsaKey = encryptedUserRsaPrivateKey,
-        CreateTime = DateTimeOffset.UtcNow,
+        CreateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
       }
     );
 

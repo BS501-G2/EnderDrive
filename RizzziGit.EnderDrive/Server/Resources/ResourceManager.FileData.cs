@@ -12,17 +12,9 @@ using Commons.Memory;
 
 public record FileData : ResourceData
 {
-  [JsonProperty("createTime")]
-  [BsonRepresentation(representation: BsonType.DateTime)]
-  public required DateTimeOffset CreateTime;
-
-  [JsonProperty("fileId")]
+  public required long CreateTime;
   public required ObjectId FileId;
-
-  [JsonProperty("authorUserId")]
   public required ObjectId? AuthorUserId;
-
-  [JsonProperty("baseFileDataId")]
   public required ObjectId? BaseFileDataId;
 
   [JsonIgnore]
@@ -46,7 +38,7 @@ public sealed partial class ResourceManager
       {
         Id = ObjectId.Empty,
 
-        CreateTime = DateTimeOffset.UtcNow,
+        CreateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
 
         FileId = file.File.Id,
         AuthorUserId = authorUser?.Id,

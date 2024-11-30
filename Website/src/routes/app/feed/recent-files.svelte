@@ -1,19 +1,20 @@
 <script lang="ts">
-  import { FileType, useServerContext, type FileLogResource } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
   import { useAppContext } from '$lib/client/contexts/app'
+  import { FileType } from '$lib/client/resource'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import RecentEntry from './recent-entry.svelte'
 
-  const server = useServerContext()
+  const { server } = useClientContext()
   const { isDesktop } = useAppContext()
 
   async function load() {
-    const logs = await server.getFileLogs({ count: 50 })
+    const logs = await server.GetFileLogs({ Pagination: { Count: 50 }, UniqueFileId: true })
 
     return await Promise.all(
       logs.map(async (fileLog) => {
         console.log(fileLog)
-        const file = await server.getFile(fileLog.fileId)
+        const file = await server.getFile(fileLog.FileId)
 
         return { file, fileLog }
       })
@@ -31,7 +32,7 @@
       <LoadingSpinner size="3em" />
     </div>
   {:then logs}
-    {#each logs.toSorted((a, b) => new Date(b.fileLog.createTime).getTime() - new Date(a.fileLog.createTime).getTime()) as { file, fileLog } }
+    {#each logs.toSorted((a, b) => new Date(b.fileLog.CreateTime).getTime() - new Date(a.fileLog.CreateTime).getTime()) as { file, fileLog }}
       {#if file.type === FileType.File}
         <RecentEntry {file} {fileLog} />
       {/if}

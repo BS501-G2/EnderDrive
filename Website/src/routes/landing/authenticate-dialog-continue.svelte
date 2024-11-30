@@ -1,15 +1,15 @@
 <script lang="ts">
-  import { useServerContext } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client';
   import Button from '$lib/client/ui/button.svelte'
   import Icon, { type IconOptions } from '$lib/client/ui/icon.svelte'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import { type Snippet } from 'svelte'
 
   const { redirect, ondismiss }: { redirect: () => Promise<void>, ondismiss: () => void } = $props()
-  const { me, deauthenticate } = useServerContext()
+    const { server } = useClientContext()
 </script>
 
-{#await me()}
+{#await server.Me({})}
   <div class="loading">
     <LoadingSpinner size="3em" />
   </div>
@@ -40,13 +40,13 @@
       </Button>
     {/snippet}
 
-    {@render button('Continue as ' + (me.displayName ?? me.firstName), { icon: 'user' }, true, async () => {
+    {@render button('Continue as ' + (me.DisplayName ?? me.FirstName), { icon: 'user' }, true, async () => {
       ondismiss()
       await redirect()
     })}
 
     {@render button('Log Out', { icon: 'sign-out', thickness: 'solid' }, false, async () => {
-      await deauthenticate()
+      await server.Deauthenticate({})
     })}
   </div>
 {/await}

@@ -11,10 +11,7 @@ public sealed record class PaginationOptions
   // private int? count = DEFAULT_COUNT;
   // private int? offset = DEFAULT_OFFSET;
 
-  [BsonElement("count")]
   public required int? Count;
-
-  [BsonElement("offset")]
   public required int? Offset;
 
   // [BsonElement("count")]
