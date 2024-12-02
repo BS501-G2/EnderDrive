@@ -121,7 +121,7 @@ public sealed partial class AudioTranscriber(EnderDriveServer server, string mod
         transaction
       );
 
-      using Stream stream = Resources.CreateFileStream(file, fileData);
+      using Stream stream = await Resources.CreateFileStream(transaction, file, fileData);
 
       AudioTranscriptionData[] data = [];
 

@@ -4,6 +4,7 @@
   import NotificationHost from './notification-host.svelte'
   import Separator from '$lib/client/ui/separator.svelte'
   import { fly } from 'svelte/transition'
+  import NotificationViewer from './notification-viewer.svelte'
 
   const {
     element,
@@ -36,7 +37,7 @@
       <Separator horizontal />
 
       <div class="main">
-        <NotificationHost />
+        <NotificationViewer />
       </div>
     </div>
   {/snippet}

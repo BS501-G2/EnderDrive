@@ -30,7 +30,7 @@ public sealed partial class Connection
       Resource<User>? user =
         request.UserId != null
           ? await Resources
-            .Query<User>(transaction, (query) => query.Where((item) => item.Id == request.UserId))
+            .Query<User>(transaction, (query) => query.Where((user) => user.Id == request.UserId))
             .FirstOrDefaultAsync(transaction)
           : null;
 
@@ -50,9 +50,9 @@ public sealed partial class Connection
           )
           : null;
 
-      Resource<FileData>? fileSnapshot = null;
+      Resource<FileData>? fileData = null;
 
-      fileSnapshot =
+      fileData =
         request.FileDataId != null
           ? await Internal_EnsureFirst(
             transaction,
@@ -60,8 +60,9 @@ public sealed partial class Connection
               transaction,
               (query) =>
                 query.Where(
-                  (item) =>
-                    (file == null || item.FileId == file.Id) && item.Id == request.FileDataId
+                  (fileData) =>
+                    (file == null || fileData.FileId == file.Id)
+                    && fileData.Id == request.FileDataId
                 )
             )
           )
@@ -75,7 +76,7 @@ public sealed partial class Connection
               .Where(
                 (item) =>
                   (file == null || item.FileId == file.Id)
-                  && (fileSnapshot == null || item.FileDataId == fileSnapshot.Id)
+                  && (fileData == null || item.FileDataId == fileData.Id)
                   && (user == null || item.ActorUserId == user.Id)
               )
               .OrderByDescending((fileLog) => fileLog.CreateTime)

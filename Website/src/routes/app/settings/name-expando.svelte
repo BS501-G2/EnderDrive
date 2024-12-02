@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
-  import { useServerContext, type UserResource } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
+  import type { UserResource } from '$lib/client/resource'
   import Button from '$lib/client/ui/button.svelte'
   import Input from '$lib/client/ui/input.svelte'
   import { onMount, type Snippet } from 'svelte'
@@ -32,15 +33,15 @@
   onMount(() => lastName.subscribe(() => check()))
   onMount(() => displayName.subscribe(() => check()))
 
-  const server = useServerContext()
+  const { server } = useClientContext()
 
   const { me }: { me: UserResource } = $props()
 
   onMount(() => {
-    $firstName = me.firstName
-    $middleName = me.middleName || ''
-    $lastName = me.lastName
-    $displayName = me.displayName || ''
+    $firstName = me.FirstName
+    $middleName = me.MiddleName || ''
+    $lastName = me.LastName
+    $displayName = me.DisplayName || ''
   })
 </script>
 
@@ -64,11 +65,11 @@
   foreground={recentForeground}
   background={recentBackground}
   onclick={async () => {
-    await server.updateName({
-      firstName: $firstName,
-      middleName: $middleName || null,
-      lastName: $lastName,
-      displayName: $displayName || null
+    await server.UpdateName({
+      FirstName: $firstName,
+      MiddleName: $middleName || undefined,
+      LastName: $lastName,
+      DisplayName: $displayName || undefined
     })
   }}
 >

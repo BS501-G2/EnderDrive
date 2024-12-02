@@ -37,10 +37,21 @@ public sealed partial class Connection
         )
       );
 
-      ResourceManager.FileResourceStream stream = Resources.CreateFileStream(
+      if (request.ForWriting) { }
+
+      await Resources.CreateFileLog(
+        transaction,
+        fileAccess.UnlockedFile.File,
+        me,
+        request.ForWriting ? FileLogType.Update : FileLogType.Read,
+        fileData
+      );
+
+      ResourceManager.FileResourceStream stream = await Resources.CreateFileStream(
+        transaction,
         fileAccess.UnlockedFile,
         fileData,
-        true
+        request.ForWriting
       );
 
       return new() { StreamId = stream.Id };

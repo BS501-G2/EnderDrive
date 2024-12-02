@@ -1,10 +1,19 @@
 <script lang="ts">
-  const {} = $props()
+  import type { Writable } from 'svelte/store'
+  import { createNotificationContext, type NotificationContext } from './notification-context'
+  import { onMount } from 'svelte'
+  import { useClientContext } from '$lib/client/client'
+
+  const { context }: { context: Writable<NotificationContext> } = $props()
+
+  const {} = ($context = createNotificationContext())
+  const {
+    client: { setHandler }
+  } = useClientContext()
+
+  onMount(() =>
+    setHandler('Notify', async (data) => {
+      return {}
+    })
+  )
 </script>
-
-<div class="notification">
-  <p>You have no new notifications.</p>
-</div>
-
-<style lang="scss">
-</style>

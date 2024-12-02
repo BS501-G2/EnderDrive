@@ -1,14 +1,13 @@
 <script lang="ts">
   import { onMount, type Snippet } from 'svelte'
-  import { ClientState, useClientContext, useServerContext } from '../client'
+  import { useClientContext } from '../client'
   import Button from './button.svelte'
   import LoadingSpinner from './loading-spinner.svelte'
   import Banner from './banner.svelte'
   import { goto } from '$app/navigation'
   import { page } from '$app/stores'
 
-  const { clientState } = useClientContext()
-  const { getSetupRequirements } = useServerContext()
+  const { clientState, server } = useClientContext()
 
   const {
     children,
@@ -19,9 +18,9 @@
   } = $props()
 
   onMount(async () => {
-    const response = await getSetupRequirements()
+    const response = await server.SetupRequirements({})
 
-    if (response.adminSetupRequired && !nosetup) {
+    if (response.AdminSetupRequired && !nosetup) {
       await goto(
         `/setup?return=${encodeURIComponent(`${$page.url.pathname}${$page.url.search}`)}`,
         {
@@ -32,15 +31,15 @@
   })
 </script>
 
-{#if $clientState[0] === ClientState.Connecting}
+{#if $clientState[0] === 'connecting'}
   <div class="splash-container">
     <div class="splash">
       <LoadingSpinner size="3rem" />
     </div>
   </div>
-{:else if $clientState[0] === ClientState.Connected}
+{:else if $clientState[0] === 'connnected'}
   {@render children()}
-{:else if $clientState[0] === ClientState.Failed}
+{:else if $clientState[0] === 'disconnected'}
   <div class="splash-container error">
     <div class="splash">
       <Banner

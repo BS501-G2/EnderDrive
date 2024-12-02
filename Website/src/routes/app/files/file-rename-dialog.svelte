@@ -66,7 +66,7 @@
     {foreground}
     {background}
     onclick={async () => {
-      await server.moveFile({ newName: $rename })
+      await server.MoveFile({ FileId: file.Id , NewName: $rename })
     }}
   >
     Submit

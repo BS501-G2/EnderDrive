@@ -58,7 +58,7 @@ public sealed partial class ResourceManager
   public async ValueTask<FileNameValidationFlags> ValidateFileName(
     ResourceTransaction transaction,
     string name,
-    Resource<File>? parnet
+    Resource<File>? parent
   )
   {
     FileNameValidationFlags flags = 0;
@@ -74,14 +74,15 @@ public sealed partial class ResourceManager
     }
 
     if (
-      parnet != null
+      parent != null
       && await Query<File>(
           transaction,
           (query) =>
             query.Where(
               (file) =>
-                file.ParentId == parnet.Id
+                file.ParentId == parent.Id
                 && file.Name.Equals(name, StringComparison.CurrentCultureIgnoreCase)
+                && file.TrashTime == null
             )
         )
         .AnyAsync(transaction.CancellationToken)

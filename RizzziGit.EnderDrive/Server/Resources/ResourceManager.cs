@@ -9,11 +9,10 @@ using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
-using Newtonsoft.Json;
+using System.Collections.Concurrent;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
-using System.Collections.Concurrent;
 using Commons.Collections;
 using Commons.Services;
 using Commons.Tasks;
@@ -44,13 +43,10 @@ public sealed class ResourceManagerContext
   > ActiveFileStreams;
 
   public required TaskQueue TransactionQueue;
-  public required FileStream BlobStream;
 }
 
 public sealed partial class ResourceManager(
-  EnderDriveServer server,
-  string blobPath,
-  long blobRedundancyCount
+  EnderDriveServer server
 ) : Service<ResourceManagerContext>("Resource Manager", server)
 {
   private EnderDriveServer Server => server;
@@ -94,12 +90,6 @@ public sealed partial class ResourceManager(
       Client = client,
       RandomNumberGenerator = randomNumberGenerator,
       Resources = [],
-      BlobStream = new FileStream(
-        blobPath,
-        FileMode.OpenOrCreate,
-        System.IO.FileAccess.ReadWrite,
-        FileShare.ReadWrite
-      ),
       TransactionQueue = new(),
       ActiveFileStreams = new()
     };
@@ -115,8 +105,6 @@ public sealed partial class ResourceManager(
 
   protected override Task OnStop(ResourceManagerContext context, ExceptionDispatchInfo? exception)
   {
-    context.BlobStream.Close();
-
     return base.OnStop(context, exception);
   }
 }

@@ -1,77 +1,35 @@
 <!-- https://www.benmvp.com/blog/how-to-create-circle-svg-gradient-loading-spinner -->
 
 <script lang="ts" module>
-  import { get, writable, type Writable } from 'svelte/store'
-
-  let spinner: Writable<[degrees: number, time: number | null]> = writable([0, null])
-  let activeCount: number = 0
-
-  let degreesIncrement = 1000 / 360
-
-  function connect() {
-    if (activeCount == 0) {
-      const oldData = get(spinner)
-
-      if (oldData[1] == null || oldData[1] < Date.now() - 10000) {
-        spinner.set([0, null])
-      }
-
-      const update = () => {
-        if (activeCount <= 0) {
-          activeCount = 0
-
-          return
-        }
-
-        spinner.update((v) => {
-          if (v[0] >= 360) {
-            v[0] = 0
-          }
-
-          return [v[0] + (Date.now() - (v[1] ?? Date.now())) / degreesIncrement, Date.now()]
-        })
-
-        requestAnimationFrame(update)
-      }
-
-      activeCount++
-      requestAnimationFrame(update)
-      return
-    } else {
-      activeCount++
-    }
-  }
-
-  function disconnect() {
-    activeCount--
-  }
-
   export type Size = `${number}${'px' | 'em' | 'rem'}`
 </script>
 
 <script lang="ts">
-  import { onDestroy, onMount } from 'svelte'
+  import { writable } from 'svelte/store'
+  import AnimationFrame from './animation-frame.svelte'
 
-  export let degrees: number = 0
-  export let size: Size | null = null
+  const { size }: { size: Size } = $props()
 
-  onMount(() => {
-    connect()
-  })
+  const ratio = writable<number>(0)
 
-  onDestroy(() => disconnect())
-
-  $: degrees = $spinner[0]
-  $: sizeStyle =
+  const style =
     size != null
       ? `min-width: ${size}; min-height: ${size}; max-width: ${size}; max-height: ${size};`
       : `min-width: 100%; min-height: 100%; max-width: 100%; max-height: 100%;`
 </script>
 
+<AnimationFrame
+  onframe={(last, current) => {
+    const fps = 1000 / (current - (last ?? Date.now()))
+
+    ratio.update((ratio) => (ratio + 1 / fps) % 1)
+  }}
+/>
+
 <svg
   viewBox="0 0 200 200"
   fill="none"
-  style="transform: rotate({$spinner[0]}deg); {sizeStyle}"
+  style="transform: rotate({$ratio * 360}deg); {style}"
   xmlns="http://www.w3.org/2000/svg"
 >
   <defs>

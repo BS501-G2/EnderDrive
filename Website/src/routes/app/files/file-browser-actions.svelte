@@ -4,11 +4,12 @@
   import FileBrowserAction from './file-browser-action.svelte'
   import FileBrowserCreateFolder from './file-browser-create-folder.svelte'
   import { useDashboardContext } from '$lib/client/contexts/dashboard'
-  import { toReadableSize } from '$lib/client/utils'
+  import { bufferSize, toReadableSize } from '$lib/client/utils'
   import { page } from '$app/stores'
   import FileRenameDialog from './file-rename-dialog.svelte'
   import { useClientContext } from '$lib/client/client'
   import { FileAccessLevel, type FileResource } from '$lib/client/resource'
+
   const {
     current,
     selectedFileIds
@@ -100,10 +101,6 @@
                 return
               }
 
-              if (file.size > 1024 * 1024 * 10) {
-                throw new Error('Files exceeds upload limit.')
-              }
-
               const fileResource = await server.GetFile({ FileId: nonReactiveSelectedFileIds[0] })
               const fileData = await server
                 .FileGetDataEntries({
@@ -117,8 +114,6 @@
                 FileDataId: fileData.Id,
                 ForWriting: true
               })
-
-              const bufferSize = 1024 * 256
 
               setMessage(`${Math.round((uploadedLength / file.size) * 10000) / 100}%`)
               setFooterLeft(file.name)
@@ -179,9 +174,9 @@
 
           if ($stored[0] !== current.file.Id) {
             for (const fileId of $stored[1]) {
-              await server.moveFile({
-                fileId,
-                newParentId: current.file.Id
+              await server.MoveFile({
+                FileId: fileId,
+                NewParentId: current.file.Id
               })
             }
           }
@@ -215,7 +210,7 @@
       label="Permanently Delete"
       onclick={async () => {
         for (const fileId of nonReactiveSelectedFileIds) {
-          await server.fileDelete(fileId)
+          await server.FileDelete({ FileId: fileId })
         }
 
         refresh?.()
@@ -263,16 +258,11 @@
                 return
               }
 
-              if (files.some((file) => file.size > 1024 * 1024 * 10)) {
-                throw new Error('Some of the exceeds upload limit.')
-              }
-
               for (const file of files) {
                 const streamId = await server.FileCreate({
                   FileId: current.file.Id,
                   Name: file.name
                 })
-                const bufferSize = 1024 * 256
 
                 setMessage(`${Math.round((uploadedLength / totalLength) * 10000) / 100}%`)
                 setFooterLeft(file.name)
@@ -368,7 +358,7 @@
         }}
         label="Rename"
         onclick={async () => {
-          const file = await server.getFile(nonReactiveSelectedFileIds[0])
+          const file = await server.GetFile({ FileId: nonReactiveSelectedFileIds[0] })
           $renameDialog = file
         }}
       />
@@ -384,19 +374,22 @@
           const fileData = await server
             .FileGetDataEntries({
               FileId: nonReactiveSelectedFileIds[0],
+              FileDataId: $page.url.searchParams.get('dataId') ?? undefined,
               Pagination: { Count: 1 }
             })
             .then((result) => result[0])
-          const fileDataSize = await server.FileDataGetSize({
+
+          const fileDataSize = await server.FileGetSize({
             FileId: nonReactiveSelectedFileIds[0],
             FileDataId: fileData.Id
           })
 
-          const virus = await server.scanFile({
-            FileId: nonReactiveSelectedFileIds[0]
+          const virus = await server.FileScan({
+            FileId: nonReactiveSelectedFileIds[0],
+            FileDataId: fileData.Id
           })
 
-          if (virus.viruses.length > 0) {
+          if ((virus.Viruses?.length ?? 0) > 0) {
             throw new Error('Cannot download a file with viruses.')
           }
 
@@ -407,19 +400,20 @@
           })
 
           let data = new Blob([], { type: 'application/octet-stream' })
-          for (let offset = 0; offset < fileDataSize; offset += 1024 * 8) {
-            const buffer = await server
-              .StreamRead({
-                StreamId: streamId,
-                Length: 1024 * 8
-              })
+          for (let offset = 0; offset < fileDataSize; offset += bufferSize) {
+            const buffer = await server.StreamRead({
+              StreamId: streamId,
+              Length: bufferSize
+            })
 
             data = new Blob([data, buffer], { type: 'application/octet-stream' })
           }
 
           await server.StreamClose({ StreamId: streamId })
 
-          window.open(URL.createObjectURL(data))
+          const url = URL.createObjectURL(data)
+
+          window.open(url, '_blank')
         }}
       />
     {/if}

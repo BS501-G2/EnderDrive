@@ -51,7 +51,7 @@
       .then((result) => result[0])
 
     return toReadableSize(
-      await server.FileDataGetSize({ FileId: file.file.Id, FileDataId: fileData.Id })
+      await server.FileGetSize({ FileId: file.file.Id, FileDataId: fileData.Id })
     )
   }
 

@@ -3,6 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
+[BsonNoId]
 public abstract record ConnectionPacket
 {
   public sealed record Request : ConnectionPacket
@@ -32,5 +33,5 @@ public abstract record ConnectionPacket
   private ConnectionPacket() { }
 
   [BsonElement("id")]
-  public required string Id;
+  public required long Id;
 }

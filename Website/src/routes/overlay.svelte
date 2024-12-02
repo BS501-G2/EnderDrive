@@ -204,7 +204,7 @@
 
     text-align: start;
 
-    overflow: auto;
+    // overflow: auto;
 
     border: none;
     outline: none;

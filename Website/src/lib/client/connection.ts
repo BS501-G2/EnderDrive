@@ -3,7 +3,7 @@ import * as SocketIO from 'socket.io-client'
 import { derived, get, writable, type Readable } from 'svelte/store'
 
 export type ConnectionPacket = {
-  id: string
+  id: number
 } & (
   | {
       type: 'request'
@@ -27,7 +27,10 @@ export interface Connection {
   sendRequest: (name: string, data: unknown) => Promise<unknown>
 }
 
-export type ConnectionState = [type: 'connecting'] | [type: 'connnected'] | [type: 'disconnected']
+export type ConnectionState =
+  | [type: 'connecting']
+  | [type: 'connnected']
+  | [type: 'disconnected', message: string, retry: () => void]
 
 export function createConnection(
   handleRequest: (name: string, data: unknown) => Promise<unknown>
@@ -38,6 +41,7 @@ export function createConnection(
 
   const send = (data: ConnectionPacket) => {
     if (get(state)[0] === 'connnected') {
+      console.debug('->', data)
       socket.emit('', data)
 
       return
@@ -49,7 +53,7 @@ export function createConnection(
   const pendingRequests: Record<
     string,
     {
-      id: string
+      id: number
       resolve: (data: unknown) => void
       reject: (error: Error) => void
     }
@@ -57,6 +61,7 @@ export function createConnection(
 
   socket.on('', (packet: ConnectionPacket) => {
     const { id } = packet
+    console.debug('<-', packet)
 
     if (packet.type === 'request') {
       const { name, data } = packet
@@ -85,7 +90,9 @@ export function createConnection(
     }
   })
 
-  socket.on('connect', () => {})
+  socket.on('connect', async () => {
+    state.set(['connnected'])
+  })
 
   socket.on('disconnect', () => {
     for (const id in pendingRequests) {
@@ -96,15 +103,23 @@ export function createConnection(
 
       reject(new Error('Disconnected'))
     }
+
+    console.log('disconnect2')
+
+    state.set(['disconnected', 'Connection closed.', () => socket.connect()])
   })
 
-  socket.on('connect_error', console.error)
+  socket.on('connect_error', () => {
+    state.set(['disconnected', 'Failed to connect.', () => socket.connect()])
+  })
 
-  socket.io.on('reconnect_attempt', () => {})
+  socket.io.on('reconnect_attempt', () => {
+    state.set(['connecting'])
+  })
 
-  const stateReadonly = derived(state, (state) => structuredClone(state))
+  const stateReadonly = derived(state, (state) => state)
   const sendRequest = (name: string, data: unknown): Promise<unknown> => {
-    const id = Math.round(Math.random() * 1000000).toString(16)
+    const id = Math.round(Math.random() * 1000000)
 
     return new Promise<unknown>((resolve: (data: unknown) => void, reject) => {
       pendingRequests[id] = { id, resolve, reject }

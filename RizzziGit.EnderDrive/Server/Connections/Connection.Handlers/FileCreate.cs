@@ -44,9 +44,23 @@ public sealed partial class Connection
         request.Name
       );
 
+      await Resources.CreateFileLog(
+        transaction,
+        fileAccess.UnlockedFile.File,
+        me,
+        FileLogType.Update
+      );
+
       Resource<FileData> fileData = await Resources.CreateFileData(transaction, file, null, me);
 
-      ResourceManager.FileResourceStream stream = Resources.CreateFileStream(file, fileData, true);
+      await Resources.CreateFileLog(transaction, file.File, me, FileLogType.Create, fileData);
+
+      ResourceManager.FileResourceStream stream = await Resources.CreateFileStream(
+        transaction,
+        file,
+        fileData,
+        true
+      );
 
       return new() { StreamId = stream.Id };
     };

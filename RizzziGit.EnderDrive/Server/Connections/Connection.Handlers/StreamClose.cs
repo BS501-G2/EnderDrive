@@ -14,7 +14,7 @@ public sealed partial class Connection
   private StreamRequestHandler<StreamCloseRequest, StreamCloseResponse> StreamClose =>
     async (request, stream, cancellationToken) =>
     {
-      await stream.CloseAsync(cancellationToken);
+      await stream.DisposeAsync();
 
       return new() { };
     };

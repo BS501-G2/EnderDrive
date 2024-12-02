@@ -188,7 +188,7 @@ public sealed partial class VirusScanner(EnderDriveServer server, string unixSoc
     {
       try
       {
-        using Stream stream = server.Resources.CreateFileStream(file, fileData);
+        using Stream stream = await server.Resources.CreateFileStream(transaction, file, fileData);
 
         ScanResult result = await Scan(stream, transaction.CancellationToken);
 

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { useClientContext } from '$lib/client/client'
   import type { FileDataResource, FileResource } from '$lib/client/resource'
+  import { bufferSize } from '$lib/client/utils'
   import { writable, type Writable } from 'svelte/store'
 
   const {
@@ -30,11 +31,11 @@
     while (offset < length) {
       const buffer = await server.StreamRead({
         StreamId: streamId,
-        Length: 64 * 1024
+        Length: bufferSize
       })
       blob = new Blob([blob, buffer], { type: mime })
-      offset += blob.size
 
+      offset += blob.size
       progress.set([offset, length])
     }
 

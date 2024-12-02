@@ -1,7 +1,4 @@
 ﻿using System;
-using System.IO;
-using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace RizzziGit.EnderDrive.Server;
@@ -10,10 +7,10 @@ using Core;
 
 public static partial class Program
 {
-  public static Task Main(string[] args) =>
+  public static Task Main(string[] _) =>
     Task.Run(async () =>
     {
-      EnderDriveServer server = new(Environment.CurrentDirectory);
+      EnderDriveServer server = new();
 
       ConsoleCancelEventHandler? handler = null;
       Console.CancelKeyPress += handler = (origin, args) =>

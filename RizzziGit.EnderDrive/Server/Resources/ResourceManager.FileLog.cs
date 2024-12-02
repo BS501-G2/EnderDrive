@@ -35,7 +35,7 @@ public sealed partial class ResourceManager
     Resource<File> file,
     Resource<User> actorUser,
     FileLogType type,
-    Resource<FileData>? fileSnapshot = null
+    Resource<FileData>? fileData = null
   )
   {
     Resource<FileLog> log = ToResource<FileLog>(
@@ -45,7 +45,7 @@ public sealed partial class ResourceManager
         Type = type,
         ActorUserId = actorUser.Id,
         FileId = file.Id,
-        FileDataId = fileSnapshot?.Id,
+        FileDataId = fileData?.Id,
         CreateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
       }
     );

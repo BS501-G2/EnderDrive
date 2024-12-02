@@ -14,13 +14,13 @@ public sealed partial class Connection
     UnlockedAdminAccess myAdminAccess
   );
 
-  private void RegisterAdminHandler<S, R>(
+  private void RegisterAdminRequestHandler<S, R>(
     string name,
     AdminRequestHandler<S, R> handler,
     UserRole[]? requiredIncludeRole = null,
     UserRole[]? requiredExcludeRole = null
   ) =>
-    RegisterAuthenticatedHandler<S, R>(
+    RegisterAuthenticatedRequestHandler<S, R>(
       name,
       async (transaction, request, userAuthentication, me, myAdminAccess) =>
       {

@@ -24,7 +24,7 @@
 {/snippet}
 
 <Button {foreground} {background} onclick={() => goto(`/app/files?fileId=${fileAccess.FileId}`)}>
-  {#await Promise.all([server.getFileMime(fileAccess.FileId), server.getFile(fileAccess.FileId)])}
+  {#await Promise.all( [server.FileGetMime( { FileId: fileAccess.FileId } ), server.GetFile( { FileId: fileAccess.FileId } )] )}
     <div class="loading">
       <LoadingSpinner size="3rem" />
     </div>
@@ -32,7 +32,7 @@
     <div class="icon">
       <FileBrowserFileIcon {mime} size="3rem" />
     </div>
-    <p class="name">{file.name}</p>
+    <p class="name">{file.Name}</p>
   {/await}
 </Button>
 

@@ -1,15 +1,16 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
-  import { useServerContext, type UserResource } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
+  import type { UserResource } from '$lib/client/resource'
   import Button from '$lib/client/ui/button.svelte'
   import Separator from '$lib/client/ui/separator.svelte'
   import { type Snippet } from 'svelte'
   const { user, me }: { user: UserResource; me: UserResource } = $props()
 
-  const server = useServerContext()
+  const { server } = useClientContext()
 </script>
 
-<h2 class="title">About {user.id === me.id ? 'You' : 'Me'}</h2>
+<h2 class="title">About {user.Id === me.Id ? 'You' : 'Me'}</h2>
 
 {#snippet row(label: string, value: string | null)}
   <div class="row">
@@ -22,15 +23,15 @@
 {/snippet}
 
 <div class="rows">
-  {@render row('Display Name', user.displayName ?? null)}
-  {@render row('First Name', user.firstName ?? null)}
-  {@render row('Middle Name', user.middleName ?? null)}
-  {@render row('Last Name', user.lastName ?? null)}
+  {@render row('Display Name', user.DisplayName ?? null)}
+  {@render row('First Name', user.FirstName ?? null)}
+  {@render row('Middle Name', user.MiddleName ?? null)}
+  {@render row('Last Name', user.LastName ?? null)}
 </div>
 
 {#await (async () => {
-  if (await server.amIAdmin()) {
-    const root = await server.getRootId(user.id)
+  if (await server.AmIAdmin({})) {
+    const root = await server.GetRootId({ UserId: user.Id})
 
     return [false, root] as const
   } else {
@@ -59,11 +60,11 @@
       {#if isMine}
         Visit My Files
       {:else}
-        Visit {user.displayName ?? user.firstName}'s Files
+        Visit {user.DisplayName ?? user.FirstName}'s Files
       {/if}
     </Button>
   {:else}
-    <p>{user.displayName ?? user.firstName}'s filesystem is not yet initialized.</p>
+    <p>{user.DisplayName ?? user.FirstName}'s filesystem is not yet initialized.</p>
   {/if}
 {/await}
 

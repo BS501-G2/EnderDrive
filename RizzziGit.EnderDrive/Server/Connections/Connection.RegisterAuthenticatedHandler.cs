@@ -15,13 +15,13 @@ public sealed partial class Connection
     UnlockedAdminAccess? myAdminAccess
   );
 
-  private void RegisterAuthenticatedHandler<S, R>(
+  private void RegisterAuthenticatedRequestHandler<S, R>(
     string name,
     AuthenticatedRequestHandler<S, R> handler,
     UserRole[]? includeRole = null,
     UserRole[]? excludeRole = null
   ) =>
-    RegisterTransactedHandler<S, R>(
+    RegisterTransactedRequestHandler<S, R>(
       name,
       async (transaction, request) =>
       {
@@ -56,10 +56,18 @@ public sealed partial class Connection
           .Query<AdminAccess>(transaction, (query) => query.Where((item) => item.UserId == me.Id))
           .FirstOrDefaultAsync(transaction.CancellationToken);
 
-        UnlockedAdminAccess? unlockedAdminAccess =
-          adminAccess != null
-            ? UnlockedAdminAccess.Unlock(adminAccess, unlockedUserAuthentication)
-            : null;
+        UnlockedAdminAccess? unlockedAdminAccess;
+        try
+        {
+          unlockedAdminAccess =
+            adminAccess != null
+              ? UnlockedAdminAccess.Unlock(adminAccess, unlockedUserAuthentication)
+              : null;
+        }
+        catch
+        {
+          unlockedAdminAccess = null;
+        }
 
         return await handler(
           transaction,

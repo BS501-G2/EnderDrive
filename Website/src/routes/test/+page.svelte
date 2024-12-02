@@ -16,6 +16,8 @@
 
   const output = writable<any>(null)
 
+  output.subscribe(console.log)
+
   const pushAction = (name: string, onClick: () => Promise<any>) => {
     const id = Math.random()
 
@@ -28,7 +30,8 @@
           try {
             const result = await onClick()
 
-            return ($output = typeof result === 'string' ? result : JSON.stringify(result))
+            return ($output =
+              typeof result === 'string' ? result : JSON.stringify(result, void 0, '  '))
           } catch (error: any) {
             $output = `${error.stack}`
 
@@ -124,44 +127,49 @@
   </p>
 {/snippet}
 
-<RequireClient nosetup>
-  <div class="card">
-    <div class="header">
-      <h2>Actions</h2>
+<div class="page">
+  <RequireClient nosetup>
+    <div class="card">
+      <div class="header">
+        <h2>Actions</h2>
 
-      <div>
-        <p>Current Account</p>
-
-        {#if $authentication != null}
-          {#await server.Me({}) then me}
-            <p>{me.DisplayName ?? me.FirstName} (@{me.Username})</p>
-          {/await}
-        {:else}
-          (none)
-        {/if}
+        <div>
+          <p>Current Account</p>
+          {#if $authentication != null}
+            {#await server.Me({}) then me}
+              <p>{me.DisplayName ?? me.FirstName} (@{me.Username})</p>
+            {/await}
+          {:else}
+            (none)
+          {/if}
+        </div>
+      </div>
+      <div class="separator"></div>
+      <div class="body actions">
+        {#each $actions as { id, name, onClick } (id)}
+          <Button {background} onclick={onClick} {foreground}>{name}</Button>
+        {/each}
       </div>
     </div>
-    <div class="separator"></div>
-    <div class="body actions">
-      {#each $actions as { id, name, onClick } (id)}
-        <Button {background} onclick={onClick} {foreground}>{name}</Button>
-      {/each}
-    </div>
-  </div>
 
-  <div class="card">
-    <div class="header">
-      <h2>Output</h2>
+    <div class="card extend">
+      <div class="header">
+        <h2>Output</h2>
+      </div>
+      <div class="separator"></div>
+      <div class="body">
+        <pre>{$output}</pre>
+      </div>
     </div>
-    <div class="separator"></div>
-    <div class="body">
-      <pre>{output}</pre>
-    </div>
-  </div>
-</RequireClient>
+  </RequireClient>
+</div>
 
 <style lang="scss">
   @use '../../global.scss' as *;
+
+  div.page {
+    @include force-size(100dvw, 100dvh);
+  }
 
   div.button {
     background-color: var(--color-5);
@@ -190,6 +198,10 @@
 
       @include force-size(&, 1px);
     }
+    
+    > div.body {
+      flex-grow: 1;
+    }
 
     > div.body.actions {
       flex-direction: row;
@@ -199,7 +211,16 @@
     }
   }
 
+  div.card.extend {
+    flex-grow: 1;
+  }
+
   pre {
+    flex-grow: 1;
+    min-width: 0;
+
     font: revert;
+
+    overflow: auto hidden;
   }
 </style>

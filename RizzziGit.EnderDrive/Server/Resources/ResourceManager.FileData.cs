@@ -17,10 +17,14 @@ public record FileData : ResourceData
   public required ObjectId? AuthorUserId;
   public required ObjectId? BaseFileDataId;
 
-  [JsonIgnore]
-  public required List<FileSegment> Segments;
+  public required SegmentEntry[] SegmentsIds;
+}
 
-  public long Size => Segments.Sum((e) => e.End - e.Start);
+[BsonNoId]
+public sealed record SegmentEntry
+{
+  public required ObjectId SegmentId;
+  public required long Size;
 }
 
 public sealed partial class ResourceManager
@@ -43,8 +47,7 @@ public sealed partial class ResourceManager
         FileId = file.File.Id,
         AuthorUserId = authorUser?.Id,
         BaseFileDataId = baseFileData?.Id,
-
-        Segments = baseFileData?.Data.Segments ?? [],
+        SegmentsIds = []
       }
     );
 
@@ -55,101 +58,83 @@ public sealed partial class ResourceManager
 
   public const int MAX_SEGMENT_SIZE = 1024 * 1024;
 
-  private void InternalUncommitedWriteToFile(
+  public async Task WriteToFile(
+    ResourceTransaction transaction,
     UnlockedFile file,
     Resource<FileData> fileData,
     long position,
     byte[] bytes
   )
   {
-    List<FileSegment> leftSegments = [];
-    List<FileSegment> rightSegments = [];
+    List<SegmentEntry> leftSegments = [];
+    List<SegmentEntry> rightSegments = [];
 
-    foreach (FileSegment segment in fileData.Data.Segments)
+    long segmentsRead = 0;
+    foreach (SegmentEntry entry in fileData.Data.SegmentsIds)
     {
-      long inputStart = position - segment.Start;
+      long inputStart = position - segmentsRead;
       long inputEnd = inputStart + bytes.Length;
 
       if (inputEnd <= 0)
       {
-        leftSegments.Add(segment);
+        rightSegments.Add(entry);
       }
-      else if (inputStart >= segment.Size)
+      else if (inputStart >= entry.Size)
       {
-        rightSegments.Add(segment);
+        leftSegments.Add(entry);
       }
       else
       {
-        byte[] segmentData = ReadSegment(segment, file.AesKey);
+        Resource<FileSegment> segment = await Query<FileSegment>(
+            transaction,
+            (query) =>
+              query.Where(
+                (fileSegment) =>
+                  fileSegment.FileDataId == fileData.Id
+                  && fileSegment.FileId == file.File.Id
+                  && fileSegment.Id == entry.SegmentId
+              )
+          )
+          .FirstAsync(transaction);
+        byte[] segmentData = await ReadSegment(transaction, file, segment);
 
         if (inputStart > 0)
         {
-          leftSegments.Add(
-            CreateSegment(file.AesKey, segment.Start, segmentData[..(int)inputStart])
+          segment = await CreateSegment(
+            transaction,
+            file,
+            fileData,
+            segmentData[..(int)inputStart]
           );
+
+          leftSegments.Add(new() { SegmentId = segment.Id, Size = segment.Data.DecryptedSize });
         }
 
-        if (inputEnd < segment.Size)
+        if (inputEnd < segment.Data.DecryptedSize)
         {
-          rightSegments.Add(
-            CreateSegment(file.AesKey, segment.Start + inputEnd, segmentData[(int)inputEnd..])
-          );
+          segment = await CreateSegment(transaction, file, fileData, segmentData[(int)inputEnd..]);
+
+          rightSegments.Add(new() { SegmentId = segment.Id, Size = segment.Data.DecryptedSize });
         }
       }
+
+      segmentsRead += entry.Size;
     }
 
-    FileSegment centerSegment = CreateSegment(
-      file.AesKey,
-      leftSegments.Sum((segment) => segment.Size),
-      bytes
-    );
+    Resource<FileSegment> centerSegment = await CreateSegment(transaction, file, fileData, bytes);
 
-    fileData.Data.Segments = [.. leftSegments, centerSegment, .. rightSegments];
+    fileData.Data.SegmentsIds =
+    [
+      .. leftSegments,
+      new() { SegmentId = centerSegment.Id, Size = centerSegment.Data.DecryptedSize },
+      .. rightSegments
+    ];
+
+    await fileData.Save(transaction);
   }
 
-  public ValueTask WriteToFile(
+  public async Task<CompositeBuffer> ReadFromFile(
     ResourceTransaction transaction,
-    UnlockedFile file,
-    Resource<FileData> fileData,
-    long position,
-    byte[] bytes
-  )
-  {
-    for (int offset = 0; offset < bytes.Length; offset += MAX_SEGMENT_SIZE)
-    {
-      InternalUncommitedWriteToFile(
-        file,
-        fileData,
-        position + offset,
-        bytes[offset..int.Min(MAX_SEGMENT_SIZE, bytes.Length - offset)]
-      );
-    }
-
-    return fileData.Save(transaction);
-  }
-
-  public ValueTask WriteToFile(
-    ResourceTransaction transaction,
-    UnlockedFile file,
-    Resource<FileData> fileData,
-    long position,
-    CompositeBuffer bytes
-  )
-  {
-    for (int offset = 0; offset < bytes.Length; offset += MAX_SEGMENT_SIZE)
-    {
-      InternalUncommitedWriteToFile(
-        file,
-        fileData,
-        position + offset,
-        bytes.Slice(offset, long.Min(MAX_SEGMENT_SIZE, bytes.Length - offset)).ToByteArray()
-      );
-    }
-
-    return fileData.Save(transaction);
-  }
-
-  public CompositeBuffer ReadFromFile(
     UnlockedFile file,
     Resource<FileData> fileData,
     long position,
@@ -158,30 +143,36 @@ public sealed partial class ResourceManager
   {
     CompositeBuffer bytes = [];
 
-    foreach (FileSegment segment in fileData.Data.Segments)
+    long segmentsRead = 0;
+    foreach (SegmentEntry entry in fileData.Data.SegmentsIds)
     {
-      long inputStart = position - segment.Start;
-      long inputEnd = inputStart + length;
+      long inputStart = position - segmentsRead + bytes.Length;
+      long inputEnd = inputStart + length - bytes.Length;
 
-      if (inputEnd <= 0)
+      if (inputEnd > 0 && inputStart < entry.Size)
       {
-        break;
+        Resource<FileSegment> segment = await Query<FileSegment>(
+            transaction,
+            (query) =>
+              query.Where(
+                (fileSegment) =>
+                  fileSegment.FileDataId == fileData.Id
+                  && fileSegment.FileId == file.File.Id
+                  && fileSegment.Id == entry.SegmentId
+              )
+          )
+          .FirstAsync(transaction);
+
+        byte[] segmentData = await ReadSegment(transaction, file, segment);
+
+        CompositeBuffer trimmed = CompositeBuffer.From(segmentData);
+
+        bytes.Append(
+          trimmed.Slice(long.Max(0, inputStart), long.Min(inputEnd, segmentData.Length))
+        );
       }
 
-      if (inputStart >= segment.Size)
-      {
-        continue;
-      }
-
-      byte[] segmentData = ReadSegment(segment, file.AesKey);
-
-      bytes.Append(
-        CompositeBuffer.From(
-          segmentData,
-          (int)long.Max(0, inputStart),
-          (int)long.Min(segment.Size, inputEnd)
-        )
-      );
+      segmentsRead += entry.Size;
     }
 
     return bytes;
@@ -194,39 +185,94 @@ public sealed partial class ResourceManager
     long length
   )
   {
-    if (fileData.Data.Size > length)
-    {
-      List<FileSegment> segments = [];
+    long size = await Query<FileSegment>(
+        transaction,
+        (query) =>
+          query.Where(
+            (fileSegment) =>
+              fileSegment.FileDataId == fileData.Id && fileSegment.FileId == file.File.Id
+          )
+      )
+      .SumAsync((fileSegment) => fileSegment.Data.DecryptedSize);
 
-      foreach (FileSegment segment in fileData.Data.Segments)
+    if (size > length)
+    {
+      List<SegmentEntry> segments = [];
+
+      long segmentsRead = 0;
+      foreach (SegmentEntry entry in fileData.Data.SegmentsIds)
       {
-        long inputStart = 0 - segment.Start;
+        long inputStart = 0 - segmentsRead;
         long inputEnd = inputStart + length;
 
         if (inputEnd <= 0)
         {
-          segments.Add(segment);
+          segments.Add(entry);
         }
         else
         {
-          byte[] segmentData = ReadSegment(segment, file.AesKey);
+          Resource<FileSegment> segment = await Query<FileSegment>(
+              transaction,
+              (query) =>
+                query.Where(
+                  (segment) => segment.FileDataId == fileData.Id && segment.FileId == file.File.Id
+                )
+            )
+            .FirstAsync(transaction);
 
-          segments.Add(CreateSegment(file.AesKey, segment.Start, segmentData[..(int)inputEnd]));
+          byte[] segmentData = await ReadSegment(transaction, file, segment);
+
+          segment = await CreateSegment(
+            transaction,
+            file,
+            fileData,
+            segmentData[..(int)long.Min(inputEnd, segmentData.Length)]
+          );
+          segments.Add(new() { SegmentId = segment.Id, Size = segment.Data.DecryptedSize });
           break;
         }
+
+        segmentsRead += entry.Size;
       }
 
-      fileData.Data.Segments = segments;
+      fileData.Data.SegmentsIds = [.. segments];
 
       await fileData.Save(transaction);
     }
-    else if (fileData.Data.Size < length)
+    else if (size < length)
     {
-      fileData.Data.Segments.Add(
-        CreateSegment(file.AesKey, fileData.Data.Size, new byte[length - fileData.Data.Size])
+      Resource<FileSegment> segment = await CreateSegment(
+        transaction,
+        file,
+        fileData,
+        new byte[length - size]
       );
+      fileData.Data.SegmentsIds =
+      [
+        .. fileData.Data.SegmentsIds,
+        new() { SegmentId = segment.Id, Size = segment.Data.DecryptedSize }
+      ];
 
       await fileData.Save(transaction);
     }
+  }
+
+  public async ValueTask<long> GetFileSize(
+    ResourceTransaction transaction,
+    UnlockedFile file,
+    Resource<FileData> fileData
+  )
+  {
+    long size = await Query<FileSegment>(
+        transaction,
+        (query) =>
+          query.Where(
+            (fileSegment) =>
+              fileSegment.FileDataId == fileData.Id && fileSegment.FileId == file.File.Id
+          )
+      )
+      .SumAsync((fileSegment) => fileSegment.Data.DecryptedSize);
+
+    return size;
   }
 }

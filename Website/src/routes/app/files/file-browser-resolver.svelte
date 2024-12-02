@@ -39,15 +39,17 @@
       switch (resolve[0]) {
         case FileBrowserResolveType.File: {
           const [, fileId] = resolve
+          console.log('Resolving', fileId)
           const targetId = (fileId ?? (await server.GetRootId({ UserId: me.Id })))!
-          const fileData = await server
-            .FileGetDataEntries({ FileId: targetId })
-            .then((result) => result[0])
 
           const file = await server.GetFile({ FileId: targetId })
           const path = await server.GetFilePath({ FileId: targetId })
 
           if (file.Type === FileType.File) {
+            const fileData = await server
+              .FileGetDataEntries({ FileId: targetId })
+              .then((result) => result[0])
+
             return {
               type: 'file',
               mime: await server.FileGetMime({
@@ -60,6 +62,7 @@
             }
           } else if (file.Type === FileType.Folder) {
             const files = await server.GetFiles({
+              ParentFolderId: fileId ?? void 0
               // file.id, void 0, void 0, void 0, undefined, offset, count
             })
 

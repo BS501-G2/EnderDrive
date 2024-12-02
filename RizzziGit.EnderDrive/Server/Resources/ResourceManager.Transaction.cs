@@ -116,11 +116,12 @@ public sealed partial class ResourceManager
 
       try
       {
-        await GetContext()
-          .TransactionQueue.RunTask(
-            () => transactInner(transactionId, transactionLogger),
-            cancellationToken
-          );
+        await transactInner(transactionId, transactionLogger);
+        // await GetContext()
+        //   .TransactionQueue.RunTask(
+        //     () => transactInner(transactionId, transactionLogger),
+        //     cancellationToken
+        //   );
       }
       catch (Exception exception)
       {

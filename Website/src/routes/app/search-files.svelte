@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
-  import { useServerContext, type FileResource } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
+  import { type FileResource } from '$lib/client/resource'
   import Button from '$lib/client/ui/button.svelte'
   import Icon from '$lib/client/ui/icon.svelte'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
@@ -16,15 +17,14 @@
     ondismiss: () => void
   } = $props()
 
-  const { me, getFiles } = useServerContext()
+  const { server } = useClientContext()
 </script>
 
 {@render card('Files', () => {}, main)}
 
 {#snippet main()}
   {#await (async () => {
-    const files = getFiles(void 0, void 0, searchString, (await me()).id, void 0, 0, 10)
-    return files
+    return server.GetFiles({ SearchString: searchString, OwnerUserId: (await server.Me({})).Id })
   })()}
     <LoadingSpinner size="1em" />
   {:then files}
@@ -43,7 +43,7 @@
 
   <Button
     onclick={() => {
-      goto(`/app/files?fileId=${file.id}`)
+      goto(`/app/files?fileId=${file.Id}`)
       ondismiss()
     }}
     foreground={buttonForeground}
@@ -52,7 +52,7 @@
       <Icon icon="file" thickness="solid" />
     </div>
     <div class="name">
-      {file.name}
+      {file.Name}
     </div>
   </Button>
 {/snippet}

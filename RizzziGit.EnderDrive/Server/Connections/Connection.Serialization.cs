@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
@@ -9,19 +10,20 @@ public sealed partial class Connection
 {
   private static ConnectionPacket DeserializePacket(byte[] bytes)
   {
-    using MemoryStream stream = new(bytes);
-    using BsonBinaryReader reader = new(stream);
+    BsonDocument document;
+    {
+      using MemoryStream stream = new(bytes);
+      using BsonBinaryReader reader = new(stream);
 
-    BsonDocument document = reader.ToBsonDocument();
-    document.TryGetValue("type", out BsonValue type);
+      document = BsonSerializer.Deserialize<BsonDocument>(reader);
+    }
 
-    if (type.IsBsonNull)
+    if (!document.TryGetValue("type", out BsonValue type))
     {
       throw new InvalidDataException("Failed to deserialize");
     }
 
     document.Remove("type");
-
     return type.AsString switch
     {
       "request" => BsonSerializer.Deserialize<ConnectionPacket.Request>(document),
@@ -35,7 +37,7 @@ public sealed partial class Connection
   private static byte[] SerializePacket<T>(T packet)
     where T : ConnectionPacket
   {
-    BsonDocument document = BsonDocument.Create(packet);
+    BsonDocument document = packet.ToBsonDocument();
 
     document.Add(
       "type",

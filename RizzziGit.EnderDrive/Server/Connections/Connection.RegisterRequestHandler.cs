@@ -11,7 +11,7 @@ public sealed partial class Connection
 {
   private delegate Task<R> RequestHandler<S, R>(S request, CancellationToken cancellationToken);
 
-  private void RegisterHandler<S, R>(string name, RequestHandler<S, R> handler) =>
+  private void RegisterRequestHandler<S, R>(string name, RequestHandler<S, R> handler) =>
     RegisterRawRequestHandler(
       name,
       async (rawRequest, cancellationToken) =>
@@ -33,7 +33,12 @@ public sealed partial class Connection
           return stream.ToArray();
         }
 
-        return serialize(await handler(deserialize<S>(rawRequest), cancellationToken));
+        S request = deserialize<S>(rawRequest);
+        Debug($"{request}", "<-");
+        R response = await handler(request, cancellationToken);
+        Debug($"{response}", "->");
+
+        return serialize(response);
       }
     );
 }

@@ -21,6 +21,11 @@
   import InstallButtonDesktop from './install-button-desktop.svelte'
   import AppButton from './app-button.svelte'
   import News from './news.svelte'
+  import NotificationHost from './notification-host.svelte'
+  import { type NotificationContext } from './notification-context'
+
+  const notificationContext = writable<NotificationContext>(null as never)
+
   const {
     mobileAppButtons,
     mobileTopLeft,
@@ -31,7 +36,7 @@
     desktopTopMiddle,
     desktopTopRight,
     backgroundTasks
-  } = createDashboardContext()
+  } = createDashboardContext(notificationContext)
   const { navigationEntries } = createNavigationContext()
   const {
     isMobile,
@@ -183,6 +188,7 @@
   <AppButtonHost {mobileAppButtons} />
   <ProgressHost tasks={backgroundTasks} />
   <News />
+  <NotificationHost context={notificationContext} />
 
   {#if $isDesktop}
     <NotificationButtonDesktop />

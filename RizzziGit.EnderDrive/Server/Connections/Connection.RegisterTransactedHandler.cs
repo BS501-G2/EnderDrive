@@ -11,11 +11,11 @@ public sealed partial class Connection
     S request
   );
 
-  private void RegisterTransactedHandler<S, R>(
+  private void RegisterTransactedRequestHandler<S, R>(
     string name,
     TransactedRequestHandler<S, R> handler
   ) =>
-    RegisterHandler<S, R>(
+    RegisterRequestHandler<S, R>(
       name,
       (request, cancellationToken) =>
         Resources.Transact((transaction) => handler(transaction, request), cancellationToken)

@@ -11,7 +11,6 @@ public sealed partial class Connection
 {
   private abstract record class BaseFileRequest
   {
-    [BsonElement("fileId")]
     public required ObjectId? FileId;
   }
 
@@ -25,14 +24,14 @@ public sealed partial class Connection
   )
     where S : BaseFileRequest;
 
-  private void RegisterFileHandler<S, R>(
+  private void RegisterFileRequestHandler<S, R>(
     string name,
     FileRequestHandler<S, R> requestHandler,
     FileAccessLevel? fileAccessLevel = null,
     FileType? fileType = null
   )
     where S : BaseFileRequest =>
-    RegisterAuthenticatedHandler<S, R>(
+    RegisterAuthenticatedRequestHandler<S, R>(
       name,
       async (transaction, request, userAuthentication, me, myAdminAccess) =>
       {

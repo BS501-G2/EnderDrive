@@ -1,24 +1,25 @@
 <script lang="ts">
-  import { useServerContext, type FileAccessResource, type FileResource } from "$lib/client/client"
-  import { useAppContext } from "$lib/client/contexts/app"
-  import UserLink from "$lib/client/model/user-link.svelte"
-  import LoadingSpinner from "$lib/client/ui/loading-spinner.svelte"
-  import Separator from "$lib/client/ui/separator.svelte"
-  import { toReadableSize } from "$lib/client/utils"
-  import moment from "moment"
-  import FileBrowserFileIcon from "../files/file-browser-file-icon.svelte"
+  import { useClientContext } from '$lib/client/client'
+  import { useAppContext } from '$lib/client/contexts/app'
+  import UserLink from '$lib/client/model/user-link.svelte'
+  import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
+  import Separator from '$lib/client/ui/separator.svelte'
+  import { toReadableSize } from '$lib/client/utils'
+  import moment from 'moment'
+  import FileBrowserFileIcon from '../files/file-browser-file-icon.svelte'
+  import type { FileAccessResource, FileResource } from '$lib/client/resource'
 
-
-  const { ...props }: { file: FileResource; fileAccess: FileAccessResource } | { head: true } = $props()
+  const { ...props }: { file: FileResource; fileAccess: FileAccessResource } | { head: true } =
+    $props()
   const { isDesktop } = useAppContext()
 
-  const server = useServerContext()
+  const { server } = useClientContext()
 </script>
 
 <div class="file-entry">
   <div class="icon">
     {#if 'head' in props}{:else}
-      {#await server.getFileMime(props.file.id)}
+      {#await server.FileGetMime({ FileId: props.file.Id })}
         <LoadingSpinner size="2rem" />
       {:then mime}
         <FileBrowserFileIcon {mime} size="2rem" />
@@ -31,7 +32,7 @@
     {#if 'head' in props}
       <h2>File Name</h2>
     {:else}
-      <a href="/app/files?fileId={props.file.id}">{props.file.name}</a>
+      <a href="/app/files?fileId={props.file.Id}">{props.file.Name}</a>
     {/if}
   </div>
 
@@ -41,7 +42,7 @@
       {#if 'head' in props}
         <h2>Size</h2>
       {:else}
-        {#await server.getFileSize(props.file.id)}
+        {#await server.FileGetSize({ FileId: props.file.Id })}
           <LoadingSpinner size="1rem" />
         {:then size}
           <p>
@@ -55,12 +56,12 @@
       {#if 'head' in props}
         <h2>Modified</h2>
       {:else}
-        {#await server.getFileLogs({ fileId: props.file.id, count: 1 })}
+        {#await server.GetFileLogs( { FileId: props.file.Id, Pagination: { Count: 1 }, UniqueFileId: true } )}
           <LoadingSpinner size="1rem" />
-        {:then [{ actorUserId, createTime }]}
+        {:then [{ ActorUserId, CreateTime }]}
           <p>
-            <b class="user"><UserLink userId={actorUserId} /></b>
-            {moment(new Date(createTime).getTime()).fromNow()}
+            <b class="user"><UserLink userId={ActorUserId} /></b>
+            {moment(CreateTime).fromNow()}
           </p>
         {/await}
       {/if}

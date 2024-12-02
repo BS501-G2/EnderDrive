@@ -11,7 +11,6 @@ public sealed partial class Connection
 {
   private abstract record BaseStreamRequest
   {
-    [BsonElement("streamId")]
     public required ObjectId StreamId;
   }
 
@@ -22,9 +21,9 @@ public sealed partial class Connection
   )
     where S : BaseStreamRequest;
 
-  private void RegisterStreamHandler<S, R>(string name, StreamRequestHandler<S, R> streamHandler)
+  private void RegisterStreamRequestHandler<S, R>(string name, StreamRequestHandler<S, R> streamHandler)
     where S : BaseStreamRequest =>
-    RegisterHandler<S, R>(
+    RegisterRequestHandler<S, R>(
       name,
       async (request, cancellationToken) =>
       {

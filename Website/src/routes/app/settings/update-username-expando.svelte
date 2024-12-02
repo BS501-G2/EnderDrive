@@ -2,10 +2,11 @@
   import Input from '$lib/client/ui/input.svelte'
   import { derived, writable } from 'svelte/store'
   import Button from '$lib/client/ui/button.svelte'
-  import { UsernameValidationFlags, useServerContext } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
   import { onMount, type Snippet } from 'svelte'
+  import { UsernameValidationFlags } from '$lib/client/resource'
 
-  const { updateUsername, getUsernameValidationFlags } = useServerContext()
+  const { server } = useClientContext()
 
   const username = writable('')
   const errors = writable<string[]>([])
@@ -17,7 +18,7 @@
   async function validateUsername() {
     const newErrors: string[] = []
 
-    const flags = await getUsernameValidationFlags($username)
+    const flags = await server.GetUsernameValidationFlags({ Username: $username })
 
     if (flags & UsernameValidationFlags.TooShort) {
       newErrors.push('Username must be at least 6 characters long')
@@ -60,7 +61,7 @@
 <Button
   bind:click={$submit}
   onclick={async () => {
-    await updateUsername($username)
+    await server.UpdateUsername({ NewUsername: $username })
   }}
   disabled={!$enable}
   {foreground}

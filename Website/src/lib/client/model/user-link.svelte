@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { useServerContext, type UserResource } from '../client'
+  import { useClientContext } from '../client'
   import LoadingSpinner from '../ui/loading-spinner.svelte'
   import { writable } from 'svelte/store'
-
+  import type { UserResource } from '../resource'
   const {
     userId,
     customText
@@ -11,12 +11,12 @@
     userId: string
     customText?: string
   } = $props()
-  const { getUser } = useServerContext()
+  const { server } = useClientContext()
 
   async function load(): Promise<UserResource | null> {
-    const user = getUser(userId)
+    const user = await server.GetUser({ UserId: userId })
 
-    return user
+    return user!
   }
 
   const promise = writable(load())
@@ -26,8 +26,8 @@
   <LoadingSpinner size="1rem" />
 {:then user}
   {#if user}
-    <a class="user" href="/app/profile?id={user.id}">
-      {customText ?? user.displayName ?? `${user.firstName}`}
+    <a class="user" href="/app/profile?id={user.Id}">
+      {customText ?? user.DisplayName ?? `${user.FirstName}`}
     </a>
   {:else}
     <p class="invalid">Invalid User ID</p>

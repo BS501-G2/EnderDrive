@@ -1,7 +1,7 @@
 <script lang="ts">
   import { useClientContext } from '$lib/client/client'
   import UserLink from '$lib/client/model/user-link.svelte'
-  import { FileLogType, type FileLogResource } from '$lib/client/resource'
+  import { FileLogType, FileType, type FileLogResource } from '$lib/client/resource'
   import Icon from '$lib/client/ui/icon.svelte'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import Separator from '$lib/client/ui/separator.svelte'
@@ -27,8 +27,13 @@
     <div class="file">
       {#await (async () => {
         const file = await server.GetFile({ FileId: fileLog.FileId })
+
+        if (file.Type === FileType.Folder) {
+          return { file }
+        }
+
         const fileData = (await server.FileGetDataEntries( { FileId: file.Id, Pagination: { Count: 1 } } ))[0]
-        const mime = await server.FileGetMime( { FileId: file.Id, FileDataId: fileData.Id } )
+        const mime = await server.FileGetMime({ FileId: file.Id, FileDataId: fileData.Id })
 
         return { file, mime }
       })()}

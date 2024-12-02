@@ -5,13 +5,10 @@
   import { createAccountSettingsContext } from './account-settings'
   import Icon from '$lib/client/ui/icon.svelte'
   import { useAppContext } from '$lib/client/contexts/app'
-  import AccountSettingsTab from './account-settings-tab.svelte'
-  import { loremIpsum } from 'lorem-ipsum'
   import AccountSettingsPersonalInformationTab from './account-settings-personal-information-tab.svelte'
   import AccountSettingsLoginInformationTab from './account-settings-login-information-tab.svelte'
-  import AccountSettingsOfflineAvailabilityTab from './account-settings-offline-availability-tab.svelte'
 
-  const { tabs, currentTab, context } = createAccountSettingsContext()
+  const { tabs, currentTab } = createAccountSettingsContext()
   const { isMobile, isDesktop } = useAppContext()
 </script>
 

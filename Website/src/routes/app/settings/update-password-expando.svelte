@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { PasswordValidationFlags, useServerContext } from '$lib/client/client'
+  import { useClientContext } from '$lib/client/client'
+  import { PasswordValidationFlags } from '$lib/client/resource'
   import Button from '$lib/client/ui/button.svelte'
   import Input from '$lib/client/ui/input.svelte'
   import { onMount, type Snippet } from 'svelte'
   import { derived, writable } from 'svelte/store'
 
-  const { updatePassword, getPasswordValidationFlags } = useServerContext()
-  const server = useServerContext()
+  const { server } = useClientContext()
 
   const currentPassword = writable('')
   const newPassword = writable('')
@@ -22,7 +22,10 @@
   async function validatePassword() {
     const newErrors: string[] = []
 
-    const flags = await getPasswordValidationFlags($newPassword, $confirmPassword)
+    const flags = await server.GetPasswordValidationFlags({
+      Password: $newPassword,
+      ConfirmPassword: $confirmPassword
+    })
 
     if (flags & PasswordValidationFlags.TooShort) {
       newErrors.push('Password is too short')
@@ -48,7 +51,12 @@
 
 <Input type="password" id="username" name="Current Password" bind:value={$currentPassword} />
 <Input type="password" id="password" name="New Password" bind:value={$newPassword} />
-<Input type="password" id="confirm-password" name="Confirm New Password" bind:value={$confirmPassword} />
+<Input
+  type="password"
+  id="confirm-password"
+  name="Confirm New Password"
+  bind:value={$confirmPassword}
+/>
 
 {#snippet foreground(view: Snippet)}
   <div class="foreground">
@@ -62,9 +70,7 @@
   {/each}
 {/if}
 
-<Button {foreground} disabled={$enable} bind:click={$submit} onclick={async () => {
-
-}}>
+<Button {foreground} disabled={$enable} bind:click={$submit} onclick={async () => {}}>
   Update Password
 </Button>
 

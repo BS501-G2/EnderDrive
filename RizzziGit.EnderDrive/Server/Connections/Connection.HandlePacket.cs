@@ -43,6 +43,7 @@ public sealed partial class Connection
         }
         catch (Exception exception)
         {
+          Error(exception);
           await Send(
             new ConnectionPacket.Error()
             {

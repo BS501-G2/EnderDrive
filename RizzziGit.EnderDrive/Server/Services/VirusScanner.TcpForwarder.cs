@@ -43,6 +43,7 @@ public sealed partial class VirusScanner
     private async Task HandleTcpClient(TcpClient client, CancellationToken cancellationToken)
     {
       using Socket socket = new(AddressFamily.Unix, SocketType.Stream, ProtocolType.IP);
+      Debug($"Path: {unixSocketPath}");
       await socket.ConnectAsync(new UnixDomainSocketEndPoint(unixSocketPath));
 
       using NetworkStream clientStream = client.GetStream();

@@ -1,11 +1,14 @@
 import { getContext, setContext, type Snippet } from 'svelte'
-import { writable, type Writable } from 'svelte/store'
+import { derived, writable, type Readable, type Writable } from 'svelte/store'
 import type { IconOptions } from '../ui/icon.svelte'
+import type { NotificationContext } from '../../../routes/app/notification-context'
 
 const contextName = `${Date.now()}`
 
 export function useDashboardContext(context?: DashboardContext) {
-  return context != null ? setContext(contextName, context) : getContext<DashboardContext>(contextName)
+  return context != null
+    ? setContext(contextName, context)
+    : getContext<DashboardContext>(contextName)
 }
 
 export type DashboardContext = ReturnType<typeof createDashboardContext>['context']
@@ -34,7 +37,7 @@ export interface BackgroundTaskContext {
   setFooterRight: (footerRight: string | null) => void
 }
 
-export function createDashboardContext() {
+export function createDashboardContext(notification: Readable<NotificationContext>) {
   const mobileAppButtons: Writable<
     {
       id: number
@@ -95,6 +98,8 @@ export function createDashboardContext() {
   const backgroundTasks: Writable<BackgroundTask[]> = writable([])
 
   const context = setContext(contextName, {
+    notification: derived(notification, (value) => value),
+
     pushMobileAppButton: (
       snippet: Snippet<[ondismiss: () => void]>,
       show: boolean,

@@ -1,6 +1,6 @@
 using System.Net.WebSockets;
-using System.Threading.Tasks;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
@@ -26,7 +26,12 @@ public sealed partial class Connection
 
       request.Append(buffer, 0, result.Count);
 
-      if (!result.EndOfMessage)
+      if (result.CloseStatus != null)
+      {
+        break;
+      }
+
+      if (!result.EndOfMessage || request.Length == 0)
       {
         continue;
       }

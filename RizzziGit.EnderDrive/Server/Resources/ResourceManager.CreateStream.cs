@@ -69,28 +69,27 @@ public sealed partial class ResourceManager
 
     public override bool CanWrite => canWrite;
 
-    public override long Length => GetLengthAsync().GetAwaiter().GetResult();
+    public override long Length => Task.Run(() => GetLengthAsync()).GetAwaiter().GetResult();
 
     public override long Position
     {
-      get => GetPositionAsync().GetAwaiter().GetResult();
+      get => Task.Run(() => GetPositionAsync()).GetAwaiter().GetResult();
       set => Seek(value, SeekOrigin.Begin);
     }
 
     public override void Flush() { }
 
     public override int Read(byte[] buffer, int offset, int count) =>
-      ReadAsync(buffer, offset, count).GetAwaiter().GetResult();
+      Task.Run(() => ReadAsync(buffer, offset, count)).GetAwaiter().GetResult();
 
     public override long Seek(long offset, SeekOrigin origin) =>
-      SeekAsync(offset, origin).GetAwaiter().GetResult();
+      Task.Run(() => SeekAsync(offset, origin)).GetAwaiter().GetResult();
 
-    public override void SetLength(long value) => SetLengthAsync(value).GetAwaiter().GetResult();
+    public override void SetLength(long value) =>
+      Task.Run(() => SetLengthAsync(value)).GetAwaiter().GetResult();
 
     public override void Write(byte[] buffer, int offset, int count) =>
-      WriteAsync(buffer, offset, count).GetAwaiter().GetResult();
-
-    public override void Close() => CloseAsync().GetAwaiter().GetResult();
+      Task.Run(() => WriteAsync(buffer, offset, count)).GetAwaiter().GetResult();
 
     public async Task<CompositeBuffer> ReadAsync(long length, CancellationToken cancellationToken)
     {
@@ -98,7 +97,8 @@ public sealed partial class ResourceManager
 
       await feed.Enqueue(new StreamFeed.Read(source, length, cancellationToken), cancellationToken);
 
-      return await source.Task;
+      CompositeBuffer bytes = await source.Task;
+      return bytes;
     }
 
     public override async Task<int> ReadAsync(
@@ -110,7 +110,7 @@ public sealed partial class ResourceManager
     {
       CompositeBuffer result = await ReadAsync(count, cancellationToken);
 
-      result.Read(0, buffer, offset, count);
+      result.Read(0, buffer, offset, int.Min(count, (int)result.Length));
 
       return (int)result.Length;
     }
@@ -191,11 +191,14 @@ public sealed partial class ResourceManager
       return await source.Task;
     }
 
-    public async Task CloseAsync(CancellationToken cancellationToken = default)
+    protected override void Dispose(bool disposing) =>
+      DisposeAsync().AsTask().GetAwaiter().GetResult();
+
+    public override async ValueTask DisposeAsync()
     {
       TaskCompletionSource source = new();
 
-      await feed.Enqueue(new StreamFeed.Close(source, cancellationToken), cancellationToken);
+      await feed.Enqueue(new StreamFeed.Close(source, CancellationToken.None));
 
       await source.Task;
     }
@@ -205,6 +208,7 @@ public sealed partial class ResourceManager
     UnlockedFile file,
     Resource<FileData> fileData,
     WaitQueue<StreamFeed> stream,
+    long length,
     bool allowWrite = false
   )
   {
@@ -223,7 +227,7 @@ public sealed partial class ResourceManager
       {
         case StreamFeed.Read(
           TaskCompletionSource<CompositeBuffer> source,
-          long length,
+          long requestLength,
           CancellationToken cancellationToken
         ):
         {
@@ -235,7 +239,13 @@ public sealed partial class ResourceManager
 
           try
           {
-            CompositeBuffer result = ReadFromFile(file, fileData, position, length);
+            CompositeBuffer result = await Transact(
+              async (transaction) =>
+              {
+                return await ReadFromFile(transaction, file, fileData, position, requestLength);
+              },
+              cancellationToken
+            );
 
             source.SetResult(result);
             position += result.Length;
@@ -273,11 +283,12 @@ public sealed partial class ResourceManager
             await Transact(
               async (transaction) =>
               {
-                await WriteToFile(transaction, file, fileData, position, bytes);
+                await WriteToFile(transaction, file, fileData, position, bytes.ToByteArray());
               },
               cancellationToken
             );
             position += bytes.Length;
+            source.SetResult();
           }
           catch (Exception exception)
           {
@@ -300,7 +311,7 @@ public sealed partial class ResourceManager
 
           try
           {
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(newPosition, fileData.Data.Size);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(newPosition, length);
 
             source.SetResult(position = newPosition);
           }
@@ -338,13 +349,13 @@ public sealed partial class ResourceManager
             break;
           }
 
-          source.SetResult(fileData.Data.Size);
+          source.SetResult(length);
           break;
         }
 
         case StreamFeed.SetLength(
           TaskCompletionSource source,
-          long length,
+          long newLength,
           CancellationToken cancellationToken
         ):
         {
@@ -359,12 +370,13 @@ public sealed partial class ResourceManager
             await Transact(
               async (transaction) =>
               {
-                await TruncateFile(transaction, file, fileData, length);
+                await TruncateFile(transaction, file, fileData, newLength);
               },
               cancellationToken
             );
 
-            position = long.Min(position, length);
+            position = long.Min(position, newLength);
+            length = newLength;
             source.SetResult();
           }
           catch (Exception exception)
@@ -383,36 +395,47 @@ public sealed partial class ResourceManager
             break;
           }
 
+          source.SetResult();
           return;
         }
       }
     }
   }
 
-  public FileResourceStream CreateFileStream(
+  public async Task<FileResourceStream> CreateFileStream(
+    ResourceTransaction transaction,
     UnlockedFile file,
     Resource<FileData> fileData,
-    bool allowWrite = false
+  bool allowWrite = false
   )
   {
     ResourceManagerContext context = GetContext();
     WaitQueue<StreamFeed> feed = new(0);
+    long length = await GetFileSize(transaction, file, fileData);
 
     lock (context.ActiveFileStreams)
     {
+      ObjectId streamId = ObjectId.GenerateNewId();
+
       Task task = Task.Run(async () =>
       {
         using (feed)
         {
           try
           {
-            await RunFileStream(file, fileData, feed, allowWrite);
+
+            await RunFileStream(file, fileData, feed, length, allowWrite);
           }
-          catch { }
+          catch (Exception exception)
+          {
+            Console.WriteLine(exception);
+          }
+          finally
+          {
+            context.ActiveFileStreams.TryRemove(streamId, out _);
+          }
         }
       });
-
-      ObjectId streamId = ObjectId.GenerateNewId();
       FileResourceStream stream = new(feed, () => streamId, task, allowWrite);
 
       while (!context.ActiveFileStreams.TryAdd(streamId, stream))

@@ -6,80 +6,89 @@ public sealed partial class Connection
 {
   private void RegisterHandlers()
   {
-    RegisterHandler(nameof(AmILoggedIn), AmILoggedIn);
-    RegisterTransactedHandler(nameof(SetupRequirements), SetupRequirements);
-    RegisterTransactedHandler(nameof(CreateAdmin), CreateAdmin);
-    RegisterTransactedHandler(nameof(ResolveUsername), ResolveUsername);
-    RegisterTransactedHandler(nameof(AuthenticatePassword), AuthenticatePassword);
-    RegisterTransactedHandler(nameof(AuthenticateGoogle), AuthenticateGoogle);
-    RegisterTransactedHandler(nameof(AuthenticateToken), AuthenticateToken);
-    RegisterAuthenticatedHandler(nameof(AmIAdmin), AmIAdmin);
-    RegisterAuthenticatedHandler(nameof(Me), Me);
-    RegisterAuthenticatedHandler(nameof(Deauthenticate), Deauthenticate);
-    RegisterAuthenticatedHandler(nameof(GetUser), GetUser);
-    RegisterAuthenticatedHandler(nameof(GetUser), GetUsers);
-    RegisterAuthenticatedHandler(nameof(GetFiles), GetFiles);
-    RegisterAuthenticatedHandler(nameof(GetFileAccesses), GetFileAccesses);
-    RegisterAuthenticatedHandler(nameof(GetFileStars), GetFileStars);
-    RegisterAuthenticatedHandler(nameof(CreateNews), CreateNews, [UserRole.NewsEditor]);
-    RegisterAuthenticatedHandler(nameof(DeleteNews), DeleteNews, [UserRole.NewsEditor]);
-    RegisterAuthenticatedHandler(nameof(GetNews), GetNews);
-    RegisterAuthenticatedHandler(nameof(GetNewsEntry), GetNewsEntry);
-    RegisterFileHandler(nameof(SetFileStar), SetFileStar);
-    RegisterFileHandler(nameof(GetFileStar), GetFileStar);
-    RegisterFileHandler(nameof(GetFilePath), GetFilePath, FileAccessLevel.Read, null);
-    RegisterFileHandler(nameof(GetFile), GetFile, FileAccessLevel.Read, null);
-    RegisterFileHandler(nameof(FolderCreate), FolderCreate, FileAccessLevel.ReadWrite, null);
-    RegisterAuthenticatedHandler(nameof(DidIAgree), DidIAgree);
-    RegisterAuthenticatedHandler(nameof(Agree), Agree);
-    RegisterFileHandler(nameof(TrashFile), TrashFile, FileAccessLevel.ReadWrite, null);
-    RegisterFileHandler(nameof(UntrashFile), UntrashFile, FileAccessLevel.ReadWrite, null);
-    RegisterFileHandler(nameof(MoveFile), MoveFile, FileAccessLevel.ReadWrite, null);
-    RegisterAdminHandler(nameof(CreateUser), CreateUser);
-    RegisterHandler(nameof(GetUsernameValidationFlags), GetUsernameValidationFlags);
-    RegisterHandler(nameof(GetPasswordValidationFlags), GetPasswordValidationFlags);
-    RegisterFileHandler(nameof(SetFileAccess), SetFileAccess);
-    RegisterAuthenticatedHandler(nameof(GetFileAccessLevel), GetFileAccessLevel);
-    RegisterTransactedHandler(nameof(RequestPasswordReset), RequestPasswordReset);
-    RegisterAdminHandler(nameof(GetPasswordResetRequests), GetPasswordResetRequests);
-    RegisterAdminHandler(nameof(AcceptPasswordResetRequest), AcceptPasswordResetRequest);
-    RegisterAdminHandler(nameof(DeclinePasswordResetRequest), DeclinePasswordResetRequest);
-    RegisterAdminHandler(nameof(IsUserAdmin), IsUserAdmin);
-    RegisterAdminHandler(nameof(SetUserRoles), SetUserRoles);
-    RegisterFileHandler(
+    RegisterRequestHandler(nameof(AmILoggedIn), AmILoggedIn);
+    RegisterTransactedRequestHandler(nameof(SetupRequirements), SetupRequirements);
+    RegisterTransactedRequestHandler(nameof(CreateAdmin), CreateAdmin);
+    RegisterTransactedRequestHandler(nameof(ResolveUsername), ResolveUsername);
+    RegisterTransactedRequestHandler(nameof(AuthenticatePassword), AuthenticatePassword);
+    RegisterTransactedRequestHandler(nameof(AuthenticateGoogle), AuthenticateGoogle);
+    RegisterTransactedRequestHandler(nameof(AuthenticateToken), AuthenticateToken);
+    RegisterAuthenticatedRequestHandler(nameof(AmIAdmin), AmIAdmin);
+    RegisterAuthenticatedRequestHandler(nameof(Me), Me);
+    RegisterAuthenticatedRequestHandler(nameof(Deauthenticate), Deauthenticate);
+    RegisterAuthenticatedRequestHandler(nameof(GetUser), GetUser);
+    RegisterAuthenticatedRequestHandler(nameof(GetUsers), GetUsers);
+    RegisterAuthenticatedRequestHandler(nameof(GetFiles), GetFiles);
+    RegisterAuthenticatedRequestHandler(nameof(GetFileAccesses), GetFileAccesses);
+    RegisterAuthenticatedRequestHandler(nameof(GetFileStars), GetFileStars);
+    RegisterAuthenticatedRequestHandler(nameof(GetFileLogs), GetFileLogs);
+    RegisterAuthenticatedRequestHandler(nameof(CreateNews), CreateNews, [UserRole.NewsEditor]);
+    RegisterAuthenticatedRequestHandler(nameof(DeleteNews), DeleteNews, [UserRole.NewsEditor]);
+    RegisterAuthenticatedRequestHandler(nameof(GetNews), GetNews);
+    RegisterAuthenticatedRequestHandler(nameof(GetNewsEntry), GetNewsEntry);
+    RegisterFileRequestHandler(nameof(SetFileStar), SetFileStar);
+    RegisterFileRequestHandler(nameof(GetFileStar), GetFileStar);
+    RegisterFileRequestHandler(nameof(GetFilePath), GetFilePath, FileAccessLevel.Read, null);
+    RegisterFileRequestHandler(nameof(GetFile), GetFile, FileAccessLevel.Read, null);
+    RegisterFileRequestHandler(nameof(FolderCreate), FolderCreate, FileAccessLevel.ReadWrite, null);
+    RegisterAuthenticatedRequestHandler(nameof(DidIAgree), DidIAgree);
+    RegisterAuthenticatedRequestHandler(nameof(Agree), Agree);
+    RegisterFileRequestHandler(nameof(TrashFile), TrashFile, FileAccessLevel.ReadWrite, null);
+    RegisterFileRequestHandler(nameof(UntrashFile), UntrashFile, FileAccessLevel.ReadWrite, null);
+    RegisterFileRequestHandler(nameof(MoveFile), MoveFile, FileAccessLevel.ReadWrite, null);
+    RegisterAdminRequestHandler(nameof(CreateUser), CreateUser);
+    RegisterRequestHandler(nameof(GetUsernameValidationFlags), GetUsernameValidationFlags);
+    RegisterRequestHandler(nameof(GetPasswordValidationFlags), GetPasswordValidationFlags);
+    RegisterFileRequestHandler(nameof(SetFileAccess), SetFileAccess);
+    RegisterAuthenticatedRequestHandler(nameof(GetFileAccessLevel), GetFileAccessLevel);
+    RegisterTransactedRequestHandler(nameof(RequestPasswordReset), RequestPasswordReset);
+    RegisterAdminRequestHandler(nameof(GetPasswordResetRequests), GetPasswordResetRequests);
+    RegisterAdminRequestHandler(nameof(AcceptPasswordResetRequest), AcceptPasswordResetRequest);
+    RegisterAdminRequestHandler(nameof(DeclinePasswordResetRequest), DeclinePasswordResetRequest);
+    RegisterAdminRequestHandler(nameof(IsUserAdmin), IsUserAdmin);
+    RegisterAdminRequestHandler(nameof(SetUserRoles), SetUserRoles);
+    RegisterFileRequestHandler(
       nameof(TranscribeAudio),
       TranscribeAudio,
       FileAccessLevel.Read,
       FileType.File
     );
-    RegisterAuthenticatedHandler(nameof(UpdateUsername), UpdateUsername);
-    RegisterAuthenticatedHandler(nameof(UpdatePassword), UpdatePassword);
-    RegisterAdminHandler(nameof(GetRootId), GetRootId);
-    RegisterFileHandler(nameof(FileDelete), FileDelete);
-    RegisterTransactedHandler(nameof(GetFileNameValidationFlags), GetFileNameValidationFlags);
-    RegisterAuthenticatedHandler(nameof(UpdateName), UpdateName);
-    RegisterFileHandler(nameof(FileScan), FileScan, FileAccessLevel.Read, null);
-    RegisterFileHandler(nameof(FileGetMime), FileGetMime, FileAccessLevel.Read, FileType.File);
-    RegisterFileHandler(
+    RegisterAuthenticatedRequestHandler(nameof(UpdateUsername), UpdateUsername);
+    RegisterAuthenticatedRequestHandler(nameof(UpdatePassword), UpdatePassword);
+    RegisterAuthenticatedRequestHandler(nameof(GetRootId), GetRootId);
+    RegisterFileRequestHandler(nameof(FileDelete), FileDelete);
+    RegisterTransactedRequestHandler(
+      nameof(GetFileNameValidationFlags),
+      GetFileNameValidationFlags
+    );
+    RegisterAuthenticatedRequestHandler(nameof(UpdateName), UpdateName);
+    RegisterFileRequestHandler(nameof(FileScan), FileScan, FileAccessLevel.Read, null);
+    RegisterFileRequestHandler(
+      nameof(FileGetMime),
+      FileGetMime,
+      FileAccessLevel.Read,
+      FileType.File
+    );
+    RegisterFileRequestHandler(
       nameof(FileGetDataEntries),
       FileGetDataEntries,
       FileAccessLevel.Read,
       FileType.File
     );
-    RegisterFileHandler(
-      nameof(FileDataGetSize),
-      FileDataGetSize,
+    RegisterFileRequestHandler(
+      nameof(FileGetSize),
+      FileGetSize,
       FileAccessLevel.Read,
       FileType.File
     );
-    RegisterFileHandler(nameof(FileCreate), FileCreate);
-    RegisterStreamHandler(nameof(StreamWrite), StreamWrite);
-    RegisterStreamHandler(nameof(StreamRead), StreamRead);
-    RegisterStreamHandler(nameof(StreamGetLength), StreamGetLength);
-    RegisterStreamHandler(nameof(StreamSetLength), StreamSetLength);
-    RegisterStreamHandler(nameof(StreamSetPosition), StreamSetPosition);
-    RegisterStreamHandler(nameof(StreamGetPosition), StreamGetPosition);
-    RegisterStreamHandler(nameof(StreamClose), StreamClose);
-    RegisterFileHandler(nameof(StreamOpen), StreamOpen, FileAccessLevel.Read, FileType.File);
+    RegisterFileRequestHandler(nameof(FileCreate), FileCreate);
+    RegisterStreamRequestHandler(nameof(StreamWrite), StreamWrite);
+    RegisterStreamRequestHandler(nameof(StreamRead), StreamRead);
+    RegisterStreamRequestHandler(nameof(StreamGetLength), StreamGetLength);
+    RegisterStreamRequestHandler(nameof(StreamSetLength), StreamSetLength);
+    RegisterStreamRequestHandler(nameof(StreamSetPosition), StreamSetPosition);
+    RegisterStreamRequestHandler(nameof(StreamGetPosition), StreamGetPosition);
+    RegisterStreamRequestHandler(nameof(StreamClose), StreamClose);
+    RegisterFileRequestHandler(nameof(StreamOpen), StreamOpen, FileAccessLevel.Read, FileType.File);
   }
 }

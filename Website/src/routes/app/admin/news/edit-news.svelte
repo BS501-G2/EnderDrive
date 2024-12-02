@@ -19,7 +19,7 @@
       const fileData = await server
         .FileGetDataEntries({ FileId: imageId, Pagination: { Count: 1 } })
         .then((result) => result[0])
-      const size = await server.FileDataGetSize({ FileId: imageId, FileDataId: fileData.Id })
+      const size = await server.FileGetSize({ FileId: imageId, FileDataId: fileData.Id })
 
       let data = new Blob()
       const streamId = await server.StreamOpen({

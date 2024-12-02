@@ -35,7 +35,15 @@ public sealed partial class ResourceManager
         Title = title,
         AuthorUserId = newsAuthor.Id,
         PublishTime = publishTime,
-        Image = [.. ReadFromFile(file, fileData, 0, fileData.Data.Size)],
+        Image = (
+          await ReadFromFile(
+            transaction,
+            file,
+            fileData,
+            0,
+            await GetFileSize(transaction, file, fileData)
+          )
+        ).ToArray(),
       }
     );
 

@@ -50,6 +50,7 @@ public sealed partial class Connection
             CancellationToken.None
           );
 
+          source.SetResult();
           break;
         }
 
@@ -59,19 +60,29 @@ public sealed partial class Connection
           CancellationToken CancellationToken
         ):
         {
-          await webSocket.SendAsync(
-            bytes,
-            WebSocketMessageType.Binary,
-            true,
-            serviceCancellationToken
-          );
+          try
+          {
+            await webSocket.SendAsync(
+              bytes,
+              WebSocketMessageType.Binary,
+              true,
+              serviceCancellationToken
+            );
+            source.SetResult();
+          }
+          catch (Exception exception)
+          {
+            source.SetException(exception);
+            throw;
+          }
 
           break;
         }
 
         case WorkerFeed.Close(TaskCompletionSource source):
         {
-          break;
+          source.SetResult();
+          return;
         }
       }
     }

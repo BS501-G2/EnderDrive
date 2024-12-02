@@ -1,14 +1,10 @@
 /* eslint-disable @typescript-eslint/no-empty-object-type */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Buffer } from 'buffer'
 import { getContext, setContext } from 'svelte'
-import { derived, get, writable, type Readable, type Writable } from 'svelte/store'
+import { derived, get, writable, type Writable } from 'svelte/store'
 
 import { persisted } from 'svelte-persisted-store'
-import type { NotificationContext } from './contexts/notification'
-import { goto } from '$app/navigation'
-import { createConnection } from './connection'
+import { type ConnectionState, createConnection } from './connection'
 import type {
   AudioTranscriptionStatus,
   FileAccessLevel,
@@ -132,9 +128,9 @@ export interface ServerSideFunctions extends Record<string, RemoteFunction<any, 
     },
     {}
   ]
-  FileScan: [{ FileId: string; FileDataId: string }, VirusReportResource, { VirusReport: string }]
+  FileScan: [{ FileId: string; FileDataId: string }, VirusReportResource, { Result: string }]
   FileGetMime: [
-    { FileId: string; FileDataId: string },
+    { FileId: string; FileDataId?: string },
     string,
     {
       MimeType: string
@@ -147,7 +143,7 @@ export interface ServerSideFunctions extends Record<string, RemoteFunction<any, 
       FileDataEntries: string[]
     }
   ]
-  FileDataGetSize: [{ FileId: string; FileDataId: string }, number, { Size: number }]
+  FileGetSize: [{ FileId: string; FileDataId?: string }, number, { Size: number }]
   GetFile: [
     {
       FileId: string
@@ -193,7 +189,11 @@ export interface ServerSideFunctions extends Record<string, RemoteFunction<any, 
       FileLogs: string[]
     }
   ]
-  GetFilePath: [{ FileId: string, Pagination?: PaginationOptions }, FileResource[], { Path: string[] }]
+  GetFilePath: [
+    { FileId: string; Pagination?: PaginationOptions },
+    FileResource[],
+    { Path: string[] }
+  ]
   GetFiles: [
     {
       SearchString?: string
@@ -321,7 +321,7 @@ export interface ServerSideFunctions extends Record<string, RemoteFunction<any, 
   TrashFile: [{ FileId: string }, {}]
   UntrashFile: [{ FileId: string }, {}]
   UpdateName: [
-    { FirstName: string; MiddlsName?: string; LastName: string; DisplayName?: string },
+    { FirstName: string; MiddleName?: string; LastName: string; DisplayName?: string },
     {}
   ]
   UpdatePassword: [{ CurrentPassword: string; NewPassword: string; ConfirmPassword: string }, {}]
@@ -335,16 +335,10 @@ export interface PaginationOptions {
 }
 
 export interface ClientSideFunctions extends Record<string, RemoteFunction<any, any, any>> {
-  refreshNotification: [object, object]
+  Notify: [{}, object]
 }
 
 export function createClientContext() {
-  const requestHandlers: Partial<FunctionMap<ClientSideFunctions>> = {}
-
-  const connection = createConnection((name, data) => requestHandlers[name]!(data as never))
-
-  const { sendRequest, state } = connection
-
   const serverSideFunctionTranslators: TranslatorMap<ServerSideFunctions> = {
     AcceptPasswordResetRequest: (data) => data,
     Agree: (data) => data,
@@ -363,9 +357,9 @@ export function createClientContext() {
     DidIAgree: (data) => data.Agreed,
     FileCreate: (data) => data.StreamId,
     FileDelete: (data) => data,
-    FileScan: (data) => JSON.parse(data.VirusReport) as VirusReportResource,
+    FileScan: (data) => JSON.parse(data.Result) as VirusReportResource,
     FileGetMime: (data) => data.MimeType,
-    FileDataGetSize: (data) => data.Size,
+    FileGetSize: (data) => data.Size,
     GetFile: ({ File }) => JSON.parse(File) as FileResource,
     GetFileAccesses: (data) =>
       data.FileAccesses.map((fileAccess) => JSON.parse(fileAccess) as FileAccessResource),
@@ -415,7 +409,64 @@ export function createClientContext() {
       FileDataEntries.map((fileData) => JSON.parse(fileData) as FileDataResource)
   }
 
-  const authentication: Writable<Authentication | null> = writable(null as never)
+  const requestHandlers: Partial<FunctionMap<ClientSideFunctions>> = {}
+
+  const connection = createConnection((name, data) => requestHandlers[name]!(data as never))
+
+  const authentication: Writable<Authentication | null> = persisted('stored-token', null as never)
+
+  const clientState = writable<ConnectionState>(['connecting'])
+
+  connection.state.subscribe(async (state) => {
+    console.log('asd')
+    if (state[0] === 'connecting') {
+      clientState.set(state)
+    } else if (state[0] === 'connnected') {
+      const auth = get(authentication)
+
+      if (auth != null) {
+        try {
+          await sendRequest('AuthenticateToken', auth)
+        } catch {
+          //
+        }
+      }
+
+      let preRequest: (() => Promise<void>) | undefined
+      while ((preRequest = preRequests.shift())) {
+        try {
+          await preRequest()
+        } catch (error: any) {
+          console.error(error)
+        }
+      }
+
+      clientState.set(state)
+    } else if (state[0] === 'disconnected') {
+      clientState.set(state)
+    }
+  })
+
+  async function sendRequest<T extends keyof FunctionMap<ServerSideFunctions>>(
+    name: T,
+    data: ServerSideFunctions[T][0]
+  ): Promise<ServerSideFunctions[T][1]> {
+    const a = (data: ServerSideFunctions[T][0]) =>
+      connection.sendRequest(name as string, data).then(serverSideFunctionTranslators[name])
+
+    const customRequest = customServerSideFunctions[name]
+
+    try {
+      const request: FunctionMap<ServerSideFunctions>[T] =
+        customRequest != null ? (data) => customRequest(data, a) : a
+
+      return request(data)
+    } catch (error: any) {
+      throw new Error(error.message, { cause: error })
+    }
+  }
+
+  const preRequests: (() => Promise<void>)[] = []
 
   const customServerSideFunctions: Partial<CustomFunctionMap<ServerSideFunctions>> = {
     AuthenticateGoogle: async (data, request) => {
@@ -437,11 +488,11 @@ export function createClientContext() {
         const renewedToken = await request(data)
 
         authentication.update((authentication) => {
-          if (authentication == null || renewedToken == null) {
+          if (authentication == null) {
             return null
           }
 
-          return { UserId: authentication.UserId, Token: renewedToken }
+          return { UserId: authentication.UserId, Token: renewedToken ?? authentication.Token }
         })
 
         return renewedToken
@@ -466,14 +517,15 @@ export function createClientContext() {
         ...[, name]: [never, T | symbol]
       ): FunctionMap<ServerSideFunctions>[T] => {
         if (typeof name === 'symbol') {
-          throw new Error('Symbol is not supported')
+          return void 0 as never
         }
 
-        const request = (data: ServerSideFunctions[T][0]) =>
-          sendRequest(name as string, data).then(serverSideFunctionTranslators[name])
-        const customRequest = customServerSideFunctions[name]
-
-        return customRequest != null ? (data) => customRequest(data, request) : request
+        return get(clientState)[0] !== 'connnected'
+          ? (data) =>
+              new Promise((resolve, reject) =>
+                preRequests.push(() => sendRequest(name, data).then(resolve, reject))
+              )
+          : (data) => sendRequest(name, data)
       }
     }),
 
@@ -496,7 +548,7 @@ export function createClientContext() {
       }
     },
 
-    clientState: state,
+    clientState: derived(clientState, (clientState) => clientState),
 
     authentication
   })

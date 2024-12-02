@@ -1,74 +1,109 @@
 using System;
-using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Runtime.ExceptionServices;
+using System.Threading.Tasks;
+using MongoDB.Bson;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
-public sealed record FileSegment
+using Services;
+
+public sealed record FileSegment : ResourceData
 {
-  public required long Start;
-  public required long End;
+  public required ObjectId FileId;
+  public required ObjectId FileDataId;
+  public required ObjectId FileBufferId;
 
-  public long Size => End - Start;
-
-  public required List<FileBlob> Blobs;
+  public required long DecryptedSize;
 }
 
 public sealed partial class ResourceManager
 {
-  public byte[] ReadSegment(FileSegment fileSegment, byte[] fileAesKey)
+  private async Task<Resource<FileSegment>> CreateSegment(
+    ResourceTransaction transaction,
+    UnlockedFile file,
+    Resource<FileData> fileData,
+    byte[] buffer
+  )
   {
-    List<FileBlob> blobs = fileSegment.Blobs;
+    Resource<FileBuffer> fileBuffer = await CreateBuffer(transaction, file, buffer);
 
-    List<Exception> exceptions = [];
-
-    for (int index = 0; index < blobs.Count; index++)
-    {
-      FileBlob blob = blobs[index];
-
-      try
+    Resource<FileSegment> fileSegment = ToResource<FileSegment>(
+      transaction,
+      new()
       {
-        return ReadFromBlob(blob, fileAesKey);
+        FileId = file.File.Id,
+        FileDataId = fileData.Id,
+        FileBufferId = fileBuffer.Id,
+        DecryptedSize = buffer.Length
       }
-      catch (Exception exception)
-      {
-        exceptions.Add(exception);
+    );
 
-        blobs.RemoveAt(index--);
-        blobs.Add(blob);
-      }
-    }
-
-    string message = "Failed to read segment blob.";
-
-    if (exceptions.Count == 0)
-    {
-      throw new InvalidOperationException(message);
-    }
-    else
-    {
-      throw new AggregateException(message, exceptions);
-    }
+    await fileSegment.Save(transaction);
+    return fileSegment;
   }
 
-  public FileSegment CreateSegment(byte[] fileAesKey, long start, byte[] data)
+  // private async Task<Resource<FileSegment>> CloneSegment(
+  //   ResourceTransaction transaction,
+  //   UnlockedFile file,
+  //   Resource<FileData> fileData,
+  //   Resource<FileSegment> fileSegment
+  // )
+  // {
+  //   Resource<FileSegment> newSegment = ToResource<FileSegment>(
+  //     transaction,
+  //     new()
+  //     {
+  //       FileId = file.File.Id,
+  //       FileDataId = fileData.Id,
+  //       FileBufferId = fileSegment.Data.FileBufferId,
+  //       DecryptedSize = fileSegment.Data.DecryptedSize
+  //     }
+  //   );
+
+  //   return newSegment;
+  // }
+
+  private async Task<byte[]> ReadSegment(
+    ResourceTransaction transaction,
+    UnlockedFile file,
+    Resource<FileSegment> fileSegment
+  )
   {
-    long end = start + data.Length;
+    Resource<FileBuffer> fileBlob = await Query<FileBuffer>(
+        transaction,
+        (query) =>
+          query.Where(item =>
+            file.File.Id == item.FileId && item.Id == fileSegment.Data.FileBufferId
+          )
+      )
+      .FirstAsync(transaction);
 
-    List<FileBlob> blobs = [];
+    return KeyManager.Decrypt(file, fileBlob.Data.EncryptedBytes);
+  }
 
-    for (int iteration = 0; iteration < blobRedundancyCount; iteration++)
+  private async Task Delete(ResourceTransaction transaction, Resource<FileSegment> fileSegment)
+  {
+    if (
+      await Query<FileSegment>(
+          transaction,
+          (query) => query.Where((item) => item.FileBufferId == fileSegment.Data.FileBufferId)
+        )
+        .CountAsync(transaction) <= 1
+    )
     {
-      blobs.Add(WriteToBlob(fileAesKey, data));
+      Resource<FileBuffer> fileBuffer = await Query<FileBuffer>(
+          transaction,
+          (query) =>
+            query.Where(item =>
+              item.FileId == fileSegment.Data.FileId && item.Id == fileSegment.Data.FileBufferId
+            )
+        )
+        .FirstAsync(transaction);
+
+      await Delete(transaction, fileBuffer);
     }
 
-    return new()
-    {
-      Start = start,
-      End = end,
-
-      Blobs = blobs
-    };
+    await Delete<FileSegment>(transaction, fileSegment);
   }
 }

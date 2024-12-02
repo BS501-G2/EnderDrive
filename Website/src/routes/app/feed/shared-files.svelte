@@ -10,7 +10,8 @@
     const fileAccesses = await server.GetFileAccesses({
       TargetUserId: me.Id,
       Pagination: {
-      }
+      },
+      IncludePublic: false
     })
 
     const groupedFileAccesses: {

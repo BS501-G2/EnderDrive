@@ -9,7 +9,7 @@ public sealed partial class Connection
 {
   private sealed record class FileGetMimeRequest : BaseFileRequest
   {
-    public required ObjectId FileDataId;
+    public required ObjectId? FileDataId;
   }
 
   private sealed record class FileGetMimeResponse
@@ -25,9 +25,13 @@ public sealed partial class Connection
         Resources.Query<FileData>(
           transaction,
           (query) =>
-            query.Where(
-              (fileData) => fileData.FileId == request.FileId && fileData.Id == request.FileDataId
-            )
+            query
+              .Where(
+                (fileData) =>
+                  fileData.FileId == request.FileId
+                  && (request.FileDataId == null || fileData.Id == request.FileDataId)
+              )
+              .OrderByDescending((fileData) => fileData.CreateTime)
         )
       );
 

@@ -55,7 +55,7 @@
               FileDataId: newData.Id
             })
             const mime = await server.FileGetMime({ FileId: file.Id, FileDataId: newData.Id })
-            const size = await server.FileDataGetSize({
+            const size = await server.FileGetSize({
               FileId: file.Id,
               FileDataId: newData.Id
             })
@@ -121,8 +121,8 @@
       {#if files.length > 0}
         <div class="header">
           <div class="preview">
-            {#if files.length === 1}
-              <FileBrowserFileIcon mime={files[0]?.file.Name} size="72px" />
+            {#if files.length === 1 && files[0].type === 'file'}
+              <FileBrowserFileIcon mime={files[0].mime} size="72px" />
             {:else if files.length === 0}
               <Icon icon="file" size="72px" />
             {:else}

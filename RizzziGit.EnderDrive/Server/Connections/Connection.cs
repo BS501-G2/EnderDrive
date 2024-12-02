@@ -18,14 +18,14 @@ public sealed partial class ConnectionContext
 
   public required WaitQueue<Connection.WorkerFeed> WorkerFeed;
   public required ConcurrentDictionary<string, RawRequestHandler> Handlers;
-  public required ConcurrentDictionary<string, TaskCompletionSource<byte[]>> PendingRequests;
+  public required ConcurrentDictionary<long, TaskCompletionSource<byte[]>> PendingRequests;
 }
 
 public sealed partial class Connection(
   ConnectionManager manager,
   ulong connectionId,
   WebSocket webSocket
-) : Service<ConnectionContext>($"Connection #{connectionId}")
+) : Service<ConnectionContext>($"Connection #{connectionId}", manager)
 {
   public ConnectionManager Manager => manager;
   public EnderDriveServer Server => Manager.Server;
@@ -46,8 +46,6 @@ public sealed partial class Connection(
         WorkerFeed = new()
       };
 
-    RegisterHandlers();
-
     return context;
   }
 
@@ -58,10 +56,12 @@ public sealed partial class Connection(
     CancellationToken serviceCancellationToken
   )
   {
+    RegisterHandlers();
+
     Task[] tasks =
     [
-      RunReceiveLoop(context, serviceCancellationToken),
-      RunWorker(context, serviceCancellationToken)
+      Task.Run(() => RunReceiveLoop(context, serviceCancellationToken), CancellationToken.None),
+      Task.Run(() => RunWorker(context, serviceCancellationToken), CancellationToken.None)
     ];
 
     await Task.WhenAny(tasks);

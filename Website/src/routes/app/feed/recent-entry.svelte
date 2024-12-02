@@ -1,7 +1,7 @@
 <script lang="ts">
-import { useClientContext } from '$lib/client/client'
-import { type FileResource, type FileLogResource } from '$lib/client/resource'
-import { useAppContext } from '$lib/client/contexts/app'
+  import { useClientContext } from '$lib/client/client'
+  import { type FileResource, type FileLogResource } from '$lib/client/resource'
+  import { useAppContext } from '$lib/client/contexts/app'
   import UserLink from '$lib/client/model/user-link.svelte'
   import Icon from '$lib/client/ui/icon.svelte'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
@@ -13,13 +13,17 @@ import { useAppContext } from '$lib/client/contexts/app'
   const { ...props }: { file: FileResource; fileLog: FileLogResource } | { head: true } = $props()
   const { isDesktop } = useAppContext()
 
-  const {server }= useClientContext()
+  const { server } = useClientContext()
 </script>
 
 <div class="file-entry">
   <div class="icon">
     {#if 'head' in props}{:else}
-      {#await server.getFileMime(props.file.Id)}
+      {#await (async () => {
+        const mime = await server.FileGetMime({ FileId: props.file.Id })
+
+        return mime
+      })()}
         <LoadingSpinner size="2rem" />
       {:then mime}
         <FileBrowserFileIcon {mime} size="2rem" />
@@ -42,7 +46,7 @@ import { useAppContext } from '$lib/client/contexts/app'
       {#if 'head' in props}
         <h2>Size</h2>
       {:else}
-        {#await server.getFileSize(props.file.Id)}
+        {#await server.FileGetSize({ FileId: props.file.Id })}
           <LoadingSpinner size="1rem" />
         {:then size}
           <p>
@@ -56,12 +60,12 @@ import { useAppContext } from '$lib/client/contexts/app'
       {#if 'head' in props}
         <h2>Modified</h2>
       {:else}
-        {#await server.getFileLogs({ fileId: props.file.Id, count: 1 })}
+        {#await server.GetFileLogs({ FileId: props.file.Id, Pagination: { Count: 1 }, UniqueFileId: true })}
           <LoadingSpinner size="1rem" />
-        {:then [{ actorUserId, createTime }]}
+        {:then [{ ActorUserId, CreateTime }]}
           <p>
-            <b class="user"><UserLink userId={actorUserId} /></b>
-            {moment(new Date(createTime).getTime()).fromNow()}
+            <b class="user"><UserLink userId={ActorUserId} /></b>
+            {moment(CreateTime).fromNow()}
           </p>
         {/await}
       {/if}

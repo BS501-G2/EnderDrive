@@ -13,8 +13,8 @@
 
     return await Promise.all(
       logs.map(async (fileLog) => {
-        console.log(fileLog)
-        const file = await server.getFile(fileLog.FileId)
+
+        const file = await server.GetFile({FileId: fileLog.FileId})
 
         return { file, fileLog }
       })
@@ -33,7 +33,7 @@
     </div>
   {:then logs}
     {#each logs.toSorted((a, b) => new Date(b.fileLog.CreateTime).getTime() - new Date(a.fileLog.CreateTime).getTime()) as { file, fileLog }}
-      {#if file.type === FileType.File}
+      {#if file.Type === FileType.File}
         <RecentEntry {file} {fileLog} />
       {/if}
     {/each}

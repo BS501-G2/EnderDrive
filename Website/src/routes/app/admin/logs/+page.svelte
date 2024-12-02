@@ -9,73 +9,74 @@
   import LogFilter from './log-filter.svelte'
   import { useClientContext } from '$lib/client/client'
   import type { FileLogResource } from '$lib/client/resource'
+  import LazyLoader from '$lib/client/ui/lazy-loader.svelte'
 
   const { pushTitle } = useAdminContext()
 
   onMount(() => pushTitle('File Logs'))
   const { server } = useClientContext()
 
-  const logs = writable<FileLogResource[]>([])
+  // function load(div: HTMLDivElement) {
+  //   const run = async () => {
+  //     while (true) {
+  //       if ($logs.length !== 0 && div.scrollTop / div.scrollWidth < 0.75) {
+  //         return
+  //       }
 
-  function load(div: HTMLDivElement) {
-    const run = async () => {
-      while (true) {
-        if ($logs.length !== 0 && div.scrollTop / div.scrollWidth < 0.75) {
-          return
-        }
+  //       const fileLogs = await server.GetFileLogs({
+  //         Pagination: { Offset: $logs.length, Count: 75 },
+  //         UniqueFileId: true
+  //       })
 
-        const fileLogs = await server.GetFileLogs({
-          Pagination: { Offset: $logs.length, Count: 75 },
-          UniqueFileId: true
-        })
+  //       logs.update((logs) => {
+  //         logs.push(...fileLogs)
+  //         return logs
+  //       })
+  //     }
+  //   }
 
-        logs.update((logs) => {
-          logs.push(...fileLogs)
-          return logs
-        })
-      }
-    }
-
-    return promise.set(run().finally(() => promise.set(null)))
-  }
+  //   return promise.set(run().finally(() => promise.set(null)))
+  // }
 
   const promise = writable<Promise<void> | null>()
 
   const a = writable<HTMLDivElement>(null as never)
 
-  onMount(() => load($a))
+  let logs = $state<FileLogResource[]>([])
+
+  // onMount(() => load($a))
 </script>
 
 <LogFilter />
 
-<div
-  bind:this={$a}
-  class="logs"
-  onscroll={({ currentTarget }) => {
-    load(currentTarget)
-  }}
->
-  {#each $logs as fileLog}
-    <LogEntry {fileLog} />
-  {/each}
-
-  {#await $promise}
-    <div class="loading">
-      <LoadingSpinner size="3rem" />
-    </div>
-  {/await}
+<div class="logs">
+  <LazyLoader
+    class="test"
+    bind:items={logs}
+    load={async (offset) => {
+      return await server.GetFileLogs({
+        Pagination: { Count: 75, Offset: offset },
+        UniqueFileId: false
+      })
+    }}
+    vertical
+  >
+    {#snippet itemSnippet(item, index, key)}
+      <LogEntry fileLog={item} />
+    {/snippet}
+  </LazyLoader>
+  {logs.length}
 </div>
 
 <style lang="scss">
-  div.loading {
+  div.logs {
     flex-grow: 1;
 
-    align-items: center;
-    justify-content: center;
-  }
-
-  div.logs {
     padding: 16px;
     gap: 16px;
+  }
+
+  div.test {
+    padding: 16px;
   }
 </style>

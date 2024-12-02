@@ -12,6 +12,7 @@ using MimeDetective.Storage;
 
 namespace RizzziGit.EnderDrive.Server.Services;
 
+using System;
 using Commons.Collections;
 using Commons.Services;
 using Commons.Utilities;
@@ -79,21 +80,15 @@ public sealed partial class MimeDetector(EnderDriveServer server)
       ) in context.WaitQueue.WithCancellation(serviceCancellationToken)
     )
     {
-      _ = Task.Run(
-        async () =>
-        {
-          using CancellationTokenSource linked = serviceCancellationToken.Link(cancellationToken);
+      using CancellationTokenSource linked = serviceCancellationToken.Link(cancellationToken);
 
-          DefinitionMatch? match = await context
-            .ContentInspector.Inspect(stream)
-            .OrderByDescending((match) => match.Percentage)
-            .ToAsyncEnumerable()
-            .FirstOrDefaultAsync(linked.Token);
+      DefinitionMatch? match = await context
+        .ContentInspector.Inspect(stream)
+        .OrderByDescending((match) => match.Percentage)
+        .ToAsyncEnumerable()
+        .FirstOrDefaultAsync(linked.Token);
 
-          output.SetResult(match?.Definition);
-        },
-        cancellationToken
-      );
+      output.SetResult(match?.Definition);
     }
   }
 
@@ -121,9 +116,11 @@ public sealed partial class MimeDetector(EnderDriveServer server)
 
     if (mimeDetectionReport.Data.Mime == null)
     {
-      using Stream stream = server.Resources.CreateFileStream(file, fileData);
+      using Stream stream = await server.Resources.CreateFileStream(transaction, file, fileData);
 
+      Console.WriteLine($"Getting definition...");
       Definition? definition = await Inspect(stream, transaction.CancellationToken);
+      Console.WriteLine($"Definition got: ${definition}");
 
       mimeDetectionReport.Data.Mime = definition?.File.MimeType;
       await mimeDetectionReport.Save(transaction);

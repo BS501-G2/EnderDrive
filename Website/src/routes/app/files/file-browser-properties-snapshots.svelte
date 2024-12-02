@@ -16,7 +16,7 @@
     const fileDataEntries = await server
       .FileGetDataEntries({ FileId: file.file.Id })
       .then((fileEntries) => Promise.all(fileEntries.map(async (fileData) => {
-            const size = await server.FileDataGetSize( { FileId: file.file.Id, FileDataId: fileData.Id } )
+            const size = await server.FileGetSize( { FileId: file.file.Id, FileDataId: fileData.Id } )
 
             return { fileData, size }
           })))
@@ -28,7 +28,7 @@
         {#if size > 0}
           <p>
             Revision
-            <a href="/app/files?fileId={file.file.Id}&snapshotId={fileData.Id}">
+            <a href="/app/files?fileId={file.file.Id}&dataId={fileData.Id}">
               #{fileData.Id.slice(fileData.Id.length - 4, fileData.Id.length)}
             </a>
             by <UserLink userId={fileData.AuthorUserId!} />

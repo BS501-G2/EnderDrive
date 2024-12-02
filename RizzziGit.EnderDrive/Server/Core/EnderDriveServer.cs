@@ -13,7 +13,7 @@ using Services;
 public sealed class ServerData
 {
   public required ResourceManager ResourceManager;
-  public required KeyManager KeyGenerator;
+  public required KeyManager KeyManager;
   public required VirusScanner VirusScanner;
   public required ApiServer ApiServer;
   public required GoogleService GoogleService;
@@ -24,22 +24,18 @@ public sealed class ServerData
 }
 
 public sealed class EnderDriveServer(
-  string workingPath,
   string clamAvSocketPath = "/run/clamav/clamd.ctl",
   int httpPort = 8082,
   int httpsPort = 8442
 ) : Service<ServerData>("Server")
 {
-  private string ServerFolder => Path.Join(workingPath, ".EnderDrive");
-  private string BlobFolder => Path.Join(ServerFolder, ".BLOB");
-
   protected override async Task<ServerData> OnStart(
     CancellationToken startupCancellationToken,
     CancellationToken serviceCancellationToken
   )
   {
-    KeyManager keyGenerator = new(this);
-    ResourceManager resourceManager = new(this, Path.Join(BlobFolder, "DATA"), 4);
+    KeyManager keyManager = new(this);
+    ResourceManager resourceManager = new(this);
     AdminManager adminManager = new(resourceManager);
     VirusScanner virusScanner = new(this, clamAvSocketPath);
     ApiServer apiServer = new(this, httpPort, httpsPort);
@@ -48,7 +44,7 @@ public sealed class EnderDriveServer(
     MimeDetector mimeDetector = new(this);
     AudioTranscriber audioTranscriber = new(this, "/mnt/buffalo/bs701/model.bin");
 
-    await StartServices([keyGenerator, resourceManager], startupCancellationToken);
+    await StartServices([keyManager, resourceManager], startupCancellationToken);
     await StartServices([adminManager], startupCancellationToken);
     await StartServices(
       [virusScanner, apiServer, googleService, connectionManager, mimeDetector, audioTranscriber],
@@ -57,7 +53,7 @@ public sealed class EnderDriveServer(
 
     return new()
     {
-      KeyGenerator = keyGenerator,
+      KeyManager = keyManager,
       ResourceManager = resourceManager,
       AdminManager = adminManager,
       VirusScanner = virusScanner,
@@ -69,7 +65,7 @@ public sealed class EnderDriveServer(
     };
   }
 
-  public KeyManager KeyManager => GetContext().KeyGenerator;
+  public KeyManager KeyManager => GetContext().KeyManager;
   public ResourceManager Resources => GetContext().ResourceManager;
   public AdminManager AdminManager => GetContext().AdminManager;
   public VirusScanner VirusScanner => GetContext().VirusScanner;
@@ -87,7 +83,7 @@ public sealed class EnderDriveServer(
     ServerData context = GetContext();
 
     await await Task.WhenAny(
-      WatchService(context.KeyGenerator, cancellationToken),
+      WatchService(context.KeyManager, cancellationToken),
       WatchService(context.ResourceManager, cancellationToken),
       WatchService(context.AdminManager, cancellationToken),
       WatchService(context.VirusScanner, cancellationToken),
@@ -112,7 +108,7 @@ public sealed class EnderDriveServer(
       context.VirusScanner,
       context.ResourceManager,
       context.AdminManager,
-      context.KeyGenerator
+      context.KeyManager
     );
   }
 }
