@@ -16,6 +16,7 @@
     x,
     y,
     'disable-x': disableX = false,
+    nooob = false,
     payload
   }: {
     children?: Snippet<[windowButtons: Snippet, payload: T]>
@@ -27,6 +28,7 @@
     y?: number
     'disable-x'?: boolean,
     payload?: T
+    nooob?: boolean
   } = $props()
 
   let {
@@ -85,7 +87,8 @@
           }
   )
 
-  onMount(() => pushOverlayContent(overlay, !nodim))
+  onMount(() => pushOverlayContent(overlay, !nodim, !noshadow))
+
 
   const {
     buttons,
@@ -138,6 +141,7 @@
   <div class="overlay-bounds">
     <button
       class="overlay-container"
+      class:nooob
       style:align-items="safe {horizontalAlign}"
       style:justify-content="safe {verticalAlign}"
       style:padding-top="{paddingTop}px"
@@ -145,7 +149,6 @@
       style:padding-left="{paddingLeft}px"
       style:padding-right="{paddingRight}px"
       class:dim={!nodim}
-      class:shadow={!noshadow}
       onclick={({ currentTarget, target }) => {
         if (currentTarget != target) {
           return
@@ -212,13 +215,21 @@
     @include force-size(100dvw, 100dvh);
   }
 
+  button.overlay-container.nooob {
+    pointer-events: none;
+
+    div.overlay {
+      pointer-events: auto;
+    }
+  }
+
   button.overlay-container.dim {
     background-color: #00000025;
   }
 
-  button.overlay-container.shadow {
-    filter: drop-shadow(2px 2px 4px #0000007f);
-  }
+  // button.overlay-container.shadow {
+  //   filter: drop-shadow(2px 2px 4px #0000007f);
+  // }
 
   div.overlay {
     display: flex;

@@ -23,9 +23,13 @@
   import News from './news.svelte'
   import NotificationHost from './notification-host.svelte'
   import { type NotificationContext } from './notification-context'
+  import Agreement from './agreement.svelte'
+  import StatsHost from './stats-host.svelte'
+  import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
 
   const notificationContext = writable<NotificationContext>(null as never)
 
+  const dashboard = createDashboardContext(notificationContext)
   const {
     mobileAppButtons,
     mobileTopLeft,
@@ -35,8 +39,9 @@
     desktopTopLeft,
     desktopTopMiddle,
     desktopTopRight,
+    desktopBottom,
     backgroundTasks
-  } = createDashboardContext(notificationContext)
+  } = dashboard
   const { navigationEntries } = createNavigationContext()
   const {
     isMobile,
@@ -48,7 +53,7 @@
     isFullscreen,
     titleStack
   } = useAppContext()
-  const { authentication, server } = useClientContext()
+  const { authentication, server, clientState } = useClientContext()
 
   const {
     children
@@ -57,6 +62,7 @@
   } = $props()
 
   const logoutConfirmation = writable(false)
+  const didIAgree = writable(Promise.resolve(false))
 
   onMount(() =>
     authentication.subscribe(async (authentication) => {
@@ -64,9 +70,8 @@
         await goto(`/landing?login&return=${encodeURIComponent($page.url.pathname)}`, {
           replaceState: true
         })
-      } else if (!(await server.DidIAgree({})) && !$page.url.pathname.startsWith('/agreement')) {
-        await goto(`/app/agreement?return=${encodeURIComponent($page.url.pathname)}`)
       }
+      didIAgree.set(server.DidIAgree({}))
     })
   )
 
@@ -78,6 +83,12 @@
     }
   })
 </script>
+
+{#await $didIAgree then result}
+  {#if !result}
+    <Agreement refresh={() => didIAgree.set(server.DidIAgree({}))} />
+  {/if}
+{/await}
 
 {#if $authentication != null}
   <div class="dashboard">
@@ -152,6 +163,24 @@
       </div>
     </div>
 
+    {#if $clientState[0] !== 'connnected'}
+      <div class="separator"></div>
+
+      <div class="disconnection-message">
+        {#if $clientState[0] === 'connecting'}
+          <LoadingSpinner size="1rem" />
+        {/if}
+
+        <p>
+          Currently {$clientState[0]}.
+        </p>
+
+        {#if $clientState[0] === 'disconnected'}
+          <Button onclick={$clientState[2]}>Reconnect</Button>
+        {/if}
+      </div>
+    {/if}
+
     <div class="separator"></div>
 
     <div class="middle">
@@ -171,6 +200,21 @@
         {@render children()}
       </div>
     </div>
+    {#if $isDesktop && $desktopBottom.length}
+      <div class="separator"></div>
+      <div class="desktop-bottom">
+        <div class="left section">
+          {#each $desktopBottom.filter((e) => e.arrangement === 'left') as { id, snippet } (id)}
+            {@render snippet()}
+          {/each}
+        </div>
+        <div class="right section">
+          {#each $desktopBottom.filter((e) => e.arrangement === 'right') as { id, snippet } (id)}
+            {@render snippet()}
+          {/each}
+        </div>
+      </div>
+    {/if}
 
     {#if $isMobile}
       <div class="separator"></div>
@@ -187,8 +231,9 @@
   <Search />
   <AppButtonHost {mobileAppButtons} />
   <ProgressHost tasks={backgroundTasks} />
+  <StatsHost />
   <News />
-  <NotificationHost context={notificationContext} />
+  <NotificationHost {notificationContext} dashboardContext={dashboard.context} />
 
   {#if $isDesktop}
     <NotificationButtonDesktop />
@@ -312,6 +357,17 @@
       }
     }
 
+    > div.disconnection-message {
+      flex-direction: row;
+      justify-content: safe center;
+
+      padding: 8px;
+      gap: 8px;
+
+      background-color: var(--color-6);
+      color: var(--color-5);
+    }
+
     > div.middle {
       flex-grow: 1;
       flex-direction: row;
@@ -342,6 +398,24 @@
 
     > div.bottom {
       min-height: 64px;
+    }
+
+    > div.desktop-bottom {
+      @include force-size(&, 32px);
+
+      gap: 8px;
+      padding: 0 8px;
+
+      flex-direction: row;
+
+      > div.section {
+        flex-direction: row;
+        flex-grow: 1;
+      }
+
+      div.right.section {
+        justify-content: flex-end;
+      }
     }
   }
 </style>

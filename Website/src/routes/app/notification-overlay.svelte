@@ -5,16 +5,17 @@
   import Separator from '$lib/client/ui/separator.svelte'
   import { fly } from 'svelte/transition'
   import NotificationViewer from './notification-viewer.svelte'
+  import type { NotificationContext } from './notification-context'
 
   const {
-    element,
-    ondismiss
+    focusId,
+    ondismiss,
+    notificationContext
   }: {
-    element: HTMLElement
+    focusId: string | null
     ondismiss: () => void
+    notificationContext: NotificationContext
   } = $props()
-
-  const boundElement = element.getBoundingClientRect()
 
   // const x = -(1 + (window.innerWidth - (boundElement.x + boundElement.width)));
   // const y = boundElement.y + boundElement.height;
@@ -25,19 +26,23 @@
     <div
       class="notification"
       transition:fly|global={{
-        x: 16
+        x: 360
       }}
     >
       <div class="header">
         <h2>Notifications</h2>
-
         {@render windowButtons()}
       </div>
 
       <Separator horizontal />
 
       <div class="main">
-        <NotificationViewer />
+        <NotificationViewer
+          {ondismiss}
+          subtractNumber={() => {
+            notificationContext.unread.update((value) => value.then((value) => value - 1))
+          }}
+        />
       </div>
     </div>
   {/snippet}
@@ -75,6 +80,8 @@
       padding: 8px;
 
       flex-grow: 1;
+
+      min-height: 0;
     }
   }
 </style>

@@ -97,7 +97,7 @@
         case FileBrowserResolveType.Shared: {
           const fileAccesses = await server.GetFileAccesses({
             TargetUserId: me.Id,
-            IncludePublic: true,
+            IncludePublic: false,
             Pagination: {
               Offset: offset,
               Count: count

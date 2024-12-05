@@ -113,7 +113,7 @@
       <div
         class="overlay"
         transition:fly|global={{
-          x: -16
+          x: -360
         }}
       >
         <div class="header">

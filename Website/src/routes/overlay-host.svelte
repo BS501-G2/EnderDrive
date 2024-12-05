@@ -6,7 +6,7 @@
   const {
     overlay
   }: {
-    overlay: Readable<[id: number, snippet: Snippet<[]>, dim: boolean][]>
+    overlay: Readable<[id: number, snippet: Snippet<[]>, dim: boolean, shadow: boolean][]>
   } = $props()
 
   const dim = derived(overlay, (value) => value.some(([, , dim]) => dim))
@@ -20,9 +20,15 @@
       duration: 250
     }}
   >
-    <div class:overlay-a={$dim}>
-      {#each $overlay as [id, snippet] (id)}
-        {@render snippet()}
+    <div class:overlay-dim={$dim}>
+      {#each $overlay as [id, snippet, , shadow] (id)}
+        {#if shadow}
+          <div class="overlay-shadow">
+            {@render snippet()}
+          </div>
+        {:else}
+          {@render snippet()}
+        {/if}
       {/each}
     </div>
   </div>
@@ -44,14 +50,13 @@
 
     @include force-size(100dvw, 100dvh);
 
-    > div.overlay-a {
+    div.overlay-shadow {
       flex-direction: column;
-
       filter: drop-shadow(2px 2px 2px black);
     }
-  }
 
-  div.overlay.dim {
-    backdrop-filter: blur(8px);
+    > div.overlay-dim {
+      flex-direction: column;
+    }
   }
 </style>

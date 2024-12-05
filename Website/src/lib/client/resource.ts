@@ -152,3 +152,43 @@ export interface FileDataResource extends Resource {
   AuthorUserId?: string
   BaseFileDataId?: string
 }
+
+export interface NotificationResource extends Resource {
+  TargetUserId: string
+  ActorUserId: string
+  Data: NotificationData
+  Read: boolean
+  CreateTime: number
+}
+
+export type NotificationData = {
+  FileId: string
+} & (
+  | {
+      Type: 'Shared'
+      FileAccessId: string
+    }
+  | {
+      Type: 'Unshared'
+      FileAccessId: string
+    }
+  | {
+      Type: 'Created'
+    }
+  | {
+      Type: 'Updated'
+      FileDataId: string
+    }
+  | {
+      Type: 'Trashed'
+    }
+  | {
+      Type: 'Restored'
+    }
+  | {
+      Type: 'Moved'
+    }
+  | {
+      Type: 'Renamed'
+    }
+)

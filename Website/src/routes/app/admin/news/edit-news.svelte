@@ -6,6 +6,7 @@
   import Input from '$lib/client/ui/input.svelte'
   import Button from '$lib/client/ui/button.svelte'
   import { useClientContext } from '$lib/client/client'
+  import { bufferSize } from '$lib/client/utils'
 
   const { server } = useClientContext()
 
@@ -27,7 +28,6 @@
         FileDataId: fileData.Id,
         ForWriting: true
       })
-      const bufferSize = 1024 * 8
 
       for (let index = 0; index < size; index += bufferSize) {
         const buffer = await server.StreamRead({ StreamId: streamId, Length: bufferSize })

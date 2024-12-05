@@ -17,7 +17,7 @@
   import { writable } from 'svelte/store'
 
   const { resolve, onFileId, selectMode, customContext }: FileBrowserOptions = $props()
-  const { actions, top, current, middle, bottom } =
+  const { actions, top, current, middle, bottom, context } =
     customContext ?? createFileBrowserContext(onFileId, selectMode)
   const { showDetails, fileListContext } = useFileBrowserContext()
   const { isMobile, isDesktop } = useAppContext()
@@ -125,7 +125,7 @@
 {/if}
 
 {#if $isMobile && $showDetails && $fileListContext != null && $flattenedSelectedIds.length > 0}
-  <FileBrowserPropertiesMobile selectedFileIds={$flattenedSelectedIds} />
+  <FileBrowserPropertiesMobile fileBrowserContext={context} selectedFileIds={$flattenedSelectedIds} />
 {/if}
 
 <style lang="scss">

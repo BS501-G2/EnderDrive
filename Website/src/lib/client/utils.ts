@@ -10,7 +10,7 @@ export function toReadableSize(bytes: number) {
   return `${Math.round(bytes * 100) / 100} ${byteUnitDictionary[count]}B`
 }
 
-export const bufferSize = 1024 * 1024 * 12
+export const bufferSize = 1024 * 256
 
 export function useEvent<T extends HTMLElement, K extends keyof HTMLElementEventMap>(
   element: T,

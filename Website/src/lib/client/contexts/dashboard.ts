@@ -51,50 +51,17 @@ export function createDashboardContext(notification: Readable<NotificationContex
       icon: IconOptions
     }[]
   > = writable([])
-  const mobileTopLeft: Writable<
-    {
-      id: number
-      snippet: Snippet
-    }[]
-  > = writable([])
-  const mobileTopRight: Writable<
-    {
-      id: number
-      snippet: Snippet
-    }[]
-  > = writable([])
-  const mobileBottom: Writable<
-    {
-      id: number
-      snippet: Snippet
-    }[]
-  > = writable([])
+  const mobileTopLeft: Writable<{ id: number; snippet: Snippet }[]> = writable([])
+  const mobileTopRight: Writable<{ id: number; snippet: Snippet }[]> = writable([])
+  const mobileBottom: Writable<{ id: number; snippet: Snippet }[]> = writable([])
 
-  const desktopSide: Writable<
-    {
-      id: number
-      snippet: Snippet
-    }[]
-  > = writable([])
-  const desktopTopLeft: Writable<
-    {
-      id: number
-      snippet: Snippet
-    }[]
-  > = writable([])
+  const desktopSide: Writable<{ id: number; snippet: Snippet }[]> = writable([])
+  const desktopTopLeft: Writable<{ id: number; snippet: Snippet }[]> = writable([])
 
-  const desktopTopMiddle: Writable<
-    {
-      id: number
-      snippet: Snippet
-    }[]
-  > = writable([])
-  const desktopTopRight: Writable<
-    {
-      id: number
-      snippet: Snippet
-    }[]
-  > = writable([])
+  const desktopTopMiddle: Writable<{ id: number; snippet: Snippet }[]> = writable([])
+  const desktopTopRight: Writable<{ id: number; snippet: Snippet }[]> = writable([])
+  const desktopBottom: Writable<{ id: number; snippet: Snippet; arrangement: 'left' | 'right' }[]> =
+    writable([])
   const backgroundTasks: Writable<BackgroundTask[]> = writable([])
 
   const context = setContext(contextName, {
@@ -216,6 +183,14 @@ export function createDashboardContext(notification: Readable<NotificationContex
       return () => desktopTopRight.update((value) => value.filter((value) => value.id !== id))
     },
 
+    pushDesktopBottom: (snippet: Snippet, arrangement: 'left' | 'right') => {
+      const id = Math.random()
+
+      desktopBottom.update((value) => [...value, { id, snippet, arrangement }])
+
+      return () => desktopBottom.update((value) => value.filter((value) => value.id !== id))
+    },
+
     executeBackgroundTask: async <T>(
       title: string,
       run: (context: BackgroundTaskContext) => Promise<T>
@@ -325,6 +300,7 @@ export function createDashboardContext(notification: Readable<NotificationContex
     desktopTopMiddle,
     desktopTopRight,
     backgroundTasks,
+    desktopBottom,
     context
   }
 }

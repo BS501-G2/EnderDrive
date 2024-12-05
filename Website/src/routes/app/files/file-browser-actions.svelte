@@ -493,5 +493,8 @@
     ondismiss={() => {
       $renameDialog = null
     }}
+    onresult={() => {
+      refresh?.()
+    }}
   />
 {/if}

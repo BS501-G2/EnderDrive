@@ -6,15 +6,19 @@
   import { useAppContext } from '$lib/client/contexts/app'
   import SearchFiles from './search-files.svelte'
   import { writable } from 'svelte/store'
+  import { fly } from 'svelte/transition'
+  import Overlay from '../overlay.svelte'
 
   const { isMobile } = useAppContext()
   const {
-    windowButtons,
-    ondismiss
+    ondismiss,
+    searchButton
   }: {
-    windowButtons: Snippet
+    searchButton?: HTMLButtonElement
     ondismiss: () => void
   } = $props()
+
+  const bounds = $derived(searchButton?.getBoundingClientRect())
 
   const searchString = writable('')
 </script>
@@ -53,30 +57,39 @@
   </div>
 {/snippet}
 
-<div class="search" class:mobile={$isMobile}>
-  <div class="header">
-    <p class="title">Search</p>
-    {@render windowButtons()}
-  </div>
+<Overlay {ondismiss} y={0} x={bounds != null ? bounds.x - 8 : undefined} notransition>
+  {#snippet children()}
+    <div
+      class="search"
+      class:mobile={$isMobile}
+      style:min-width={bounds?.width != null ? `${bounds.width + 16}px` : '100dvw'}
+      style:max-width={bounds?.width != null ? `${bounds.width + 16}px` : '100dvw'}
+    >
+      <div class="body">
+        <div class="search-field">
+          <Input
+            id="search"
+            icon={{ icon: 'magnifying-glass', thickness: 'solid', size: '1em' }}
+            type="text"
+            bind:value={$searchString}
+            placeholder="Search..."
+          />
+        </div>
 
-  <div class="body">
-    <div class="search-field">
-      <Input id="search" type="text" name="Search String" bind:value={$searchString} />
+        {#if $searchString.length}
+          <div class="result">
+            <SearchUsers searchString={$searchString} card={resultBox} {ondismiss} />
+            <SearchFiles searchString={$searchString} card={resultBox} {ondismiss} />
+          </div>
+        {:else}
+          <div class="placeholder">
+            <p>You can use the search feature to find users and files.</p>
+          </div>
+        {/if}
+      </div>
     </div>
-
-    {#if $searchString.length}
-      <div class="result">
-        <SearchUsers searchString={$searchString} card={resultBox} {ondismiss} />
-        <SearchFiles searchString={$searchString} card={resultBox} {ondismiss} />
-      </div>
-    {:else}
-      <div class="placeholder">
-        <h2>Search</h2>
-        <p>You can use the search feature to find users and files.</p>
-      </div>
-    {/if}
-  </div>
-</div>
+  {/snippet}
+</Overlay>
 
 <style lang="scss">
   @use '../../global.scss' as *;
@@ -91,7 +104,7 @@
 
     min-height: 0;
 
-    @include force-size(min(50dvw, 480px), min(50dvh, 720px));
+    // @include force-size(&, min(50dvh, 720px));
 
     > div.header {
       flex-direction: row;
@@ -113,9 +126,14 @@
       min-height: 0;
 
       padding: 8px;
+      gap: 8px;
 
       > div.search-field {
         background-color: var(--color-9);
+
+        flex-direction: row;
+
+        min-height: 34px;
       }
 
       // > div.user-tab {
@@ -123,13 +141,6 @@
       > div.placeholder {
         flex-grow: 1;
         gap: 8px;
-
-        align-items: center;
-        justify-content: center;
-
-        > h2 {
-          font-size: 1.2rem;
-        }
       }
 
       > div.result {
@@ -148,8 +159,6 @@
       flex-direction: row;
       align-items: center;
 
-      padding: 8px;
-
       > h2 {
         flex-grow: 1;
         font-size: 1.5em;
@@ -158,8 +167,8 @@
       }
 
       div.button-background {
-        background-color: var(--color-1);
-        color: var(--color-5);
+        background-color: transparent;
+        color: inherit;
       }
 
       div.button-foreground {
@@ -180,7 +189,7 @@
 
       min-height: 128px;
 
-      padding: 8px;
+      padding: 0px;
 
       overflow: auto hidden;
     }

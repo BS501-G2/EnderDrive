@@ -48,5 +48,6 @@
 
   div.log:hover {
     background-color: var(--color-5);
+    color: var(--color-1);
   }
 </style>

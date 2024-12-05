@@ -6,10 +6,13 @@
   import type { UserResource } from '../resource'
   const {
     userId,
-    customText
+    customText,
+    noclickable = false
   }: {
     userId: string
     customText?: string
+
+    noclickable?: boolean
   } = $props()
   const { server } = useClientContext()
 
@@ -26,9 +29,19 @@
   <LoadingSpinner size="1rem" />
 {:then user}
   {#if user}
-    <a class="user" href="/app/profile?id={user.Id}">
+    <a
+      class="user"
+      class:clickable={!noclickable}
+      href={!noclickable ? `/app/profile?id=${user.Id}` : '#'}
+      onclick={({ preventDefault }) => {
+        if (noclickable) {
+          preventDefault()
+        }
+      }}
+    >
       {customText ?? user.DisplayName ?? `${user.FirstName}`}
     </a>
+    
   {:else}
     <p class="invalid">Invalid User ID</p>
   {/if}
@@ -45,7 +58,7 @@
     // font-weight: bolder;
   }
 
-  a.user:hover {
+  a.user.clickable:hover {
     text-decoration: underline;
   }
 

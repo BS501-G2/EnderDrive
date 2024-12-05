@@ -39,7 +39,10 @@
           </div>
 
           <div class="info">
-            <h2 class="name">{user.DisplayName ?? `${user.FirstName} ${user.LastName}`}</h2>
+            <h2 class="name">
+              {user.DisplayName ??
+                `${user.FirstName}${user.MiddleName && ` ${user.MiddleName}`} ${user.LastName}`}
+            </h2>
             <p class="username">@{user.Username}</p>
           </div>
         </div>

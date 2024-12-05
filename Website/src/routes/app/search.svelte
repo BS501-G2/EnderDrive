@@ -11,9 +11,11 @@
 
   const { pushDesktopTopMiddle } = useDashboardContext()
 
-  const searchOverlay= writable(false)
+  const searchOverlay = writable(false)
 
   onMount(() => pushDesktopTopMiddle(desktopContent))
+
+  let searchButton: HTMLButtonElement = $state(null as never)
 </script>
 
 <AppButton
@@ -30,6 +32,7 @@
   <button
     class="search"
     aria-label="Search"
+    bind:this={searchButton}
     onclick={() => {
       $searchOverlay = true
     }}
@@ -42,20 +45,12 @@
 {/snippet}
 
 {#if $searchOverlay}
-  <Overlay
+  <SearchOverlay
+    {searchButton}
     ondismiss={() => {
       $searchOverlay = false
     }}
-  >
-    {#snippet children(windowButtons)}
-      <SearchOverlay
-        {windowButtons}
-        ondismiss={() => {
-          $searchOverlay = false
-        }}
-      />
-    {/snippet}
-  </Overlay>
+  />
 {/if}
 
 <style lang="scss">

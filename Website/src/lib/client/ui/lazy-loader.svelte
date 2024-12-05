@@ -1,4 +1,4 @@
-<script lang="ts" generics="T, K = number">
+<script lang="ts" generics="T, K extends any = number">
   import { onMount, type Snippet } from 'svelte'
   import { useEvent } from '../utils'
   import { writable } from 'svelte/store'
@@ -8,6 +8,7 @@
   const {
     items = $bindable(),
     class: className,
+    style,
     load,
 
     itemSnippet,
@@ -21,6 +22,7 @@
   }: {
     items: T[]
     class?: string
+    style?: string
     load: (offset: number) => Promise<T[]> | T[]
 
     itemSnippet: Snippet<[item: T, index: number, key: K]>
@@ -28,7 +30,7 @@
     loadingSnippet?: Snippet<[]>
     doneSnippet?: Snippet
 
-    getKey?: (item: T) => K
+    getKey?: (item: T, index: number) => K
   } & ({ horizontal: boolean } | { vertical: boolean }) = $props()
 
   let list = $state<HTMLDivElement>(null as never)
@@ -99,16 +101,17 @@
   })
 </script>
 
+<svelte:window onresize={() => runPaginationLoop(list)} />
 
 <div
   class="list{className && ` ${className}`}"
+  style={style}
   bind:this={list}
-
   class:horizontal={'horizontal' in props}
   class:vertical={'vertical' in props}
 >
-  {#each items as item, index (getKey != null ? getKey(item) : index)}
-    {@render itemSnippet(item, index, getKey != null ? getKey(item) : (index as K))}
+  {#each items as item, index (getKey != null ? getKey(item, index) : index)}
+    {@render itemSnippet(item, index, getKey != null ? getKey(item, index) : (index as K))}
   {/each}
 
   {#if isRunning}

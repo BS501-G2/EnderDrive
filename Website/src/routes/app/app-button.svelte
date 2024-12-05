@@ -4,13 +4,15 @@
   import Icon, { type IconOptions } from '$lib/client/ui/icon.svelte'
   import { onMount, type Snippet } from 'svelte'
 
-  const {
+  let {
     label,
     onclick,
     icon,
-    show = false
+    show = false,
+    buttonElement = $bindable()
   }: {
     label: string
+    buttonElement?: HTMLButtonElement
     onclick: (
       event: MouseEvent & {
         currentTarget: EventTarget & HTMLButtonElement
@@ -32,6 +34,7 @@
   {/snippet}
 
   <Button
+  bind:buttonElement
     onclick={(event) => {
       const result = onclick(event)
       ondismiss()

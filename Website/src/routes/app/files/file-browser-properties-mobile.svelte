@@ -1,14 +1,16 @@
 <script lang="ts">
-  import { useFileBrowserContext } from '$lib/client/contexts/file-browser'
+  import { useFileBrowserContext, type FileBrowserContext } from '$lib/client/contexts/file-browser'
   import type { Snippet } from 'svelte'
   import Overlay from '../../overlay.svelte'
   import Separator from '$lib/client/ui/separator.svelte'
   import FileBrowserProperties from './file-browser-properties.svelte'
 
   const {
-    selectedFileIds
+    selectedFileIds,
+    fileBrowserContext
   }: {
     selectedFileIds: string[]
+    fileBrowserContext: FileBrowserContext
   } = $props()
   const { showDetails } = useFileBrowserContext()
 </script>
@@ -32,7 +34,7 @@
       <Separator horizontal />
 
       <div class="body">
-        <FileBrowserProperties {selectedFileIds} />
+        <FileBrowserProperties {fileBrowserContext} {selectedFileIds} />
       </div>
     </div>
   {/snippet}

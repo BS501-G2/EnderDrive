@@ -26,11 +26,19 @@
   {#await (async () => {
     return server.GetFiles({ SearchString: searchString, OwnerUserId: (await server.Me({})).Id })
   })()}
-    <LoadingSpinner size="1em" />
+    <div class="empty">
+      <LoadingSpinner size="3em" />
+    </div>
   {:then files}
-    {#each files as file}
-      {@render fileCard(file)}
-    {/each}
+    {#if files.length}
+      {#each files as file}
+        {@render fileCard(file)}
+      {/each}
+    {:else}
+      <div class="empty">
+        <p>No results</p>
+      </div>
+    {/if}
   {/await}
 {/snippet}
 
@@ -59,6 +67,13 @@
 
 <style lang="scss">
   @use '../../global.scss' as *;
+
+  div.empty {
+    flex-grow: 1;
+
+    align-items: center;
+    justify-content: center;
+  }
 
   div.button {
     display: flex;

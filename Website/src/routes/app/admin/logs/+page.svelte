@@ -16,28 +16,6 @@
   onMount(() => pushTitle('File Logs'))
   const { server } = useClientContext()
 
-  // function load(div: HTMLDivElement) {
-  //   const run = async () => {
-  //     while (true) {
-  //       if ($logs.length !== 0 && div.scrollTop / div.scrollWidth < 0.75) {
-  //         return
-  //       }
-
-  //       const fileLogs = await server.GetFileLogs({
-  //         Pagination: { Offset: $logs.length, Count: 75 },
-  //         UniqueFileId: true
-  //       })
-
-  //       logs.update((logs) => {
-  //         logs.push(...fileLogs)
-  //         return logs
-  //       })
-  //     }
-  //   }
-
-  //   return promise.set(run().finally(() => promise.set(null)))
-  // }
-
   const promise = writable<Promise<void> | null>()
 
   const a = writable<HTMLDivElement>(null as never)
@@ -55,7 +33,7 @@
     bind:items={logs}
     load={async (offset) => {
       return await server.GetFileLogs({
-        Pagination: { Count: 75, Offset: offset },
+        Pagination: { Count: 1, Offset: offset },
         UniqueFileId: false
       })
     }}
@@ -74,6 +52,8 @@
 
     padding: 16px;
     gap: 16px;
+
+    min-height: 0;
   }
 
   div.test {

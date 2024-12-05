@@ -7,7 +7,7 @@
   import { onMount, type Snippet } from 'svelte'
   import { writable } from 'svelte/store'
 
-  const { file, ondismiss }: { file: FileResource; ondismiss: () => void } = $props()
+  const { file, ondismiss, onresult }: { file: FileResource; ondismiss: () => void, onresult: () => void } = $props()
 
   const { server } = useClientContext()
 
@@ -67,6 +67,7 @@
     {background}
     onclick={async () => {
       await server.MoveFile({ FileId: file.Id , NewName: $rename })
+      onresult()
     }}
   >
     Submit

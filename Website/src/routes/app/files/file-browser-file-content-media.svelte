@@ -1,4 +1,4 @@
-<script lang="ts">
+<!-- <script lang="ts">
   import { useClientContext } from '$lib/client/client'
   import type { FileDataResource, FileResource } from '$lib/client/resource'
   import { bufferSize } from '$lib/client/utils'
@@ -15,9 +15,9 @@
   } = $props()
   const { server } = useClientContext()
 
-  const progress: Writable<[current: number, total: number]> = writable([0, 0])
+  const sourceBuffer = new SourceBuffer()
 
-  async function load(): Promise<string> {
+  function load(): Promise<void> {
     const streamId = await server.StreamOpen({
       FileId: file.Id,
       FileDataId: fileData.Id,
@@ -25,28 +25,20 @@
     })
     const length = await server.StreamGetLength({ StreamId: streamId })
 
-    let blob = new Blob()
     let offset = 0
 
-    while (true) {
+    while (offset < length) {
       const buffer = await server.StreamRead({
         StreamId: streamId,
         Length: bufferSize
       })
+    //   blob = new Blob([blob, buffer], { type: mime })
 
-      blob = new Blob([blob, buffer], { type: mime })
-
+    //   offset += blob.size
       progress.set([offset, length])
-      
-      offset += buffer.byteLength
-      if (!buffer.byteLength) {
-        break
-      }
     }
 
     await server.StreamClose({ StreamId: streamId })
-
-    return URL.createObjectURL(blob)
   }
 
   let promise = writable(load())
@@ -75,4 +67,4 @@
     align-items: center;
     justify-content: center;
   }
-</style>
+</style> -->

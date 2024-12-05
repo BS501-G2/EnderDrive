@@ -1,6 +1,6 @@
 <script lang="ts">
   import { useClientContext } from '$lib/client/client'
-  import { useFileBrowserContext, type FileProperties } from '$lib/client/contexts/file-browser'
+  import { useFileBrowserContext, type FileBrowserContext, type FileProperties } from '$lib/client/contexts/file-browser'
   import Icon from '$lib/client/ui/icon.svelte'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import Separator from '$lib/client/ui/separator.svelte'
@@ -19,13 +19,15 @@
   import { FileAccessLevel, FileType } from '$lib/client/resource'
 
   const {
-    selectedFileIds
+    selectedFileIds,
+    fileBrowserContext
   }: {
     selectedFileIds: string[]
+    fileBrowserContext?: FileBrowserContext
   } = $props()
   const { server } = useClientContext()
 
-  const { current } = useFileBrowserContext()
+  const { current } = fileBrowserContext?? useFileBrowserContext()
   const promises = writable<Promise<FileProperties[]>>(null as never)
   const { currentTab, tabs } = createFileBrowserPropertiesContext()
   const { isMobile } = useAppContext()

@@ -4,16 +4,18 @@
   import Button from '$lib/client/ui/button.svelte'
   import Icon from '$lib/client/ui/icon.svelte'
   import { onMount, type Snippet } from 'svelte'
-  import { derived, writable, type Writable } from 'svelte/store'
+  import { get, writable, type Writable } from 'svelte/store'
   import NotificationOverlay from './notification-overlay.svelte'
+  import NotificationButtonDesktopNumber from './notification-button-desktop-number.svelte'
+  import type { NotificationContext } from './notification-context'
 
-  const { pushDesktopTopRight } = useDashboardContext()
+  const { pushDesktopTopRight, notification } = useDashboardContext()
 
   onMount(() => pushDesktopTopRight(desktop))
 
-  const notification: Writable<{
-    element: HTMLElement
-  } | null> = writable(null)
+  const notificationContext = $derived($notification)
+  const element = $derived($notification.desktopButtonElement)
+  const notificationPage = $derived(notificationContext.notificationPage)
 </script>
 
 {#snippet desktop()}
@@ -27,23 +29,27 @@
     <Button
       foreground={buttonForeground}
       onclick={async (event) =>
-        notification.set({
-          element: event.currentTarget
+        notificationPage.set({
+          focusId: null
         })}
     >
       <Icon icon="bell" />
+
+      {#if $notification != null}
+        <NotificationButtonDesktopNumber context={$notification} />
+      {/if}
     </Button>
   </div>
 
-  {#if $notification}
+  {#if $notificationPage}
     <NotificationOverlay
-      element={$notification.element}
+      focusId={$notificationPage?.focusId ?? null}
+      notificationContext={$notification}
       ondismiss={() => {
-        $notification = null
+        $notificationPage = null
       }}
     />
   {/if}
-  
 {/snippet}
 
 <style lang="scss">
@@ -56,6 +62,10 @@
   }
 
   div.button-foreground {
+    flex-direction: row;
+    align-items: center;
+
     padding: 8px;
+    gap: 8px;
   }
 </style>

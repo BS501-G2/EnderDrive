@@ -24,7 +24,7 @@ export function useAppContext() {
 export function createAppContext() {
   const viewMode: Writable<ViewMode> = writable(ViewMode.None)
   const windowMode: Writable<WindowMode> = writable(WindowMode.Normal)
-  const overlay: Writable<[id: number, snippet: Snippet, dim: boolean][]> = writable([])
+  const overlay: Writable<[id: number, snippet: Snippet, dim: boolean, shadow: boolean][]> = writable([])
   const titleStack: Writable<
     {
       id: number
@@ -34,10 +34,10 @@ export function createAppContext() {
   const pwaAvailable: Writable<{ pwa: boolean; install: () => Promise<void> } | null> = writable(null)
 
   const context = setContext(appContextName, {
-    pushOverlayContent: (view: Snippet, dim: boolean) => {
+    pushOverlayContent: (view: Snippet, dim: boolean, shadow: boolean) => {
       const id = Math.random()
 
-      overlay.update((overlay) => [...overlay, [id, view, dim]])
+      overlay.update((overlay) => [...overlay, [id, view, dim, shadow]])
 
       return () =>
         overlay.update((overlay) => (overlay = overlay.filter((value) => value[0] != id)))

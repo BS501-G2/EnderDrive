@@ -65,7 +65,7 @@
     <h2>{$taskState.title}</h2>
 
     {#if !$hover}
-      <p>{$taskState.status[0] === 'pending' ? $taskState.message : 'Task Compelted'}</p>
+      <p>{$taskState.status[0] === 'pending' ? $taskState.message : 'Task Completed'}</p>
     {:else}
       {#snippet action(name: string, icon: IconOptions, onclick: () => void)}
         {#snippet foreground(view: Snippet)}

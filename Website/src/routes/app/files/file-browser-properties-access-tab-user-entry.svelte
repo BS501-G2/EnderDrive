@@ -6,14 +6,18 @@
   import { type Snippet } from 'svelte'
   import Button from '$lib/client/ui/button.svelte'
   import { FileAccessLevel, type UserResource } from '$lib/client/resource'
+  import { useAppContext } from '$lib/client/contexts/app'
 
   const {
     access,
     onedit
-  }: { access: FileAccessEntry; onedit: (user: UserResource | null, preset: FileAccessLevel | null) => void | Promise<void> } =
-    $props()
+  }: {
+    access: FileAccessEntry
+    onedit: (user: UserResource | null, preset: FileAccessLevel | null) => void | Promise<void>
+  } = $props()
 
   const hover = writable(false)
+  const { isMobile } = useAppContext()
   const userElement = writable<HTMLElement>(null as never)
 
   $effect(() => {
@@ -55,11 +59,11 @@
       {/if}
     </p>
     <p class="level">
-      Has <span class="emphasis">{FileAccessLevel[access.access.Level]}</span> accsess
+      Has <span class="emphasis">{FileAccessLevel[access.access.Level]}</span> access
     </p>
   </div>
 
-  {#if $hover}
+  {#if $hover || $isMobile}
     <div class="actions">
       {#snippet button(name: string, icon: IconOptions, onclick: () => Promise<void> | void)}
         {#snippet foreground(view: Snippet)}
@@ -75,7 +79,9 @@
         </Button>
       {/snippet}
 
-      {@render button('Edit', { icon: 'pencil', thickness: 'solid' }, () => onedit(access.user ?? null, access.access.Level))}
+      {@render button('Edit', { icon: 'pencil', thickness: 'solid' }, () =>
+        onedit(access.user ?? null, access.access.Level)
+      )}
     </div>
   {/if}
 </div>
@@ -103,19 +109,19 @@
       }
     }
 
-      > div.actions {
-        flex-direction: row;
+    > div.actions {
+      flex-direction: row;
 
-        div.action-foreground {
-          flex-grow: 1;
+      div.action-foreground {
+        flex-grow: 1;
 
-          padding: 8px;
+        padding: 8px;
 
-          div.action {
-            align-items: center;
-            justify-content: center;
-          }
+        div.action {
+          align-items: center;
+          justify-content: center;
         }
       }
+    }
   }
 </style>

@@ -5,6 +5,7 @@
   import RequireClient from '$lib/client/ui/require-client.svelte'
   import { onMount, type Snippet } from 'svelte'
   import { writable } from 'svelte/store'
+  import { uniqueNamesGenerator, names } from 'unique-names-generator'
 
   const actions = writable<
     {
@@ -17,6 +18,11 @@
   const output = writable<any>(null)
 
   output.subscribe(console.log)
+
+  const randomName = () =>
+    uniqueNamesGenerator({
+      dictionaries: [names]
+    })
 
   const pushAction = (name: string, onClick: () => Promise<any>) => {
     const id = Math.random()
@@ -67,9 +73,9 @@
         Username: adminUsername,
         Password: adminPassword,
         ConfirmPassword: adminPassword,
-        FirstName: 'John',
-        LastName: 'Doe',
-        DisplayName: 'JohnDoe'
+        FirstName: randomName(),
+        LastName: randomName(),
+        MiddleName: randomName()
       })
     })
   )
@@ -90,14 +96,24 @@
 
   onMount(() =>
     pushAction('Create Test Users', async () => {
+      const promises: Promise<{
+        UserId: string
+        Password: string
+      }>[] = []
+
       for (let iteration = 0; iteration < 10; iteration++) {
-        await server.CreateUser({
-          Username: `testuser${iteration}`,
-          Password: 'TestUser123;',
-          FirstName: 'Test',
-          LastName: 'User'
-        })
+        promises.push(
+          server.CreateUser({
+            Username: `testuser${iteration}`,
+            Password: 'TestUser123;',
+            FirstName: randomName(),
+            LastName: randomName(),
+        MiddleName: randomName()
+          })
+        )
       }
+
+      await Promise.all(promises)
     })
   )
 
@@ -198,7 +214,7 @@
 
       @include force-size(&, 1px);
     }
-    
+
     > div.body {
       flex-grow: 1;
     }
