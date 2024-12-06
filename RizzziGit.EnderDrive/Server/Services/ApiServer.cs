@@ -19,18 +19,18 @@ using Core;
 using RizzziGit.EnderDrive.Utilities;
 using Services;
 
-public sealed partial class ApiServerParams
+public sealed partial class ApiServerContext
 {
   public required WebApplication WebApplication;
   public required SocketIoBridge SocketIoBridge;
 }
 
 public sealed partial class ApiServer(EnderDriveServer server, int httpPort, int httpsPort)
-  : Service<ApiServerParams>("API", server)
+  : Service<ApiServerContext>("API", server)
 {
   public EnderDriveServer Server => server;
 
-  protected override async Task<ApiServerParams> OnStart(
+  protected override async Task<ApiServerContext> OnStart(
     CancellationToken startupCancellationToken,
     CancellationToken serviceCancellationToken
   )
@@ -78,16 +78,43 @@ public sealed partial class ApiServer(EnderDriveServer server, int httpPort, int
     return new() { WebApplication = app, SocketIoBridge = socketIoBridge };
   }
 
-  protected override async Task OnRun(ApiServerParams data, CancellationToken cancellationToken)
+  protected override async Task OnRun(ApiServerContext context, CancellationToken cancellationToken)
   {
-    var context = GetContext();
+    Task[] tasks = [RunBridgeLoop(context, cancellationToken)];
 
-    Task[] tasks = [WatchService(context.SocketIoBridge, cancellationToken)];
-
-    await await Task.WhenAny(tasks);
+    await Task.WhenAny(tasks);
   }
 
-  protected override async Task OnStop(ApiServerParams data, ExceptionDispatchInfo? exception)
+  private async Task RunBridgeLoop(ApiServerContext context, CancellationToken cancellationToken)
+  {
+    while (true)
+    {
+      cancellationToken.ThrowIfCancellationRequested();
+
+      try
+      {
+        await WatchService(context.SocketIoBridge, cancellationToken);
+      }
+      catch (Exception exception)
+      {
+        Error(exception);
+      }
+
+      try
+      {
+        await context.SocketIoBridge.Stop();
+      }
+      catch { }
+
+      try
+      {
+        await (context.SocketIoBridge  = new(this)).Start(cancellationToken);
+      }
+      catch { }
+    }
+  }
+
+  protected override async Task OnStop(ApiServerContext data, ExceptionDispatchInfo? exception)
   {
     var context = GetContext();
     await context.WebApplication.StopAsync(CancellationToken.None);

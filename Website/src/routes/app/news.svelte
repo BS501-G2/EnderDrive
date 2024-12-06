@@ -23,7 +23,7 @@
           AfterId: $readNewsId ?? void 0
         })
 
-        $news = await Promise.all(newsIds.map((newsId) => server.getNewsEntry(newsId)))
+        $news = await Promise.all(newsIds.map((newsId) => server.GetNewsEntry({ NewsId: newsId })))
       }
     })()
   })

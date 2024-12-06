@@ -90,7 +90,7 @@ export interface ServerSideFunctions extends Record<string, RemoteFunction<any, 
   DeclinePasswordResetRequest: RemoteFunction<{ PasswordResetRequestId: string }, {}>
   DeleteNews: RemoteFunction<
     {
-      FileId: string
+      NewsId: string
     },
     {}
   >
@@ -232,6 +232,7 @@ export interface ServerSideFunctions extends Record<string, RemoteFunction<any, 
       NewsIds: string[]
     }
   >
+  GetNewsEntry: RemoteFunction<{ NewsId: string }, NewsResource, void, { NewsEntry: string }>
   GetPasswordResetRequests: RemoteFunction<
     {
       Status?: PasswordResetRequestStatus
@@ -367,6 +368,18 @@ export interface ServerSideFunctions extends Record<string, RemoteFunction<any, 
   >
   ReadNotification: RemoteFunction<{ NotificationId: string }, {}>
   GetDiskUsage: RemoteFunction<{}, { DiskUsage: number; DiskTotal: number }>
+  SetGoogleAuthentication: RemoteFunction<{ Token: string | null }, {}>
+  GetGoogleAuthentication: RemoteFunction<
+    {},
+    GoogleAccountInformation | null,
+    void,
+    { Info: GoogleAccountInformation | null }
+  >
+}
+
+export interface GoogleAccountInformation {
+  Name: string
+  Email: string
 }
 
 export const responseTranslators: TranslatorMap<ServerSideFunctions> = {
@@ -412,6 +425,7 @@ export const responseTranslators: TranslatorMap<ServerSideFunctions> = {
   ],
   GetFileNameValidationFlags: [(data) => data, (data) => data.Flags],
   GetNews: [(data) => data, (data) => data.NewsIds],
+  GetNewsEntry: [(data) => data, (data) => JSON.parse(data.NewsEntry) as NewsResource],
   GetPasswordResetRequests: [
     (data) => data,
     ({ Requests }) => Requests.map((request) => JSON.parse(request) as PasswordResetRequestResource)
@@ -461,5 +475,7 @@ export const responseTranslators: TranslatorMap<ServerSideFunctions> = {
       Notifications.map((notification) => JSON.parse(notification) as NotificationResource)
   ],
   ReadNotification: [(data) => data, (data) => data],
-  GetDiskUsage: [(data) => data, (data) => data]
+  GetDiskUsage: [(data) => data, (data) => data],
+  SetGoogleAuthentication: [(data) => data, (data) => data],
+  GetGoogleAuthentication: [(data) => data, (data) => data.Info]
 }

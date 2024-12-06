@@ -33,5 +33,5 @@ public abstract record ConnectionPacket
   private ConnectionPacket() { }
 
   [BsonElement("id")]
-  public required long Id;
+  public required int Id;
 }

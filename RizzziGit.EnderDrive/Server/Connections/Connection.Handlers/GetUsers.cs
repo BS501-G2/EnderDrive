@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
@@ -29,6 +31,9 @@ public sealed partial class Connection
   private AuthenticatedRequestHandler<GetUsersRequest, GetUsersResponse> GetUsers =>
     async (transaction, request, _, me, _) =>
     {
+      IEnumerable<string> keywords =
+        request.SearchString?.Split(' ').Where((str) => str.Length > 0) ?? [];
+
       Resource<User>[] users = await Resources
         .Query<User>(
           transaction,
@@ -39,31 +44,56 @@ public sealed partial class Connection
                   (
                     request.SearchString == null
                     || request.SearchString.Length == 0
-                    || user.Username.Contains(
-                      request.SearchString,
-                      System.StringComparison.CurrentCultureIgnoreCase
-                    )
-                    || user.FirstName.Contains(
-                      request.SearchString,
-                      System.StringComparison.CurrentCultureIgnoreCase
-                    )
+                    || keywords
+                      .Where(
+                        (str) =>
+                          user.Username.Contains(
+                            str,
+                            System.StringComparison.CurrentCultureIgnoreCase
+                          )
+                      )
+                      .Any()
+                    || keywords
+                      .Where(
+                        (str) =>
+                          user.FirstName.Contains(
+                            str,
+                            System.StringComparison.CurrentCultureIgnoreCase
+                          )
+                      )
+                      .Any()
                     || (
                       user.MiddleName != null
-                      && user.MiddleName.Contains(
-                        request.SearchString,
-                        System.StringComparison.CurrentCultureIgnoreCase
+                      && keywords
+                        .Where(
+                          (str) =>
+                            user.MiddleName.Contains(
+                              str,
+                              System.StringComparison.CurrentCultureIgnoreCase
+                            )
+                        )
+                        .Any()
+                    )
+                    || keywords
+                      .Where(
+                        (str) =>
+                          user.LastName.Contains(
+                            str,
+                            System.StringComparison.CurrentCultureIgnoreCase
+                          )
                       )
-                    )
-                    || user.LastName.Contains(
-                      request.SearchString,
-                      System.StringComparison.CurrentCultureIgnoreCase
-                    )
+                      .Any()
                     || (
                       user.DisplayName != null
-                      && user.DisplayName.Contains(
-                        request.SearchString,
-                        System.StringComparison.CurrentCultureIgnoreCase
-                      )
+                      && keywords
+                        .Where(
+                          (str) =>
+                            user.DisplayName.Contains(
+                              str,
+                              System.StringComparison.CurrentCultureIgnoreCase
+                            )
+                        )
+                        .Any()
                     )
                   )
                   && (
@@ -78,10 +108,12 @@ public sealed partial class Connection
                   )
                   && (
                     request.Username == null
-                    || user.Username.Equals(
-                      request.Username,
-                      System.StringComparison.OrdinalIgnoreCase
-                    )
+                    || keywords
+                      .Where(
+                        (str) =>
+                          user.Username.Equals(str, System.StringComparison.OrdinalIgnoreCase)
+                      )
+                      .Any()
                   )
                   && (request.Id == null || user.Id == request.Id)
                   && (!request.ExcludeSelf || user.Id != me.Id)

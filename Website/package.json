@@ -20,6 +20,7 @@
     "@sveltejs/vite-plugin-svelte": "^4.0.0",
     "@types/eslint": "^9.6.1",
     "@types/filesystem": "^0.0.36",
+    "@types/google-one-tap": "^1.2.6",
     "@types/web-app-manifest": "^1.0.8",
     "@types/wicg-file-system-access": "^2023.10.5",
     "buffer": "^6.0.3",

@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using MongoDB.Bson;
@@ -10,65 +11,106 @@ namespace RizzziGit.EnderDrive.Server.Resources;
 public sealed record class Notification : ResourceData
 {
   public required ObjectId TargetUserId;
-
-  public required BsonDocument Data;
+  public required ObjectId ActorUserId;
+  public required NotificationData Data;
+  public required long CreateTime;
+  public required bool Read;
 }
 
 [BsonNoId]
 public abstract record NotificationData
 {
-  public static NotificationData Deserialize(BsonDocument document)
+  public static void BindPolymorphicTypes()
   {
-    document = document.DeepClone().AsBsonDocument;
+    BsonClassMap.RegisterClassMap<File.FileShare>();
+    BsonClassMap.RegisterClassMap<File.FileUnshare>();
+    BsonClassMap.RegisterClassMap<File.FileCreate>();
+    BsonClassMap.RegisterClassMap<File.FileUpdate>();
+    BsonClassMap.RegisterClassMap<File.FileTrash>();
+    BsonClassMap.RegisterClassMap<File.FileDelete>();
+    BsonClassMap.RegisterClassMap<File.FileRestore>();
+    BsonClassMap.RegisterClassMap<File.FileMove>();
+    BsonClassMap.RegisterClassMap<File.FileRename>();
+  }
 
-    if (!document.TryGetValue("type", out BsonValue type))
+  public abstract string Type { get; }
+
+  public abstract record File : NotificationData
+  {
+    public sealed record FileShare : File
     {
-      throw new InvalidDataException("Failed to deserialize.");
+      public required ObjectId FileAccessId;
+
+      public override string Type => "Shared";
     }
 
-    document.Remove("type");
-    return type.AsString switch
+    public sealed record FileUnshare : File
     {
-      "shared" => BsonSerializer.Deserialize<SharedFile>(document),
-      "updated" => BsonSerializer.Deserialize<UpdatedFile>(document),
+      public override string Type => "Unshared";
+    }
 
-      _ => throw new InvalidDataException($"Invalid type: {type.AsString}")
-    };
+    public sealed record FileCreate : File
+    {
+      public override string Type => "Created";
+    }
+
+    public sealed record FileUpdate : File
+    {
+      public required ObjectId FileDataId;
+      public override string Type => "Updated";
+    }
+
+    public sealed record FileTrash : File
+    {
+      public override string Type => "Trashed";
+    }
+
+    public sealed record FileDelete : File
+    {
+      public override string Type => "Deleted";
+    }
+
+    public sealed record FileMove : File
+    {
+      public override string Type => "Moved";
+    }
+
+    public sealed record FileRename : File
+    {
+      public override string Type => "Renamed";
+    }
+
+    public sealed record FileRestore : File
+    {
+      public override string Type => "Restored";
+    }
+
+    public required ObjectId FileId;
   }
-
-  public static BsonDocument Serialize(NotificationData data)
-  {
-    BsonDocument document = data.ToBsonDocument();
-
-    document.Add(
-      "type",
-      data switch
-      {
-        SharedFile => "shared",
-        UpdatedFile => "updated",
-
-        _ => throw new InvalidDataException($"Invalid type: {data.GetType().Name}")
-      }
-    );
-
-    return document;
-  }
-
-  public sealed record SharedFile : NotificationData
-  {
-    public required ObjectId FileAccessId;
-  }
-
-  public sealed record UpdatedFile : NotificationData
-  {
-    public required ObjectId FileLogId;
-  }
-
-  private NotificationData() { }
 }
 
 public sealed partial class ResourceManager
 {
+  public async Task<Resource<Notification>> CreateNotification(
+    ResourceTransaction transaction,
+    Resource<User> actorUser,
+    Resource<User> targetUser,
+    NotificationData data
+  )
+  {
+    Resource<Notification> notification = ToResource<Notification>(
+      transaction,
+      new()
+      {
+        ActorUserId = actorUser.Id,
+        TargetUserId = targetUser.Id,
+        Data = data,
+        Read = false,
+        CreateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+      }
+    );
 
-  // public async Task<Notification> PushNotification() {}
+    await notification.Save(transaction);
+    return notification;
+  }
 }

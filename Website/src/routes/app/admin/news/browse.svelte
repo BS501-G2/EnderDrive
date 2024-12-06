@@ -36,7 +36,7 @@
           FileId: files[0].Id,
           Pagination: { Count: 1 }
         })
-      )[1]
+      )[0]
 
       const mime = await server.FileGetMime({
         FileId: files[0].Id,

@@ -1,10 +1,25 @@
 <script lang="ts">
+  import { useClientContext } from '$lib/client/client'
   import { useLandingContext } from '$lib/client/contexts/landing'
   import Button from '$lib/client/ui/button.svelte'
   import Icon, { type IconOptions } from '$lib/client/ui/icon.svelte'
-  import { type Snippet } from 'svelte'
+  import { create } from '$lib/client/utils'
+  import { onMount, type Snippet } from 'svelte'
 
-  const { onreset }: { onreset: () => void } = $props()
+  let googleElement: HTMLDivElement = $state(null as never)
+  let jwt: string | null = $state(null as never)
+  let googleButtonElement: HTMLButtonElement = $state(null as never)
+
+  const {redirect}:{redirect: () => Promise<void>;}= $props()
+
+  const { server } = useClientContext()
+
+  onMount(() => {
+    create(googleElement, async (token) => {
+      jwt = token
+      googleButtonElement.click()
+    })
+  })
 </script>
 
 {#snippet action(name: string, icon: IconOptions, onclick: () => void)}
@@ -31,23 +46,16 @@
 {/snippet}
 
 <div class="actions">
-  <!-- {@render action(
-    'Google',
-    {
-      brand: true,
-      icon: 'google'
-    },
-    async () => {}
-  )} -->
-
-  {@render action(
-    'Reset Password',
-    {
-      thickness: 'solid',
-      icon: 'key'
-    },
-    onreset
-  )}
+  <div class="google" bind:this={googleElement}></div>
+  <div hidden>
+    <Button
+      bind:buttonElement={googleButtonElement}
+      onclick={async () => {
+        await server.AuthenticateGoogle({ Token: jwt! })
+        await redirect()
+      }}>...</Button
+    >
+  </div>
 </div>
 
 <style lang="scss">

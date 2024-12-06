@@ -195,7 +195,6 @@ public sealed partial class AudioTranscriber(EnderDriveServer server, string mod
       )
     )
     {
-      Console.WriteLine(definition);
       throw new InvalidOperationException("Not an audio file.");
     }
 

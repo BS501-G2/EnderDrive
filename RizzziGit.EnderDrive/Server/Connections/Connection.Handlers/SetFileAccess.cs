@@ -37,6 +37,7 @@ public sealed partial class Connection
         await Resources.Delete(transaction, fileaccess);
       }
 
+      UnlockedFileAccess? newFileAccess = null;
       if (request.Level != FileAccessLevel.None)
       {
         await Resources.CreateFileLog(
@@ -48,7 +49,12 @@ public sealed partial class Connection
 
         if (request.TargetUserId == null)
         {
-          await Resources.CreateFileAccess(transaction, fileAccess.UnlockedFile, request.Level, me);
+          newFileAccess = await Resources.CreateFileAccess(
+            transaction,
+            fileAccess.UnlockedFile,
+            request.Level,
+            me
+          );
         }
         else
         {
@@ -60,7 +66,7 @@ public sealed partial class Connection
             )
           );
 
-          await Resources.CreateFileAccess(
+          newFileAccess = await Resources.CreateFileAccess(
             transaction,
             file: fileAccess.UnlockedFile,
             level: request.Level,
@@ -78,6 +84,20 @@ public sealed partial class Connection
           FileLogType.Unshare
         );
       }
+
+      await Internal_BroadcastFileActivity(
+        transaction,
+        me,
+        fileAccess.UnlockedFile,
+        fileAccess.FileAccess,
+        newFileAccess != null
+          ? new NotificationData.File.FileShare()
+          {
+            FileId = fileAccess.UnlockedFile.File.Id,
+            FileAccessId = newFileAccess.FileAccess.Id
+          }
+          : new NotificationData.File.FileUnshare() { FileId = fileAccess.UnlockedFile.File.Id }
+      );
 
       return new() { };
     };

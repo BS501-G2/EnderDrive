@@ -2,10 +2,10 @@ using System;
 using System.Linq;
 using System.Text;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
-using RizzziGit.EnderDrive.Server.Resources;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
+
+using Resources;
 
 public sealed partial class Connection
 {

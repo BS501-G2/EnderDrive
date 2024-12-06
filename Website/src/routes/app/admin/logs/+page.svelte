@@ -43,7 +43,6 @@
       <LogEntry fileLog={item} />
     {/snippet}
   </LazyLoader>
-  {logs.length}
 </div>
 
 <style lang="scss">
@@ -54,9 +53,5 @@
     gap: 16px;
 
     min-height: 0;
-  }
-
-  div.test {
-    padding: 16px;
   }
 </style>

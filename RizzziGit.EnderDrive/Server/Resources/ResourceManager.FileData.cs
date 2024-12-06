@@ -275,4 +275,8 @@ public sealed partial class ResourceManager
 
     return size;
   }
+
+  public async Task Delete(ResourceTransaction transaction, Resource<FileData> fileData) {
+    
+  }
 }

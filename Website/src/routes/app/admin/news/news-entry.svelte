@@ -1,36 +1,70 @@
 <script lang="ts">
+  import { useClientContext } from '$lib/client/client'
   import { type NewsResource } from '$lib/client/resource'
+  import Button from '$lib/client/ui/button.svelte'
+  import Icon, { type IconOptions } from '$lib/client/ui/icon.svelte'
   import { Buffer } from 'buffer'
 
-  const { news }: { news: NewsResource } = $props()
-  const { Image, Title } = news
-
-  const url = URL.createObjectURL(new Blob([Buffer.from(`${Image}`, 'base64')]))
+  const { server } = useClientContext()
+  const { ...props }: { header: true } | { news: NewsResource; onrefresh: () => void } = $props()
 </script>
 
 <div class="entry">
   <div class="image">
-    <img alt="news-banner" src={url} />
+    {#if 'header' in props}
+      <b class="title">Banner</b>
+    {:else}
+      <img
+        alt="news-banner"
+        src={URL.createObjectURL(new Blob([Buffer.from(`${props.news.Image}`, 'base64')]))}
+      />
+    {/if}
   </div>
 
   <div class="title">
-    <p>{Title}</p>
+    {#if 'header' in props}
+      <b class="title">Title</b>
+    {:else}
+      <p>{props.news.Title}</p>
+    {/if}
   </div>
 
-  <div class="actions"></div>
+  {#if !('header' in props)}
+    <div class="actions">
+      {#snippet button(icon: IconOptions, name: string, onclick: () => Promise<void>)}
+        <Button hint={name} {onclick}>
+          <Icon {...icon} />
+        </Button>
+      {/snippet}
+
+      {@render button({ icon: 'trash-can' }, 'Delete News', async () => {
+        await server.DeleteNews({ NewsId: props.news.Id })
+        await props.onrefresh()
+      })}
+    </div>
+  {/if}
 </div>
 
 <style lang="scss">
   @use '../../../../global.scss' as *;
+
+  b.title {
+    font-weight: bolder;
+  }
 
   div.entry {
     flex-direction: row;
 
     align-items: center;
 
+    gap: 8px;
+    padding: 8px;
+
     > div.image {
+      @include force-size(64px, &);
+
       > img {
-        @include force-size(64px, 64px);
+        @include force-size(&, 32px);
 
         object-fit: contain;
       }
@@ -39,5 +73,9 @@
     > div.title {
       flex-grow: 1;
     }
+  }
+
+  div.entry:hover {
+    background-color: var(--color-5);
   }
 </style>

@@ -22,9 +22,6 @@ export interface LandingContext {
   openLogin: () => void
   closeLogin: () => void
 
-  openReset: () => void
-  closeReset: () => void
-
   currentPage: Writable<number>
 }
 
@@ -60,7 +57,6 @@ export function createLandingContext() {
   const pages: Writable<LandingPageEntry[]> = writable([])
   const buttons: Writable<LandingPageButton[]> = writable([])
   const authenticateDialog: Writable<boolean> = writable(false)
-  const resetDialog: Writable<boolean> = writable(false)
   const footer: Writable<LandingPageFooter[]> = writable([])
   const currentPage = writable(0)
 
@@ -121,14 +117,6 @@ export function createLandingContext() {
       authenticateDialog.set(false)
     },
 
-    openReset: () => {
-      resetDialog.set(true)
-    },
-
-    closeReset: () => {
-      resetDialog.set(false)
-    },
-
     currentPage
   })
 
@@ -138,7 +126,6 @@ export function createLandingContext() {
     footer,
     buttons,
     authenticateDialog,
-    currentPage,
-    resetDialog
+    currentPage
   }
 }

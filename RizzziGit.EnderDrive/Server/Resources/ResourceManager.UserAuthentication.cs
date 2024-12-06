@@ -46,6 +46,9 @@ public record class UserAuthentication : ResourceData
 
   [JsonIgnore]
   public required long CreateTime;
+
+  [JsonIgnore]
+  public required byte[] Extra;
 }
 
 [Flags]
@@ -111,7 +114,8 @@ public sealed partial class ResourceManager
     UserAuthenticationType type,
     byte[] payload,
     byte[] rsaPublicKey,
-    byte[] rsaPrivateKey
+    byte[] rsaPrivateKey,
+    byte[]? extra = null
   )
   {
     ResourceManagerContext context = GetContext();
@@ -140,6 +144,7 @@ public sealed partial class ResourceManager
         UserPublicRsaKey = rsaPublicKey,
         EncryptedUserPrivateRsaKey = encryptedRsaPrivateKey,
         CreateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+        Extra = extra?? []
       }
     );
 
@@ -160,7 +165,8 @@ public sealed partial class ResourceManager
     Resource<User> user,
     UnlockedUserAuthentication sourceUserAuthentication,
     UserAuthenticationType type,
-    byte[] payload
+    byte[] payload,
+    byte[]? extra = null
   )
   {
     ResourceManagerContext context = GetContext();
@@ -192,6 +198,7 @@ public sealed partial class ResourceManager
         UserPublicRsaKey = sourceUserAuthentication.UserAuthentication.Data.UserPublicRsaKey,
         EncryptedUserPrivateRsaKey = encryptedRsaPrivateKey,
         CreateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+        Extra = extra ?? []
       }
     );
 
@@ -238,7 +245,8 @@ public sealed partial class ResourceManager
     Resource<User> user,
     UnlockedUserAdminBackdoor userBackdoor,
     UserAuthenticationType type,
-    byte[] payload
+    byte[] payload,
+    byte[]? extra = null
   )
   {
     ResourceManagerContext context = GetContext();
@@ -267,6 +275,7 @@ public sealed partial class ResourceManager
         UserPublicRsaKey = user.Data.RsaPublicKey,
         EncryptedUserPrivateRsaKey = encryptedUserRsaPrivateKey,
         CreateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+        Extra = extra ?? []
       }
     );
 

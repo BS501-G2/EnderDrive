@@ -264,6 +264,16 @@ public sealed partial class ResourceManager
       await Delete(transaction, fileStar);
     }
 
+    await foreach (
+      Resource<FileData> fileData in Query<FileData>(
+        transaction,
+        (query) => query.Where((item) => item.FileId == file.Id)
+      )
+    )
+    {
+      await Delete(transaction, fileData);
+    }
+
     await Delete<File>(transaction, file);
   }
 

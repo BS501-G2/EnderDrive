@@ -8,8 +8,8 @@
     <PackageReference Include="MongoDB.Driver" Version="2.29.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
-    <GlobalAnalyzerConfigFiles Include="RizzziGit.EnderDrive.ini" />
     <PackageReference Include="Whisper.net.AllRuntimes" Version="1.7.2" />
+    <GlobalAnalyzerConfigFiles Include="RizzziGit.EnderDrive.ini" />
   </ItemGroup>
 
   <ItemGroup Condition="$(Configuration) == 'Debug'">

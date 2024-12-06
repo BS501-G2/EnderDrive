@@ -7,10 +7,14 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
+using System;
+using System.Runtime.ExceptionServices;
 using Commons.Collections;
 using Commons.Services;
 using Core;
 using Resources;
+using RizzziGit.Commons.Result;
+using RizzziGit.EnderDrive.Server.Services;
 
 public sealed partial class ConnectionContext
 {
@@ -18,7 +22,7 @@ public sealed partial class ConnectionContext
 
   public required WaitQueue<Connection.WorkerFeed> WorkerFeed;
   public required ConcurrentDictionary<string, RawRequestHandler> Handlers;
-  public required ConcurrentDictionary<long, TaskCompletionSource<byte[]>> PendingRequests;
+  public required ConcurrentDictionary<int, TaskCompletionSource<byte[]>> PendingRequests;
 }
 
 public sealed partial class Connection(
@@ -30,6 +34,7 @@ public sealed partial class Connection(
   public ConnectionManager Manager => manager;
   public EnderDriveServer Server => Manager.Server;
   public ResourceManager Resources => Server.Resources;
+  public NotificationManager Notifications => Server.Notifications;
   public UnlockedUserAuthentication? CurrentUser => GetContext().CurrentUser;
 
   protected override async Task<ConnectionContext> OnStart(
@@ -45,6 +50,8 @@ public sealed partial class Connection(
         PendingRequests = new(),
         WorkerFeed = new()
       };
+
+    // Result<string, string> a = Result
 
     return context;
   }
@@ -66,5 +73,15 @@ public sealed partial class Connection(
 
     await Task.WhenAny(tasks);
     WaitTasksBeforeStopping.AddRange(tasks);
+  }
+
+  protected override Task OnStop(ConnectionContext context, ExceptionDispatchInfo? exception)
+  {
+    foreach ((_, TaskCompletionSource<byte[]> source) in context.PendingRequests)
+    {
+      source.SetException(new Exception(""));
+    }
+
+    return base.OnStop(context, exception);
   }
 }

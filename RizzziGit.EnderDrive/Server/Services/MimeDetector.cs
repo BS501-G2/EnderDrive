@@ -118,9 +118,7 @@ public sealed partial class MimeDetector(EnderDriveServer server)
     {
       using Stream stream = await server.Resources.CreateFileStream(transaction, file, fileData);
 
-      Console.WriteLine($"Getting definition...");
       Definition? definition = await Inspect(stream, transaction.CancellationToken);
-      Console.WriteLine($"Definition got: ${definition}");
 
       mimeDetectionReport.Data.Mime = definition?.File.MimeType;
       await mimeDetectionReport.Save(transaction);

@@ -81,14 +81,14 @@ public sealed partial class Connection
                 (item) =>
                   (
                     request.SearchString == null
-                    || item.Name.Contains(request.SearchString, StringComparison.OrdinalIgnoreCase)
+                    || item.Name.Contains(request.SearchString, StringComparison.CurrentCultureIgnoreCase)
                   )
                   && (parentFolder == null || item.ParentId == parentFolder.Id)
                   && (request.FileType == null || item.Type == request.FileType)
                   && (ownerUser == null || item.OwnerUserId == ownerUser.Id)
                   && (
                     request.Name == null
-                    || item.Name.Equals(request.Name, StringComparison.OrdinalIgnoreCase)
+                    || item.Name.Equals(request.Name, StringComparison.CurrentCultureIgnoreCase)
                   )
                   && (request.Id == null || item.Id == request.Id)
                   && (

@@ -204,6 +204,7 @@ public sealed partial class ResourceManager
       result.FileAccess
     );
   }
+  
 }
 
 public sealed record FileAccessResult(

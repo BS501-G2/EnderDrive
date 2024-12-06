@@ -11,15 +11,13 @@
   import LandingActions from './landing-actions.svelte'
   import LoginDialog from './authenticate-dialog.svelte'
   import { page } from '$app/stores'
-  import ResetPasswordDialog from './reset-password-dialog.svelte'
 
   const {
     pages,
     buttons,
     footer,
     authenticateDialog,
-    resetDialog,
-    context: { openLogin, closeLogin, closeReset, openReset },
+    context: { openLogin, closeLogin },
     currentPage
   } = createLandingContext()
   const { isDesktop, isMobile, pushTitle } = useAppContext()
@@ -101,14 +99,7 @@
 </div>
 
 {#if $authenticateDialog}
-  <LoginDialog ondismiss={closeLogin} onreset={() => {
-    closeLogin()
-    openReset()
-  }} />
-{/if}
-
-{#if $resetDialog}
-  <ResetPasswordDialog ondismiss={closeReset} />
+  <LoginDialog ondismiss={closeLogin} />
 {/if}
 
 {@render children()}

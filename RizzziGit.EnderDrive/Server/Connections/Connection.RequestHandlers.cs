@@ -33,7 +33,7 @@ public sealed partial class Connection
     RegisterFileRequestHandler(nameof(FolderCreate), FolderCreate, FileAccessLevel.ReadWrite, null);
     RegisterAuthenticatedRequestHandler(nameof(DidIAgree), DidIAgree);
     RegisterAuthenticatedRequestHandler(nameof(Agree), Agree);
-    RegisterFileRequestHandler(nameof(TrashFile), TrashFile, FileAccessLevel.ReadWrite, null);
+    RegisterFileRequestHandler(nameof(TrashFile), TrashFile, FileAccessLevel.Full, null);
     RegisterFileRequestHandler(nameof(UntrashFile), UntrashFile, FileAccessLevel.ReadWrite, null);
     RegisterFileRequestHandler(nameof(MoveFile), MoveFile, FileAccessLevel.ReadWrite, null);
     RegisterAdminRequestHandler(nameof(CreateUser), CreateUser);
@@ -90,5 +90,10 @@ public sealed partial class Connection
     RegisterStreamRequestHandler(nameof(StreamGetPosition), StreamGetPosition);
     RegisterStreamRequestHandler(nameof(StreamClose), StreamClose);
     RegisterFileRequestHandler(nameof(StreamOpen), StreamOpen, FileAccessLevel.Read, FileType.File);
+    RegisterAuthenticatedRequestHandler(nameof(GetNotifications), GetNotifications);
+    RegisterAuthenticatedRequestHandler(nameof(ReadNotification), ReadNotification);
+    RegisterRequestHandler(nameof(GetDiskUsage), GetDiskUsage);
+    RegisterAuthenticatedRequestHandler(nameof(SetGoogleAuthentication), SetGoogleAuthentication);
+    RegisterAuthenticatedRequestHandler(nameof(GetGoogleAuthentication), GetGoogleAuthentication);
   }
 }

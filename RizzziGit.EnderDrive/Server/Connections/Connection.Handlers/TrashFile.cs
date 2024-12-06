@@ -12,7 +12,12 @@ public sealed partial class Connection
   private FileRequestHandler<TrashFileRequest, TrashFileResponse> TrashFile =>
     async (transaction, request, userAuthentication, me, myAdminAccess, fileAccess) =>
     {
-      Resource<File> parentFolder = await Internal_GetFile(transaction, me, userAuthentication, fileAccess.UnlockedFile.File.Id);
+      Resource<File> parentFolder = await Internal_GetFile(
+        transaction,
+        me,
+        userAuthentication,
+        fileAccess.UnlockedFile.File.Id
+      );
 
       fileAccess.UnlockedFile.File.Data.TrashTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
       await fileAccess.UnlockedFile.File.Save(transaction);
@@ -29,6 +34,14 @@ public sealed partial class Connection
         fileAccess.UnlockedFile.File,
         me,
         FileLogType.Trash
+      );
+
+      await Internal_BroadcastFileActivity(
+        transaction,
+        me,
+        fileAccess.UnlockedFile,
+        fileAccess.FileAccess,
+        new NotificationData.File.FileTrash() { FileId = fileAccess.UnlockedFile.File.Id, }
       );
 
       return new() { };

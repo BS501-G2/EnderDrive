@@ -13,12 +13,10 @@
     user,
     menuButton,
     ondismiss,
-    showEditRoles
   }: {
     user: UserResource
     menuButton: HTMLButtonElement
     ondismiss: () => void
-    showEditRoles: Writable<boolean>
   } = $props()
   const { isMobile, isDesktop } = useAppContext()
 
@@ -58,12 +56,9 @@
         goto(`/app/profile?id=${user.Id}`)
         ondismiss()
       })}
-      {@render button('Manage Roles', { icon: 'users', thickness: 'solid' }, () => {
-        $showEditRoles = true
-        ondismiss()
-      })}
+      
 
-      {#await server.getRootId(user.Id) then rootId}
+      {#await server.GetRootId({ UserId: user.Id }) then rootId}
         {#if rootId != null}
           {@render button('View Files', { icon: 'file', thickness: 'solid' }, async () => {
             await goto(`/app/files?fileId=${rootId}`)

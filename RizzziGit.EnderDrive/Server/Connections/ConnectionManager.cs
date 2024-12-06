@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 namespace RizzziGit.EnderDrive.Server.Connections;
 
 using System;
+using System.Collections;
 using System.Net.WebSockets;
 using System.Runtime.ExceptionServices;
 using Commons.Services;
@@ -34,7 +35,8 @@ public abstract record ConnectionManagerFeed
 }
 
 public sealed partial class ConnectionManager(EnderDriveServer server)
-  : Service<ConnectionManagerContext>("Connections", server)
+  : Service<ConnectionManagerContext>("Connections", server),
+    IEnumerable<Connection>
 {
   public EnderDriveServer Server => server;
 
@@ -119,6 +121,7 @@ public sealed partial class ConnectionManager(EnderDriveServer server)
 
     Connection connection = new(this, connectionId, webSocket);
 
+    context.Connections.Add(connection);
     await connection.Start();
 
     try
@@ -141,7 +144,13 @@ public sealed partial class ConnectionManager(EnderDriveServer server)
     }
     finally
     {
+      context.Connections.Remove(connection);
       taskCompletionSource.SetResult();
     }
   }
+
+  IEnumerator<Connection> IEnumerable<Connection>.GetEnumerator() =>
+    GetContext().Connections.GetEnumerator();
+
+  IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<Connection>)this).GetEnumerator();
 }

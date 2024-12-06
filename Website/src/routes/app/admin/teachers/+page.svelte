@@ -9,57 +9,43 @@
   import Window from '$lib/client/ui/window.svelte'
   import CreateUserDialog from './create-user-dialog.svelte'
   import { useClientContext } from '$lib/client/client'
-  import { UserRole } from '$lib/client/resource'
-  import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
-  import UserTable from './user-table.svelte'
+  import { type UserResource } from '$lib/client/resource'
+  import UserEntry from './user-entry.svelte'
+  import LazyLoader from '$lib/client/ui/lazy-loader.svelte'
 
   const { pushSidePanel, pushTitle } = useAdminContext()
   const { searchString, includeRole, excludeRole } = createUserContext()
   const { server } = useClientContext()
 
-  onMount(() => pushTitle('Users'))
-
-  async function load(
-    searchString: string,
-    includeRole: UserRole[] | null,
-    excludeRole: UserRole[] | null
-  ) {
-    const users = await server.GetUsers({
-      SearchString: searchString,
-      IncludeRole: includeRole ?? void 0,
-      ExcludeRole: excludeRole ?? void 0,
-      ExcludeSelf: false
-    })
-
-    return users
-  }
+  onMount(() => pushTitle('Teachers6656'))
 
   const createDialog = writable<boolean>(false)
   const createResult = writable<{ password: string; userId: string } | null>(null)
-  const users = writable<ReturnType<typeof load> | null>(null)
-
-  $effect(() => {
-    $users = load(
-      $searchString,
-      $includeRole.length > 0 ? $includeRole : [],
-      $excludeRole.length > 0 ? $excludeRole : []
-    )
-  })
+  let users: UserResource[] = $state([])
 </script>
 
-{#await $users}
-  <div class="loading">
-    <LoadingSpinner size="3rem" />
-  </div>
-{:then users}
-  <div class="page">
-    <UserTable users={users || []} />
-  </div>
-{:catch error}
-  {#each error as a}
-    <p class="error">{a}</p>
-  {/each}
-{/await}
+<UserEntry head />
+<LazyLoader
+  bind:items={users}
+  load={async (offset) => {
+    const users = await server.GetUsers({
+      SearchString: $searchString,
+      IncludeRole: $includeRole.length > 0 ? $includeRole : void 0,
+      ExcludeRole: $excludeRole.length > 0 ? $excludeRole : void 0,
+      Pagination: {
+        Offset: offset,
+        Count: 1
+      }
+    })
+
+    return users
+  }}
+  vertical
+>
+  {#snippet itemSnippet(item, index, key)}
+    <UserEntry user={item} />
+  {/snippet}
+</LazyLoader>
 
 {#snippet foreground(view: Snippet)}
   <div class="button-foreground">

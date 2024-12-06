@@ -6,11 +6,7 @@
   import { writable } from 'svelte/store'
   import AuthenticateDialogLoginForms from './authenticate-dialog-login-actions.svelte'
 
-  const {
-    redirect,
-    ondismiss,
-    onreset
-  }: { redirect: () => Promise<void>; ondismiss: () => void; onreset: () => void } = $props()
+  const { redirect, ondismiss }: { redirect: () => Promise<void>; ondismiss: () => void } = $props()
 
   const username = writable<string>('')
   const password = writable<string>('')
@@ -27,7 +23,7 @@
       UserId: userId,
       Password: $password
     })
-    
+
     ondismiss()
     await redirect()
   }
@@ -94,7 +90,7 @@
     <div class="line"></div>
   </div>
 
-  <AuthenticateDialogLoginForms {onreset} />
+  <AuthenticateDialogLoginForms {redirect} />
 </div>
 
 <style lang="scss">

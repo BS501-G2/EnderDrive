@@ -8,7 +8,7 @@
   import { goto } from '$app/navigation'
 
   const { server } = useClientContext()
-  const { ondismiss, subtractNumber }: { ondismiss: () => void; subtractNumber: () => void } =
+  const { ondismiss, subtractNumber }: { ondismiss: () => void; subtractNumber?: () => void } =
     $props()
 
   let items: NotificationResource[] = $state([])
@@ -48,7 +48,7 @@
           })
 
           if (!item.Read) {
-            subtractNumber()
+            subtractNumber?.()
           }
 
           await goto(

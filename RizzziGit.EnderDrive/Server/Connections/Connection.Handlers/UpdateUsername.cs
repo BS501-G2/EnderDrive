@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using MongoDB.Bson.Serialization.Attributes;
 using RizzziGit.EnderDrive.Server.Resources;
 
@@ -24,6 +25,24 @@ public sealed partial class Connection
       if (flags != UsernameValidationFlags.OK)
       {
         throw new InvalidOperationException($"Invalid username: {flags}");
+      }
+      else if (
+        await Resources
+          .Query<User>(
+            transaction,
+            (query) =>
+              query.Where(
+                (user) =>
+                  user.Username.Equals(
+                    request.NewUsername,
+                    StringComparison.CurrentCultureIgnoreCase
+                  )
+              )
+          )
+          .AnyAsync(transaction)
+      )
+      {
+        throw new InvalidOperationException("Username has already been taken.");
       }
 
       await me.Update(

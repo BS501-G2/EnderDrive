@@ -1,6 +1,8 @@
-using MongoDB.Bson;
+using System.Linq;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
+
+using Resources;
 
 public sealed partial class Connection
 {
@@ -12,6 +14,14 @@ public sealed partial class Connection
     async (transaction, request, userAuthentication, me, myAdminAccess, fileAccess) =>
     {
       await Resources.Delete(transaction, fileAccess.UnlockedFile.File);
+
+      await Internal_BroadcastFileActivity(
+        transaction,
+        me,
+        fileAccess.UnlockedFile,
+        fileAccess.FileAccess,
+        new NotificationData.File.FileDelete() { FileId = fileAccess.UnlockedFile.File.Id }
+      );
 
       return new() { };
     };

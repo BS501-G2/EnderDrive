@@ -13,7 +13,7 @@
   <Expando title="Password">
     <UpdatePasswordExpando />
   </Expando>
-  <!-- <Expando title="Google Authentication">
+  <Expando title="Google Authentication">
     <GoogleAuthenticationExpando />
-  </Expando> -->
+  </Expando>
 </AccountSettingsTab>

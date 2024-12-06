@@ -7,6 +7,7 @@ using Google.Apis.Services;
 
 namespace RizzziGit.EnderDrive.Server.Services;
 
+using System.Text.Json;
 using Commons.Collections;
 using Commons.Services;
 using Core;
@@ -29,6 +30,11 @@ public sealed partial class GoogleService(EnderDriveServer server)
 
     public sealed record GetPayload(TaskCompletionSource<byte[]> TaskCompletionSource, string Token)
       : Feed();
+
+    public sealed record GetAccountInfo(
+      TaskCompletionSource<GoogleAccountInfo> TaskCompletionSource,
+      string Token
+    ) : Feed();
   }
 
   protected override Task<GoogleContext> OnStart(
@@ -36,11 +42,8 @@ public sealed partial class GoogleService(EnderDriveServer server)
     CancellationToken serviceCancellationToken
   )
   {
-    BaseClientService.Initializer baseClientService = new()
-    {
-      ApiKey = "",
-      ApplicationName = "EnderDrive",
-    };
+    BaseClientService.Initializer baseClientService =
+      new() { ApiKey = "", ApplicationName = "EnderDrive", };
 
     return Task.FromResult<GoogleContext>(new() { Feed = new() });
   }
@@ -54,7 +57,7 @@ public sealed partial class GoogleService(EnderDriveServer server)
     {
       switch (feed)
       {
-        case Feed.GetPayload(TaskCompletionSource<byte[]> taskCompletionSource, string token):
+        case Feed.GetPayload(TaskCompletionSource<byte[]> source, string token):
         {
           try
           {
@@ -63,11 +66,30 @@ public sealed partial class GoogleService(EnderDriveServer server)
               new() { }
             );
 
-            taskCompletionSource.SetResult(Encoding.UTF8.GetBytes(payload.Prn));
+            source.SetResult(Encoding.UTF8.GetBytes(payload.Subject));
           }
           catch (Exception exception)
           {
-            taskCompletionSource.SetException(exception);
+            source.SetException(exception);
+          }
+
+          break;
+        }
+
+        case Feed.GetAccountInfo(TaskCompletionSource<GoogleAccountInfo> source, string token):
+        {
+          try
+          {
+            GoogleJsonWebSignature.Payload payload = await GoogleJsonWebSignature.ValidateAsync(
+              token,
+              new() { }
+            );
+
+            source.SetResult(new() { Name = payload.Name, Email = payload.Email });
+          }
+          catch (Exception exception)
+          {
+            source.SetException(exception);
           }
 
           break;
@@ -78,11 +100,28 @@ public sealed partial class GoogleService(EnderDriveServer server)
 
   public async Task<byte[]> GetPayload(string token, CancellationToken cancellationToken)
   {
-    TaskCompletionSource<byte[]> taskCompletionSource = new();
+    TaskCompletionSource<byte[]> source = new();
 
-    await GetContext()
-      .Feed.Enqueue(new Feed.GetPayload(taskCompletionSource, token), cancellationToken);
+    await GetContext().Feed.Enqueue(new Feed.GetPayload(source, token), cancellationToken);
 
-    return await taskCompletionSource.Task;
+    return await source.Task;
   }
+
+  public async Task<GoogleAccountInfo> GetAccountInfo(
+    string token,
+    CancellationToken cancellationToken
+  )
+  {
+    TaskCompletionSource<GoogleAccountInfo> source = new();
+
+    await GetContext().Feed.Enqueue(new Feed.GetAccountInfo(source, token), cancellationToken);
+
+    return await source.Task;
+  }
+}
+
+public sealed record GoogleAccountInfo
+{
+  public required string Name;
+  public required string Email;
 }

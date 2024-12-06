@@ -21,6 +21,7 @@ public sealed class ServerData
   public required MimeDetector MimeDetector;
   public required AdminManager AdminManager;
   public required AudioTranscriber AudioTranscriber;
+  public required NotificationManager NotificationManager;
 }
 
 public sealed class EnderDriveServer(
@@ -42,12 +43,21 @@ public sealed class EnderDriveServer(
     GoogleService googleService = new(this);
     ConnectionManager connectionManager = new(this);
     MimeDetector mimeDetector = new(this);
-    AudioTranscriber audioTranscriber = new(this, "/mnt/buffalo/bs701/model.bin");
+    AudioTranscriber audioTranscriber = new(this, "/home/cool/Code/bs701/model.bin");
+    NotificationManager notificationManager = new(this);
 
     await StartServices([keyManager, resourceManager], startupCancellationToken);
     await StartServices([adminManager], startupCancellationToken);
     await StartServices(
-      [virusScanner, apiServer, googleService, connectionManager, mimeDetector, audioTranscriber],
+      [
+        virusScanner,
+        googleService,
+        connectionManager,
+        mimeDetector,
+        audioTranscriber,
+        notificationManager,
+        apiServer
+      ],
       startupCancellationToken
     );
 
@@ -61,7 +71,8 @@ public sealed class EnderDriveServer(
       GoogleService = googleService,
       ConnectionManager = connectionManager,
       MimeDetector = mimeDetector,
-      AudioTranscriber = audioTranscriber
+      AudioTranscriber = audioTranscriber,
+      NotificationManager = notificationManager
     };
   }
 
@@ -74,6 +85,7 @@ public sealed class EnderDriveServer(
   public ConnectionManager ConnectionManager => GetContext().ConnectionManager;
   public MimeDetector MimeDetector => GetContext().MimeDetector;
   public AudioTranscriber AudioTranscriber => GetContext().AudioTranscriber;
+  public NotificationManager Notifications => GetContext().NotificationManager;
 
   public new Task Start(CancellationToken cancellationToken = default) =>
     base.Start(cancellationToken);
@@ -91,7 +103,8 @@ public sealed class EnderDriveServer(
       WatchService(context.GoogleService, cancellationToken),
       WatchService(context.ConnectionManager, cancellationToken),
       WatchService(context.MimeDetector, cancellationToken),
-      WatchService(context.AudioTranscriber, cancellationToken)
+      WatchService(context.AudioTranscriber, cancellationToken),
+      WatchService(context.NotificationManager, cancellationToken)
     );
   }
 
@@ -100,6 +113,7 @@ public sealed class EnderDriveServer(
     ServerData context = GetContext();
 
     await StopServices(
+      context.NotificationManager,
       context.AudioTranscriber,
       context.MimeDetector,
       context.ConnectionManager,

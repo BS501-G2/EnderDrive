@@ -73,6 +73,7 @@ public sealed partial class ResourceManager
   private async ValueTask Save<T>(ResourceTransaction transaction, Resource<T> document)
     where T : ResourceData
   {
+    ResourceManagerContext context = GetContext();
     IMongoCollection<T> collection = GetCollection<T>();
 
     T? oldData =
@@ -83,11 +84,15 @@ public sealed partial class ResourceManager
           .Where((item) => item.Id == document.Id)
           .FirstOrDefaultAsync(cancellationToken: transaction.CancellationToken);
 
-    if (oldData == null)
+    if (oldData == null || document.Id == ObjectId.Empty)
     {
       ObjectId oldId = document.Id;
+      ObjectId newId;
 
-      document.Id = ObjectId.GenerateNewId();
+      do
+      {
+        newId = ObjectId.GenerateNewId();
+      } while (!context.Resources.TryAdd(new(typeof(T), newId), document));
 
       transaction.RegisterOnFailure(async () =>
       {
@@ -185,15 +190,19 @@ public sealed partial class ResourceManager
       }
 
       Resource<T> resource = new(Save) { Data = data };
-      context.Resources.Add(new(typeof(T), data.Id), resource);
 
-      transaction.RegisterOnFailure(async () =>
+      if (data.Id != ObjectId.Empty)
       {
-        lock (context.Resources)
+        context.Resources.Add(new(typeof(T), data.Id), resource);
+
+        transaction.RegisterOnFailure(async () =>
         {
-          context.Resources.Remove(new ResourceKey(typeof(T), data.Id));
-        }
-      });
+          lock (context.Resources)
+          {
+            context.Resources.Remove(new ResourceKey(typeof(T), data.Id));
+          }
+        });
+      }
 
       return resource;
     }

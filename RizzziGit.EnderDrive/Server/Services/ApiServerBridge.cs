@@ -25,15 +25,16 @@ public sealed partial class SocketIoBridge(ApiServer server)
   {
     string workingPath = Path.GetFullPath("../RizzziGit.EnderDrive.Proxy");
 
-    ProcessStartInfo startInfo = new()
-    {
-      FileName = "/usr/bin/env",
-      UseShellExecute = false,
-      WorkingDirectory = workingPath,
-      RedirectStandardInput = true,
-      RedirectStandardError = true,
-      RedirectStandardOutput = true,
-    };
+    ProcessStartInfo startInfo =
+      new()
+      {
+        FileName = "/usr/bin/env",
+        UseShellExecute = false,
+        WorkingDirectory = workingPath,
+        RedirectStandardInput = true,
+        RedirectStandardError = true,
+        RedirectStandardOutput = true,
+      };
 
     startInfo.ArgumentList.Add("/usr/bin/node");
     startInfo.ArgumentList.Add(workingPath);
@@ -72,7 +73,7 @@ public sealed partial class SocketIoBridge(ApiServer server)
       }
     }
 
-    await await Task.WhenAny(
+    await Task.WhenAny(
       main(context.Process.StandardError, "stderr"),
       main(context.Process.StandardOutput, "stdout"),
       context.Process.WaitForExitAsync(cancellationToken)

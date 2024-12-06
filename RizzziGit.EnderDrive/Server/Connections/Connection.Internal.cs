@@ -6,6 +6,7 @@ using MongoDB.Bson;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
+using System;
 using Resources;
 
 public sealed partial class Connection
@@ -33,6 +34,13 @@ public sealed partial class Connection
     IAsyncEnumerable<Resource<T>> query
   )
     where T : ResourceData => Internal_EnsureExists(await Internal_GetFirst(transaction, query));
+
+  private Task<Resource<T>> Internal_EnsureFirst<T>(
+    ResourceTransaction transaction,
+    Func<IQueryable<T>, IQueryable<T>> query
+  )
+    where T : ResourceData =>
+    Internal_EnsureFirst(transaction, Resources.Query<T>(transaction, query));
 
   private static Resource<T> Internal_EnsureExists<T>(Resource<T>? item)
     where T : ResourceData =>
@@ -66,4 +74,45 @@ public sealed partial class Connection
       userAuthentication,
       fileAccessLevel ?? FileAccessLevel.Read
     ) ?? throw new FileAccessForbiddenException() { FileId = file.Id };
+
+  private async Task Internal_BroadcastFileActivity(
+    ResourceTransaction transaction,
+    Resource<User> me,
+    UnlockedFile file,
+    Resource<FileAccess>? baseFileAccess,
+    NotificationData data
+  )
+  {
+    await foreach (
+      Resource<FileAccess> fileAccess in Resources.Query<FileAccess>(
+        transaction,
+        (query) =>
+          query.Where(
+            (fileAccess) =>
+              fileAccess.TargetUserId != null
+              && fileAccess.TargetUserId != me.Id
+              && (baseFileAccess != null ? baseFileAccess.Data.FileId : file.File.Id)
+                == fileAccess.FileId
+          )
+      )
+    )
+    {
+      Resource<User> user = await Internal_EnsureFirst<User>(
+        transaction,
+        (query) => query.Where((user) => user.Id == fileAccess.Data.TargetUserId)
+      );
+
+      await Notifications.CreateAndPush(transaction, me, user, data);
+    }
+
+    if (me.Id != file.File.Data.OwnerUserId)
+    {
+      Resource<User> fileOwner = await Internal_EnsureFirst<User>(
+        transaction,
+        (query) => query.Where((user) => user.Id == file.File.Data.OwnerUserId)
+      );
+
+      await Notifications.CreateAndPush(transaction, me, fileOwner, data);
+    }
+  }
 }

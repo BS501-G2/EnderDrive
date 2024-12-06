@@ -23,10 +23,11 @@
       const size = await server.FileGetSize({ FileId: imageId, FileDataId: fileData.Id })
 
       let data = new Blob()
+
       const streamId = await server.StreamOpen({
         FileId: imageId,
         FileDataId: fileData.Id,
-        ForWriting: true
+        ForWriting: false
       })
 
       for (let index = 0; index < size; index += bufferSize) {

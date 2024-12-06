@@ -406,7 +406,7 @@ public sealed partial class ResourceManager
     ResourceTransaction transaction,
     UnlockedFile file,
     Resource<FileData> fileData,
-  bool allowWrite = false
+    bool allowWrite = false
   )
   {
     ResourceManagerContext context = GetContext();
@@ -423,12 +423,11 @@ public sealed partial class ResourceManager
         {
           try
           {
-
             await RunFileStream(file, fileData, feed, length, allowWrite);
           }
           catch (Exception exception)
           {
-            Console.WriteLine(exception);
+            Error(exception);
           }
           finally
           {

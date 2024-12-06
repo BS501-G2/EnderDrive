@@ -53,13 +53,11 @@ public sealed partial class Connection
 
   private sealed record class GetNewsEntryRequest
   {
-    [BsonElement("newsId")]
     public required ObjectId NewsId;
   }
 
   private sealed record class GetNewsEntryResponse
   {
-    [BsonElement("newsEntry")]
     public required string NewsEntry;
   }
 

@@ -21,3 +21,18 @@ export function useEvent<T extends HTMLElement, K extends keyof HTMLElementEvent
 
   return () => element.removeEventListener(name, (event) => handler(element, event))
 }
+
+export function create(element: HTMLDivElement, onToken: (token: string) => Promise<void>) {
+    const { google } = window
+
+    google.accounts.id.initialize({
+      client_id: '644062157599-6ddpbis484gcesi7dljvv7ccbb63mvdj.apps.googleusercontent.com',
+      callback: (credentials) => onToken(credentials.credential)
+    })
+
+    google.accounts.id.renderButton(element, {
+      theme: 'outline', size: 'large'
+    })
+
+    google.accounts.id.prompt()
+}

@@ -8,14 +8,18 @@
 
   import NewsEntry from './news-entry.svelte'
   import { useClientContext } from '$lib/client/client'
+  import { useAppContext } from '$lib/client/contexts/app'
 
   const { pushTitle, pushSidePanel } = useAdminContext()
   onMount(() => pushTitle('News'))
 
+  const { isDesktop } = useAppContext()
   const { server } = useClientContext()
 
   const createDialog = writable<[newsId?: number] | null>(null)
   const editDialog: Writable<{ imageId: string; id: string | null } | null> = writable(null)
+
+  let refreshKey = $state({})
 </script>
 
 <CreateNewsButton
@@ -45,20 +49,39 @@
     {...$editDialog}
     ondismiss={() => {
       $editDialog = null
+      refreshKey={}
     }}
   />
 {/if}
 
-{#await (async () => {
-  const newsIds = await server.GetNews({})
+{#key refreshKey}
+  {#await (async () => {
+    const newsIds = await server.GetNews({})
 
-  return { newsIds }
-})() then { newsIds }}
-  <div class="page">
-    {#each newsIds as newsId}
-      {#await server.getNewsEntry(newsId) then news}
-        <NewsEntry {news} />
-      {/await}
-    {/each}
-  </div>
-{/await}
+    return { newsIds }
+  })() then { newsIds }}
+    <div class="page">
+      {#if $isDesktop}
+        <NewsEntry header />
+      {/if}
+      {#each newsIds as newsId}
+        {#await server.GetNewsEntry({ NewsId: newsId }) then news}
+          <NewsEntry
+            {news}
+            onrefresh={() => {
+              refreshKey = {}
+            }}
+          />
+        {/await}
+      {/each}
+    </div>
+  {/await}
+{/key}
+
+<style lang="scss">
+  div.page {
+    padding: 8px;
+
+    gap: 8px;
+  }
+</style>

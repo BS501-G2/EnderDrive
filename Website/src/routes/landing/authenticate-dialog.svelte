@@ -14,11 +14,9 @@
   const { authentication } = useClientContext()
 
   const {
-    ondismiss,
-    onreset
+    ondismiss
   }: {
-    ondismiss: () => void,
-    onreset: () => void
+    ondismiss: () => void
   } = $props()
 
   const redirectPath = derived(page, (page) => page.url.searchParams.get('return') ?? null)
@@ -40,7 +38,7 @@
         {#if $authentication != null}
           <AuthenticateDialogContinue {redirect} {ondismiss} />
         {:else}
-          <AuthenticateDialogLoginForm {redirect} {ondismiss} {onreset} />
+          <AuthenticateDialogLoginForm {redirect} {ondismiss} />
         {/if}
     </RequireClient>
   </div>

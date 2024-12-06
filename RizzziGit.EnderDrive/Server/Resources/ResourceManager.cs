@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
 using System.Runtime.ExceptionServices;
@@ -9,7 +10,6 @@ using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
-using System.Collections.Concurrent;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
@@ -22,7 +22,7 @@ using Services;
 public abstract record ResourceData
 {
   [BsonId]
-  public ObjectId Id;
+  public ObjectId Id = ObjectId.Empty;
 
   internal object ToJSON()
   {
@@ -45,9 +45,8 @@ public sealed class ResourceManagerContext
   public required TaskQueue TransactionQueue;
 }
 
-public sealed partial class ResourceManager(
-  EnderDriveServer server
-) : Service<ResourceManagerContext>("Resource Manager", server)
+public sealed partial class ResourceManager(EnderDriveServer server)
+  : Service<ResourceManagerContext>("Resource Manager", server)
 {
   private EnderDriveServer Server => server;
   private IMongoClient Client => GetContext().Client;
@@ -83,6 +82,8 @@ public sealed partial class ResourceManager(
     {
       await client.DropDatabaseAsync("EnderDrive", startupCancellationToken);
     }
+
+    NotificationData.BindPolymorphicTypes();
 
     return new()
     {

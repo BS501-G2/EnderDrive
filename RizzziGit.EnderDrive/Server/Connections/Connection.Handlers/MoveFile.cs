@@ -84,6 +84,24 @@ public sealed partial class Connection
       if (newParent != null)
       {
         await Resources.CreateFileLog(transaction, newParent, me, FileLogType.Update);
+
+        await Internal_BroadcastFileActivity(
+          transaction,
+          me,
+          newParentAccessResult!.UnlockedFile,
+          newParentAccessResult.FileAccess,
+          new NotificationData.File.FileMove() { FileId = newParent.Id }
+        );
+      }
+      else
+      {
+        await Internal_BroadcastFileActivity(
+          transaction,
+          me,
+          fileAccess.UnlockedFile,
+          fileAccess.FileAccess,
+          new NotificationData.File.FileRename() { FileId = fileAccess.UnlockedFile.File.Id }
+        );
       }
 
       await Resources.CreateFileLog(transaction, oldParent, me, FileLogType.Update);

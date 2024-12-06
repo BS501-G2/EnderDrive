@@ -64,7 +64,16 @@ public sealed partial class Connection
         me,
         FileLogType.Update
       );
+
       await Resources.CreateFileLog(transaction, newFile.File, me, FileLogType.Create);
+
+      await Internal_BroadcastFileActivity(
+        transaction,
+        me,
+        fileAccess.UnlockedFile,
+        fileAccess.FileAccess,
+        new NotificationData.File.FileCreate() { FileId = newFile.File.Id, }
+      );
 
       return new() { File = newFile.File.ToJson() };
     };

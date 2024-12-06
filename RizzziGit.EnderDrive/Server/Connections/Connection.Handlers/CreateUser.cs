@@ -1,9 +1,11 @@
 namespace RizzziGit.EnderDrive.Server.Connections;
 
+using System;
+using System.Linq;
+using Commons.Memory;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using Resources;
-using Commons.Memory;
 
 public sealed partial class Connection
 {
@@ -26,6 +28,28 @@ public sealed partial class Connection
   private AdminRequestHandler<CreateUserRequest, CreateUserResponse> CreateUser =>
     async (transaction, request, userAuthentication, me, myAdminAccess) =>
     {
+      UsernameValidationFlags flags = Resources.ValidateUsername(request.Username);
+
+      if (flags != UsernameValidationFlags.OK)
+      {
+        throw new InvalidOperationException($"Invalid username: {flags}");
+      }
+      else if (
+        await Resources
+          .Query<User>(
+            transaction,
+            (query) =>
+              query.Where(
+                (user) =>
+                  user.Username.Equals(request.Username, StringComparison.CurrentCultureIgnoreCase)
+              )
+          )
+          .AnyAsync(transaction)
+      )
+      {
+        throw new InvalidOperationException("Username has already been taken.");
+      }
+
       string password;
 
       if (request.Password == null)

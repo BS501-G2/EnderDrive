@@ -62,6 +62,14 @@ public sealed partial class Connection
         true
       );
 
+      await Internal_BroadcastFileActivity(
+        transaction,
+        me,
+        fileAccess.UnlockedFile,
+        fileAccess.FileAccess,
+        new NotificationData.File.FileCreate() { FileId = fileAccess.UnlockedFile.File.Id, }
+      );
+
       return new() { StreamId = stream.Id };
     };
 }

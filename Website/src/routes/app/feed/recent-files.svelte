@@ -1,7 +1,7 @@
 <script lang="ts">
   import { useClientContext } from '$lib/client/client'
   import { useAppContext } from '$lib/client/contexts/app'
-  import { FileType } from '$lib/client/resource'
+  import { FileType, type FileResource } from '$lib/client/resource'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
   import RecentEntry from './recent-entry.svelte'
 
@@ -9,12 +9,15 @@
   const { isDesktop } = useAppContext()
 
   async function load() {
-    const logs = await server.GetFileLogs({ Pagination: { Count: 50 }, UniqueFileId: true })
+    const logs = await server.GetFileLogs({ Pagination: { Count: 5 }, UniqueFileId: true })
 
     return await Promise.all(
       logs.map(async (fileLog) => {
+        let file: FileResource | null = null
 
-        const file = await server.GetFile({FileId: fileLog.FileId})
+        try {
+          file = await server.GetFile({ FileId: fileLog.FileId })
+        } catch {}
 
         return { file, fileLog }
       })
@@ -33,8 +36,10 @@
     </div>
   {:then logs}
     {#each logs.toSorted((a, b) => new Date(b.fileLog.CreateTime).getTime() - new Date(a.fileLog.CreateTime).getTime()) as { file, fileLog }}
-      {#if file.Type === FileType.File}
-        <RecentEntry {file} {fileLog} />
+      {#if file != null}
+        {#if file.Type === FileType.File}
+          <RecentEntry {file} {fileLog} />
+        {/if}
       {/if}
     {/each}
   {/await}

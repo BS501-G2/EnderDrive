@@ -62,6 +62,14 @@ public sealed partial class Connection
         FileLogType.Untrash
       );
 
+      await Internal_BroadcastFileActivity(
+        transaction,
+        me,
+        fileAccess.UnlockedFile,
+        fileAccess.FileAccess,
+        new NotificationData.File.FileRestore() { FileId = fileAccess.UnlockedFile.File.Id, }
+      );
+
       return new() { };
     };
 }

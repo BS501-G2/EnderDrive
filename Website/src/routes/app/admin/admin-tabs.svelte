@@ -29,11 +29,11 @@
 />
 
 <AdminTab
-  name="Users"
+  name="Teachers"
   callback={({ url }) => {
-    if (url.pathname === '/app/admin/users') {
+    if (url.pathname === '/app/admin/teachers') {
       return {
-        path: '/app/admin/users',
+        path: '/app/admin/teachers',
         selected: true,
         icon: {
           icon: 'user',
@@ -42,7 +42,7 @@
       }
     } else {
       return {
-        path: '/app/admin/users',
+        path: '/app/admin/teachers',
         selected: false,
         icon: {
           icon: 'user',
@@ -77,7 +77,7 @@
     }
   }}
 />
-
+<!--
 <AdminTab
   name="Password Reset Requests"
   callback={({ url }) => {
@@ -92,4 +92,4 @@
       }
     }
   }}
-/>
+/> -->

@@ -9,6 +9,23 @@ namespace RizzziGit.EnderDrive.Server.Connections;
 
 public sealed partial class Connection
 {
+  private static T DeserializePayload<T>(byte[] bytes)
+  {
+    using MemoryStream stream = new(bytes);
+    using BsonBinaryReader reader = new(stream);
+
+    return BsonSerializer.Deserialize<T>(reader);
+  }
+
+  private static byte[] SerializePayload<T>(T obj)
+  {
+    using MemoryStream stream = new();
+    using BsonBinaryWriter writer = new(stream);
+
+    BsonSerializer.Serialize(writer, obj);
+    return stream.ToArray();
+  }
+
   private delegate Task<R> RequestHandler<S, R>(S request, CancellationToken cancellationToken);
 
   private void RegisterRequestHandler<S, R>(string name, RequestHandler<S, R> handler) =>
@@ -16,29 +33,12 @@ public sealed partial class Connection
       name,
       async (rawRequest, cancellationToken) =>
       {
-        static T deserialize<T>(byte[] bytes)
-        {
-          using MemoryStream stream = new(bytes);
-          using BsonBinaryReader reader = new(stream);
-
-          return BsonSerializer.Deserialize<T>(reader);
-        }
-
-        static byte[] serialize<T>(T obj)
-        {
-          using MemoryStream stream = new();
-          using BsonBinaryWriter writer = new(stream);
-
-          BsonSerializer.Serialize(writer, obj);
-          return stream.ToArray();
-        }
-
-        S request = deserialize<S>(rawRequest);
-        Debug($"{request}", "<-");
+        S request = DeserializePayload<S>(rawRequest);
+        // Debug($"{request}", "<-");
         R response = await handler(request, cancellationToken);
-        Debug($"{response}", "->");
+        // Debug($"{response}", "->");
 
-        return serialize(response);
+        return SerializePayload(response);
       }
     );
 }

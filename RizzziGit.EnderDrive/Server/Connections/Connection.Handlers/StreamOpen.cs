@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
@@ -37,7 +38,32 @@ public sealed partial class Connection
         )
       );
 
-      if (request.ForWriting) { }
+      if (request.ForWriting)
+      {
+        if (fileAccess.AccessLevel <= FileAccessLevel.Read)
+        {
+          throw new InvalidOperationException("Not enough access level for this file.");
+        }
+
+        fileData = await Resources.CreateFileData(
+          transaction,
+          fileAccess.UnlockedFile,
+          fileData,
+          me
+        );
+
+        await Internal_BroadcastFileActivity(
+          transaction,
+          me,
+          fileAccess.UnlockedFile,
+        fileAccess.FileAccess,
+          new NotificationData.File.FileUpdate()
+          {
+            FileId = fileAccess.UnlockedFile.File.Id,
+            FileDataId = fileData.Id
+          }
+        );
+      }
 
       await Resources.CreateFileLog(
         transaction,
