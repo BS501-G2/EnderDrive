@@ -95,5 +95,7 @@ public sealed partial class Connection
     RegisterRequestHandler(nameof(GetDiskUsage), GetDiskUsage);
     RegisterAuthenticatedRequestHandler(nameof(SetGoogleAuthentication), SetGoogleAuthentication);
     RegisterAuthenticatedRequestHandler(nameof(GetGoogleAuthentication), GetGoogleAuthentication);
+    RegisterAuthenticatedRequestHandler(nameof(GetUserDiskUsage), GetUserDiskUsage);
+    RegisterFileRequestHandler(nameof(GenerateFileToken), GenerateFileToken);
   }
 }

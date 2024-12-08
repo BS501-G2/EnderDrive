@@ -12,10 +12,21 @@ using Microsoft.Extensions.Logging;
 
 namespace RizzziGit.EnderDrive.Server.Services;
 
+using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using System.Linq;
 using System.Runtime.ExceptionServices;
 using Commons.Memory;
 using Commons.Services;
 using Core;
+using Microsoft.AspNetCore.Http.Headers;
+using Microsoft.Net.Http.Headers;
+using MimeDetective.Storage;
+using MongoDB.Bson;
+using RizzziGit.EnderDrive.Server.Connections;
+using RizzziGit.EnderDrive.Server.Resources;
 using RizzziGit.EnderDrive.Utilities;
 using Services;
 
@@ -71,7 +82,19 @@ public sealed partial class ApiServer(EnderDriveServer server, int httpPort, int
     app.UseWebSockets(new() { KeepAliveInterval = TimeSpan.FromMinutes(2) });
 
     await StartServices([socketIoBridge], startupCancellationToken);
-    app.Use((HttpContext context, Func<Task> _) => Handle(context, serviceCancellationToken));
+    app.Use(
+      async (HttpContext context, Func<Task> _) =>
+      {
+        try
+        {
+          await Handle(context, serviceCancellationToken);
+        }
+        catch (Exception exception)
+        {
+          Error(exception);
+        }
+      }
+    );
 
     await app.StartAsync(startupCancellationToken);
 
@@ -97,6 +120,7 @@ public sealed partial class ApiServer(EnderDriveServer server, int httpPort, int
       }
       catch (Exception exception)
       {
+        Console.Error.WriteLine(exception);
         Error(exception);
       }
 
@@ -108,7 +132,7 @@ public sealed partial class ApiServer(EnderDriveServer server, int httpPort, int
 
       try
       {
-        await (context.SocketIoBridge  = new(this)).Start(cancellationToken);
+        await (context.SocketIoBridge = new(this)).Start(cancellationToken);
       }
       catch { }
     }
@@ -124,16 +148,180 @@ public sealed partial class ApiServer(EnderDriveServer server, int httpPort, int
 
   private async Task Handle(HttpContext context, CancellationToken cancellationToken)
   {
-    if (!context.WebSockets.IsWebSocketRequest)
+    if (context.Request.Path.EntryEquals(1, "api"))
+    {
+      if (context.Request.Path.EntryEquals(2, "files"))
+      {
+        if (context.Request.Path.TryGetPathEntry(3, out string? tokenId))
+        {
+          await HandleFileRequest(context, ObjectId.Parse(tokenId), cancellationToken);
+        }
+        else
+        {
+          context.Response.StatusCode = 404;
+        }
+      }
+      else
+      {
+        context.Response.StatusCode = 404;
+      }
+    }
+    else if (context.WebSockets.IsWebSocketRequest)
+    {
+      await server.Connections.Push(
+        await context.WebSockets.AcceptWebSocketAsync(),
+        cancellationToken
+      );
+
+      return;
+    }
+    else
     {
       context.Response.StatusCode = 400;
-      await context.Response.CompleteAsync();
+    }
+
+    await context.Response.CompleteAsync();
+  }
+
+  private async Task HandleFileRequest(
+    HttpContext context,
+    ObjectId tokenId,
+    CancellationToken cancellationToken
+  )
+  {
+    FileToken? fileToken = null;
+
+    foreach (Connection connection in Server.Connections)
+    {
+      if (connection.TryGetFileToken(tokenId, out fileToken))
+      {
+        break;
+      }
+    }
+
+    if (fileToken == null)
+    {
+      context.Response.StatusCode = 404;
       return;
     }
 
-    await server.ConnectionManager.Push(
-      await context.WebSockets.AcceptWebSocketAsync(),
+    RequestHeaders headers = context.Request.GetTypedHeaders();
+    Definition? fileMime = await Resources.Transact(
+      (transaction) => Server.MimeDetector.Inspect(transaction, fileToken.File, fileToken.FileData),
       cancellationToken
     );
+
+    string getFileMimeType() => fileMime?.File.MimeType ?? "application/octet-stream";
+
+    long getSize() =>
+      fileToken.FileData.Data.SegmentsIds.Aggregate(
+        (long)0,
+        (total, segment) => total + segment.Size
+      );
+
+    using ResourceManager.FileResourceStream stream = await Resources.Transact(
+      (transaction) =>
+        Resources.CreateFileStream(transaction, fileToken.File, fileToken.FileData, false),
+      cancellationToken
+    );
+
+    if (headers.Range != null)
+    {
+      context.Response.StatusCode = 206;
+
+      if (headers.Range.Ranges.Count == 1)
+      {
+        long start = headers.Range.Ranges.First().From ?? 0;
+        long end = headers.Range.Ranges.First().To ?? (getSize());
+
+        if (start > getSize() || end > getSize() || start < 0 || end < 0 || start > end)
+        {
+          context.Response.StatusCode = 416;
+          return;
+        }
+
+        context.Response.Headers.ContentRange = $"bytes {start}-{end - 1}/{getSize()}";
+        context.Response.ContentLength = end - start;
+        context.Response.ContentType = getFileMimeType();
+
+        await stream.SeekAsync(start, SeekOrigin.Begin, cancellationToken);
+        long written = 0;
+
+        while (written < (end - start))
+        {
+          byte[] buffer = new byte[256 * 1024];
+          int bufferLength = await stream.ReadAsync(buffer, cancellationToken);
+
+          if (bufferLength == 0)
+          {
+            break;
+          }
+
+          await context.Response.Body.WriteAsync(
+            buffer.AsMemory(0, int.Min(bufferLength, (int)(end - written))),
+            cancellationToken
+          );
+
+          written += bufferLength;
+        }
+      }
+      else
+      {
+        context.Response.StatusCode = 416;
+      }
+    }
+    else
+    {
+      context.Response.StatusCode = 200;
+      context.Response.ContentType = getFileMimeType();
+      context.Response.ContentLength = getSize();
+
+      while (true)
+      {
+        byte[] buffer = new byte[256 * 1024];
+        int bufferLength = await stream.ReadAsync(buffer, cancellationToken);
+
+        if (bufferLength == 0)
+        {
+          break;
+        }
+
+        await context.Response.Body.WriteAsync(buffer.AsMemory(0, bufferLength), cancellationToken);
+      }
+    }
   }
+
+  public ResourceManager Resources => Server.Resources;
+}
+
+public static class PathStringExtensions
+{
+  public static bool TryGetPathEntry(
+    this PathString pathString,
+    int index,
+    [NotNullWhen(true)] out string? path
+  )
+  {
+    path = null;
+
+    string[] split = $"{pathString}".Split('/');
+    if (split.Length <= index)
+    {
+      return false;
+    }
+
+    path = split[index];
+    return true;
+  }
+
+  public static bool EntryEquals(
+    this PathString pathString,
+    int index,
+    string value,
+    StringComparison? comparison = null
+  ) =>
+    TryGetPathEntry(pathString, index, out string? path)
+    && (
+      comparison != null ? string.Equals(path, value, (StringComparison)comparison) : path == value
+    );
 }

@@ -7,6 +7,7 @@
   import FileBrowserFileContentView from './file-browser-file-content-view.svelte'
   import { type Snippet } from 'svelte'
   import { page } from '$app/stores'
+  import FileBrowserFileContentMedia from './file-browser-file-content-media.svelte'
 
   const {
     fileId,
@@ -80,7 +81,9 @@
     {/snippet}
 
     {@render message(msg)}
-  {:else if mime.startsWith('image/') || mime.startsWith('video/') || mime.startsWith('text/') || mime.startsWith('audio/') || mime === 'application/pdf'}
+  {:else if mime.startsWith('video/') || mime.startsWith('audio/')}
+    <FileBrowserFileContentMedia {fileData} {file} {mime} />
+  {:else if mime.startsWith('image/') || mime.startsWith('video/') || mime.startsWith('audio/') || mime.startsWith('text/') || mime === 'application/pdf'}
     <FileBrowserFileContentView {fileData} {file} {mime} />
   {:else}
     {#snippet msg()}

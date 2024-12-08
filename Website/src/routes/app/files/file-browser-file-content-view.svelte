@@ -2,6 +2,7 @@
   import { useClientContext } from '$lib/client/client'
   import type { FileDataResource, FileResource } from '$lib/client/resource'
   import { bufferSize } from '$lib/client/utils'
+  import { onMount } from 'svelte'
   import { writable, type Writable } from 'svelte/store'
 
   const {
@@ -16,6 +17,7 @@
   const { server } = useClientContext()
 
   const progress: Writable<[current: number, total: number]> = writable([0, 0])
+  let mounted = $state(true)
 
   async function load(): Promise<string> {
     const streamId = await server.StreamOpen({
@@ -28,7 +30,7 @@
     let blob = new Blob()
     let offset = 0
 
-    while (true) {
+    while (mounted) {
       const buffer = await server.StreamRead({
         StreamId: streamId,
         Length: bufferSize
@@ -37,7 +39,7 @@
       blob = new Blob([blob, buffer], { type: mime })
 
       progress.set([offset, length])
-      
+
       offset += buffer.byteLength
       if (!buffer.byteLength) {
         break
@@ -50,6 +52,10 @@
   }
 
   let promise = writable(load())
+
+  onMount(() => () => {
+    mounted = false
+  })
 </script>
 
 {#await $promise}

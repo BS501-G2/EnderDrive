@@ -375,6 +375,19 @@ export interface ServerSideFunctions extends Record<string, RemoteFunction<any, 
     void,
     { Info: GoogleAccountInformation | null }
   >
+  GetUserDiskUsage: RemoteFunction<
+    { BaseDirectory?: string; UserId?: string },
+    {
+      FileCount: number
+      DiskUsage: number
+    }
+  >
+  GenerateFileToken: RemoteFunction<
+    { FileId: string; FileDataId: string },
+    string,
+    void,
+    { FileTokenId: string }
+  >
 }
 
 export interface GoogleAccountInformation {
@@ -477,5 +490,7 @@ export const responseTranslators: TranslatorMap<ServerSideFunctions> = {
   ReadNotification: [(data) => data, (data) => data],
   GetDiskUsage: [(data) => data, (data) => data],
   SetGoogleAuthentication: [(data) => data, (data) => data],
-  GetGoogleAuthentication: [(data) => data, (data) => data.Info]
+  GetGoogleAuthentication: [(data) => data, (data) => data.Info],
+  GetUserDiskUsage: [(data) => data, (data) => data],
+  GenerateFileToken: [(data) => data, (data) => data.FileTokenId]
 }

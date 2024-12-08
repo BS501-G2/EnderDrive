@@ -1,7 +1,8 @@
-<!-- <script lang="ts">
+<script lang="ts">
   import { useClientContext } from '$lib/client/client'
   import type { FileDataResource, FileResource } from '$lib/client/resource'
   import { bufferSize } from '$lib/client/utils'
+  import { onMount } from 'svelte'
   import { writable, type Writable } from 'svelte/store'
 
   const {
@@ -15,56 +16,30 @@
   } = $props()
   const { server } = useClientContext()
 
-  const sourceBuffer = new SourceBuffer()
+  // let videoElement: HTMLVideoElement | null = $state(null)
 
-  function load(): Promise<void> {
-    const streamId = await server.StreamOpen({
+  let url: string | null = $state(null)
+
+  async function updateSource() {
+    url = `http://localhost:8082/api/files/${await server.GenerateFileToken({
       FileId: file.Id,
-      FileDataId: fileData.Id,
-      ForWriting: false
-    })
-    const length = await server.StreamGetLength({ StreamId: streamId })
+      FileDataId: fileData.Id
+    })}`
 
-    let offset = 0
-
-    while (offset < length) {
-      const buffer = await server.StreamRead({
-        StreamId: streamId,
-        Length: bufferSize
-      })
-    //   blob = new Blob([blob, buffer], { type: mime })
-
-    //   offset += blob.size
-      progress.set([offset, length])
-    }
-
-    await server.StreamClose({ StreamId: streamId })
+    console.log(url)
   }
 
-  let promise = writable(load())
+  $effect(() => {
+    void updateSource()
+  })
 </script>
 
-{#await $promise}
-  <div class="loading">
-    <div class="loading-message">
-      <p>Downloading...</p>
-      <progress value={$progress[0]} max={$progress[1]}></progress>
-    </div>
-  </div>
-{:then imageUrl}
-  <embed src={imageUrl} title="Image Content" />
-{/await}
+{#if url != null}
+  <embed src={url} type={mime} />
+{/if}
 
 <style lang="scss">
   embed {
     flex-grow: 1;
   }
-
-  div.loading {
-    flex-grow: 1;
-    gap: 8px;
-
-    align-items: center;
-    justify-content: center;
-  }
-</style> -->
+</style>

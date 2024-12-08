@@ -27,7 +27,7 @@ public sealed partial class NotificationManager(EnderDriveServer server)
   : Service<NotificationManagerContext>("Notification Manager", server)
 {
   public ResourceManager Resources => server.Resources;
-  public ConnectionManager Connections => server.ConnectionManager;
+  public ConnectionManager Connections => server.Connections;
 
   public Task CreateAndPush(
     ResourceTransaction transaction,

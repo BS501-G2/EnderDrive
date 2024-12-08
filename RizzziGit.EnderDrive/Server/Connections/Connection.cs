@@ -8,6 +8,7 @@ using MongoDB.Bson.Serialization.Attributes;
 namespace RizzziGit.EnderDrive.Server.Connections;
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.ExceptionServices;
 using Commons.Collections;
 using Commons.Services;
@@ -23,7 +24,10 @@ public sealed partial class ConnectionContext
   public required WaitQueue<Connection.WorkerFeed> WorkerFeed;
   public required ConcurrentDictionary<string, RawRequestHandler> Handlers;
   public required ConcurrentDictionary<int, TaskCompletionSource<byte[]>> PendingRequests;
+  public required ConcurrentDictionary<ObjectId, FileToken> FileTokens;
 }
+
+public sealed record FileToken(UnlockedFile File, Resource<FileData> FileData);
 
 public sealed partial class Connection(
   ConnectionManager manager,
@@ -37,6 +41,9 @@ public sealed partial class Connection(
   public NotificationManager Notifications => Server.Notifications;
   public UnlockedUserAuthentication? CurrentUser => GetContext().CurrentUser;
 
+  public bool TryGetFileToken(ObjectId tokenId, [NotNullWhen(true)] out FileToken? fileToken) =>
+    GetContext().FileTokens.TryGetValue(tokenId, out fileToken);
+
   protected override async Task<ConnectionContext> OnStart(
     CancellationToken startupCancellationToken,
     CancellationToken serviceCancellationToken
@@ -48,10 +55,9 @@ public sealed partial class Connection(
         CurrentUser = null,
         Handlers = new(),
         PendingRequests = new(),
-        WorkerFeed = new()
+        WorkerFeed = new(),
+        FileTokens = new()
       };
-
-    // Result<string, string> a = Result
 
     return context;
   }

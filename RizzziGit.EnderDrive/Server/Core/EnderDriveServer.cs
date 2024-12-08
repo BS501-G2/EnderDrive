@@ -82,7 +82,7 @@ public sealed class EnderDriveServer(
   public VirusScanner VirusScanner => GetContext().VirusScanner;
   public ApiServer ApiServer => GetContext().ApiServer;
   public GoogleService GoogleService => GetContext().GoogleService;
-  public ConnectionManager ConnectionManager => GetContext().ConnectionManager;
+  public ConnectionManager Connections => GetContext().ConnectionManager;
   public MimeDetector MimeDetector => GetContext().MimeDetector;
   public AudioTranscriber AudioTranscriber => GetContext().AudioTranscriber;
   public NotificationManager Notifications => GetContext().NotificationManager;
