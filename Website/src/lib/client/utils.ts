@@ -1,3 +1,6 @@
+import type { ClientContext } from './client'
+import type { FileDataResource, FileResource } from './resource'
+
 const byteUnitDictionary = Object.freeze(['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi'] as const)
 export function toReadableSize(bytes: number) {
   let count = 0
@@ -23,16 +26,33 @@ export function useEvent<T extends HTMLElement, K extends keyof HTMLElementEvent
 }
 
 export function create(element: HTMLDivElement, onToken: (token: string) => Promise<void>) {
-    const { google } = window
+  const { google } = window
 
-    google.accounts.id.initialize({
-      client_id: '644062157599-6ddpbis484gcesi7dljvv7ccbb63mvdj.apps.googleusercontent.com',
-      callback: (credentials) => onToken(credentials.credential)
-    })
+  google.accounts.id.initialize({
+    client_id: '644062157599-6ddpbis484gcesi7dljvv7ccbb63mvdj.apps.googleusercontent.com',
+    callback: (credentials) => onToken(credentials.credential)
+  })
 
-    google.accounts.id.renderButton(element, {
-      theme: 'outline', size: 'large'
-    })
+  google.accounts.id.renderButton(element, {
+    theme: 'outline',
+    size: 'large'
+  })
 
-    google.accounts.id.prompt()
+  google.accounts.id.prompt()
+}
+
+export async function generateFileTokenUrl(
+  server: ClientContext['server'],
+  file: FileResource,
+  fileData: FileDataResource,
+  download: boolean = false
+) {
+  const url = `http${window.location.protocol === 'https:' ? 's' : ''}://${window.location.host}/api/files/${await server.GenerateFileToken(
+    {
+      FileId: file.Id,
+      FileDataId: fileData.Id
+    }
+  )}${download ? '?download-mode' : ''}`
+
+  return url
 }

@@ -81,10 +81,11 @@
     {/snippet}
 
     {@render message(msg)}
-  {:else if mime.startsWith('video/') || mime.startsWith('audio/')}
-    <FileBrowserFileContentMedia {fileData} {file} {mime} />
+  <!-- {:else if mime.startsWith('video/') || mime.startsWith('audio/')}
+    <FileBrowserFileContentMedia {fileData} {file} {mime} /> -->
   {:else if mime.startsWith('image/') || mime.startsWith('video/') || mime.startsWith('audio/') || mime.startsWith('text/') || mime === 'application/pdf'}
-    <FileBrowserFileContentView {fileData} {file} {mime} />
+    <FileBrowserFileContentMedia {fileData} {file} {mime} />
+    <!-- <FileBrowserFileContentView {fileData} {file} {mime} /> -->
   {:else}
     {#snippet msg()}
       <p>No preview is available for this file.</p>

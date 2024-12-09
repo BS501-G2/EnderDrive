@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 
 namespace RizzziGit.EnderDrive.Server.Core;
 
+using System;
 using Commons.Services;
 using Connections;
 using Resources;
@@ -30,11 +31,18 @@ public sealed class EnderDriveServer(
   int httpsPort = 8442
 ) : Service<ServerData>("Server")
 {
+  public string DataPath = Path.Join(Environment.CurrentDirectory, ".EnderDrive");
+
   protected override async Task<ServerData> OnStart(
     CancellationToken startupCancellationToken,
     CancellationToken serviceCancellationToken
   )
   {
+    if (!Path.Exists(DataPath))
+    {
+      Directory.CreateDirectory(DataPath);
+    }
+
     KeyManager keyManager = new(this);
     ResourceManager resourceManager = new(this);
     AdminManager adminManager = new(resourceManager);
@@ -43,7 +51,7 @@ public sealed class EnderDriveServer(
     GoogleService googleService = new(this);
     ConnectionManager connectionManager = new(this);
     MimeDetector mimeDetector = new(this);
-    AudioTranscriber audioTranscriber = new(this, "/home/cool/Code/bs701/model.bin");
+    AudioTranscriber audioTranscriber = new(this, Path.Join(DataPath, "model.bin"));
     NotificationManager notificationManager = new(this);
 
     await StartServices([keyManager, resourceManager], startupCancellationToken);
@@ -56,7 +64,7 @@ public sealed class EnderDriveServer(
         mimeDetector,
         audioTranscriber,
         notificationManager,
-        apiServer
+        apiServer,
       ],
       startupCancellationToken
     );
@@ -72,7 +80,7 @@ public sealed class EnderDriveServer(
       ConnectionManager = connectionManager,
       MimeDetector = mimeDetector,
       AudioTranscriber = audioTranscriber,
-      NotificationManager = notificationManager
+      NotificationManager = notificationManager,
     };
   }
 

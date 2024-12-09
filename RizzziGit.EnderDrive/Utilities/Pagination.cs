@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using MongoDB.Bson.Serialization.Attributes;
 
@@ -33,6 +34,48 @@ public static class IQueryableExtensions
 {
   public static IQueryable<T> ApplyPagination<T>(
     this IQueryable<T> queryable,
+    PaginationOptions? pagination
+  )
+  {
+    if (pagination != null)
+    {
+      if (pagination.Offset != null)
+      {
+        queryable = queryable.Skip(pagination.Offset.Value);
+      }
+
+      if (pagination.Count != null)
+      {
+        queryable = queryable.Take(pagination.Count.Value);
+      }
+    }
+
+    return queryable;
+  }
+
+  public static IAsyncEnumerable<T> ApplyPagination<T>(
+    this IAsyncEnumerable<T> queryable,
+    PaginationOptions? pagination
+  )
+  {
+    if (pagination != null)
+    {
+      if (pagination.Offset != null)
+      {
+        queryable = queryable.Skip(pagination.Offset.Value);
+      }
+
+      if (pagination.Count != null)
+      {
+        queryable = queryable.Take(pagination.Count.Value);
+      }
+    }
+
+    return queryable;
+  }
+
+  public static IEnumerable<T> ApplyPagination<T>(
+    this IEnumerable<T> queryable,
     PaginationOptions? pagination
   )
   {

@@ -70,14 +70,12 @@ public sealed partial class Connection
         .Query<FileStar>(
           transaction,
           (query) =>
-            query
-              .Where(
-                (item) =>
-                  (file == null || item.FileId == file.Id)
-                  && (user == null || item.UserId == user.Id)
-                  && item.Starred
-              )
-              .ApplyPagination(request.Pagination)
+            query.Where(
+              (item) =>
+                (file == null || item.FileId == file.Id)
+                && (user == null || item.UserId == user.Id)
+                && item.Starred
+            )
         )
         .WhereAwait(
           async (fileStar) =>
@@ -100,6 +98,7 @@ public sealed partial class Connection
             return fileAccessResult != null;
           }
         )
+        .ApplyPagination(request.Pagination)
         .ToArrayAsync(transaction.CancellationToken);
 
       return new() { FileStars = [.. fileStars.ToJson()] };

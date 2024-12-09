@@ -85,7 +85,6 @@ public sealed partial class Connection
                   ? (query) => query.GroupBy((e) => e.FileId).Select((e) => e.First())
                   : null
               )
-              .ApplyPagination(request.Pagination)
         )
         .WhereAwait(
           async (fileLog) =>
@@ -110,6 +109,7 @@ public sealed partial class Connection
               ) != null;
           }
         )
+        .ApplyPagination(request.Pagination)
         .ToArrayAsync(transaction.CancellationToken);
 
       return new() { FileLogs = [.. fileLogs.ToJson()] };

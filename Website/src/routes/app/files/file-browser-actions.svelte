@@ -4,7 +4,7 @@
   import FileBrowserAction from './file-browser-action.svelte'
   import FileBrowserCreateFolder from './file-browser-create-folder.svelte'
   import { useDashboardContext } from '$lib/client/contexts/dashboard'
-  import { bufferSize, toReadableSize } from '$lib/client/utils'
+  import { bufferSize, generateFileTokenUrl, toReadableSize } from '$lib/client/utils'
   import { page } from '$app/stores'
   import FileRenameDialog from './file-rename-dialog.svelte'
   import { useClientContext } from '$lib/client/client'
@@ -77,10 +77,9 @@
     {/if}
   {/if}
 
-  {#if current.type == 'file' || current.type == 'folder' && $isDesktop}
+  {#if current.type == 'file' || (current.type == 'folder' && $isDesktop)}
     <FileBrowserActionShare file={$state.snapshot(current.file)} />
   {/if}
-
 
   {#if nonReactiveSelectedFileIds.length === 1 && fileAccessLevel[0] >= FileAccessLevel.ReadWrite}
     <FileBrowserAction
@@ -379,6 +378,10 @@
         }}
         label="Download"
         onclick={async () => {
+          const file = await server.GetFile({
+            FileId: nonReactiveSelectedFileIds[0]
+          })
+
           const fileData = await server
             .FileGetDataEntries({
               FileId: nonReactiveSelectedFileIds[0],
@@ -386,11 +389,6 @@
               Pagination: { Count: 1 }
             })
             .then((result) => result[0])
-
-          const fileDataSize = await server.FileGetSize({
-            FileId: nonReactiveSelectedFileIds[0],
-            FileDataId: fileData.Id
-          })
 
           const virus = await server.FileScan({
             FileId: nonReactiveSelectedFileIds[0],
@@ -401,25 +399,7 @@
             throw new Error('Cannot download a file with viruses.')
           }
 
-          const streamId = await server.StreamOpen({
-            FileId: nonReactiveSelectedFileIds[0],
-            FileDataId: fileData.Id,
-            ForWriting: false
-          })
-
-          let data = new Blob([], { type: 'application/octet-stream' })
-          for (let offset = 0; offset < fileDataSize; offset += bufferSize) {
-            const buffer = await server.StreamRead({
-              StreamId: streamId,
-              Length: bufferSize
-            })
-
-            data = new Blob([data, buffer], { type: 'application/octet-stream' })
-          }
-
-          await server.StreamClose({ StreamId: streamId })
-
-          const url = URL.createObjectURL(data)
+          const url = await generateFileTokenUrl(server, file, fileData, true)
 
           window.open(url, '_blank')
         }}

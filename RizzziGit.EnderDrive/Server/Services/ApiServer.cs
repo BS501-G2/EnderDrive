@@ -1,34 +1,28 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using System.Linq;
 using System.Net;
-using System.Net.WebSockets;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Headers;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using MimeDetective.Storage;
+using MongoDB.Bson;
 
 namespace RizzziGit.EnderDrive.Server.Services;
 
-using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.IO;
-using System.Linq;
-using System.Runtime.ExceptionServices;
-using Commons.Memory;
 using Commons.Services;
+using Connections;
 using Core;
-using Microsoft.AspNetCore.Http.Headers;
-using Microsoft.Net.Http.Headers;
-using MimeDetective.Storage;
-using MongoDB.Bson;
-using RizzziGit.EnderDrive.Server.Connections;
-using RizzziGit.EnderDrive.Server.Resources;
-using RizzziGit.EnderDrive.Utilities;
-using Services;
+using Newtonsoft.Json.Linq;
+using Resources;
 
 public sealed partial class ApiServerContext
 {
@@ -211,7 +205,9 @@ public sealed partial class ApiServer(EnderDriveServer server, int httpPort, int
       cancellationToken
     );
 
-    string getFileMimeType() => fileMime?.File.MimeType ?? "application/octet-stream";
+    string getFileMimeType() =>
+      (context.Request.Query.ContainsKey("download-mode") ? null : fileMime?.File.MimeType)
+      ?? "application/octet-stream";
 
     long getSize() =>
       fileToken.FileData.Data.SegmentsIds.Aggregate(
@@ -224,6 +220,14 @@ public sealed partial class ApiServer(EnderDriveServer server, int httpPort, int
         Resources.CreateFileStream(transaction, fileToken.File, fileToken.FileData, false),
       cancellationToken
     );
+
+    context.Response.ContentType = getFileMimeType();
+
+    if (context.Request.Query.ContainsKey("download-mode"))
+    {
+      context.Response.Headers.ContentDisposition =
+        $"attachment; filename*=UTF-8''{Uri.EscapeDataString(fileToken.File.File.Data.Name)}";
+    }
 
     if (headers.Range != null)
     {
@@ -242,7 +246,6 @@ public sealed partial class ApiServer(EnderDriveServer server, int httpPort, int
 
         context.Response.Headers.ContentRange = $"bytes {start}-{end - 1}/{getSize()}";
         context.Response.ContentLength = end - start;
-        context.Response.ContentType = getFileMimeType();
 
         await stream.SeekAsync(start, SeekOrigin.Begin, cancellationToken);
         long written = 0;
@@ -273,7 +276,6 @@ public sealed partial class ApiServer(EnderDriveServer server, int httpPort, int
     else
     {
       context.Response.StatusCode = 200;
-      context.Response.ContentType = getFileMimeType();
       context.Response.ContentLength = getSize();
 
       while (true)

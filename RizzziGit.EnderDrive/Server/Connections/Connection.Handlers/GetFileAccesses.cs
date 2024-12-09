@@ -135,7 +135,6 @@ public sealed partial class Connection
                   && (request.Level == null || fileAccess.Level >= request.Level)
               )
               .OrderByDescending((fileAccess) => fileAccess.Id)
-              .ApplyPagination(request.Pagination)
         )
         .IfAwait(
           () => !(request.IncludePublic ?? false),
@@ -175,6 +174,7 @@ public sealed partial class Connection
             return fileAccessResult != null;
           }
         )
+        .ApplyPagination(request.Pagination)
         .ToArrayAsync(transaction.CancellationToken);
 
       return new() { FileAccesses = [.. fileAccesses.ToJson()] };

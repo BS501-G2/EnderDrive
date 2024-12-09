@@ -1,9 +1,9 @@
 <script lang="ts">
   import { useClientContext } from '$lib/client/client'
   import type { FileDataResource, FileResource } from '$lib/client/resource'
-  import { bufferSize } from '$lib/client/utils'
-  import { onMount } from 'svelte'
-  import { writable, type Writable } from 'svelte/store'
+  import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
+  import { generateFileTokenUrl } from '$lib/client/utils'
+  import { type Writable } from 'svelte/store'
 
   const {
     file,
@@ -14,32 +14,25 @@
     file: FileResource
     fileData: FileDataResource
   } = $props()
+
   const { server } = useClientContext()
-
-  // let videoElement: HTMLVideoElement | null = $state(null)
-
-  let url: string | null = $state(null)
-
-  async function updateSource() {
-    url = `http${window.location.protocol === 'https:' ? 's' : ''}://${window.location.host}/api/files/${await server.GenerateFileToken({
-      FileId: file.Id,
-      FileDataId: fileData.Id
-    })}`
-
-    console.log(url)
-  }
-
-  $effect(() => {
-    void updateSource()
-  })
 </script>
 
-{#if url != null}
+{#await generateFileTokenUrl(server, file, fileData)}
+  <div class="loading">
+    <LoadingSpinner size="3rem" />
+  </div>
+{:then url}
   <embed src={url} type={mime} />
-{/if}
+{/await}
 
 <style lang="scss">
   embed {
     flex-grow: 1;
+  }
+
+  div.loading {
+    align-items: center;
+    justify-content: center;
   }
 </style>
