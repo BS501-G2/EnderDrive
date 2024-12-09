@@ -6,6 +6,7 @@
   import { toReadableSize } from '$lib/client/utils'
   import Button from '$lib/client/ui/button.svelte'
   import Window from '$lib/client/ui/window.svelte'
+  import DataUsage from './data-usage-dialog.svelte'
 
   const { pushDesktopBottom } = useDashboardContext()
   const { server } = useClientContext()
@@ -18,26 +19,14 @@
 </script>
 
 {#if showDetails}
-  <Window
-    ondismiss={() => {
-      showDetails = false
-    }}
-  >
-
-{#await (async () => {
-  const me = await server.Me({})
-  const { FileCount, DiskUsage } = await server.GetUserDiskUsage({
-    UserId: me.Id
-  })
-
-  return {FileCount, DiskUsage}
-})()}
-
-{:then {FileCount, DiskUsage}}
-  <p>{FileCount}</p>
-  <p>{toReadableSize(DiskUsage)}</p>
-{/await}
-</Window>
+  {#await server.Me({}) then me}
+    <DataUsage
+      user={me}
+      ondismiss={() => {
+        showDetails = false
+      }}
+    />
+  {/await}
 {/if}
 
 {#snippet stats()}

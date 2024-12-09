@@ -103,8 +103,12 @@ export function createClientContext() {
       const request: FunctionMap<ServerSideFunctions>[T] =
         customRequest != null ? (data) => customRequest(data, a) : a
 
-      return request(data)
+      return await request(data)
     } catch (error: any) {
+      if (error.message == 'Login required.' || error.message == 'Session expired.') {
+        authentication.set(null)
+      }
+      
       throw new Error(error.message, { cause: error })
     }
   }

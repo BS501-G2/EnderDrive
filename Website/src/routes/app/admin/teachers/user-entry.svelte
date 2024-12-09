@@ -8,6 +8,10 @@
   import UserLink from '$lib/client/model/user-link.svelte'
   import ActionMenu from './action-menu.svelte'
   import Button from '$lib/client/ui/button.svelte'
+  import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
+  import { toReadableSize } from '$lib/client/utils'
+  import { type Snippet } from 'svelte'
+  import DataUsageDialog from '../../data-usage-dialog.svelte'
 
   const { ...props }: { user: UserResource } | { head: true } = $props()
   const { server } = useClientContext()
@@ -51,7 +55,18 @@
   let showMenu = $state(false)
 
   let roleEditor = $state<{ user: UserRole; roles: UserRole[] }>()
+
+  let showSize = $state(false)
 </script>
+
+{#if showSize && !('head' in props)}
+  <DataUsageDialog
+    user={props.user}
+    ondismiss={() => {
+      showSize = false
+    }}
+  />
+{/if}
 
 <div class="user">
   <div class="icon">
@@ -65,17 +80,48 @@
       <b>Name</b>
     {:else}
       <p>
-        <a href="/profile?id={props.user.Id}">
+        <a href="/app/profile?id={props.user.Id}">
           {props.user.FirstName}{props.user.MiddleName && ` ${props.user.MiddleName}`}
           {props.user.LastName}
         </a>
       </p>
+      <p class="username">@{props.user.Username}</p>
     {/if}
   </div>
 
-  {#if !('head' in props)}
-    <div class="actions">
+  <div class="size">
+    {#if 'head' in props}
+      <b>Data Usage</b>
+    {:else}
+      {#await server.GetUserDiskUsage({ UserId: props.user.Id })}
+        <LoadingSpinner size="1rem" />
+      {:then a}
+        {#snippet foreground(view: Snippet)}
+          <div class="foreground">
+            {@render view()}
+          </div>
+        {/snippet}
+        <Button
+          {foreground}
+          onclick={() => {
+            showSize = true
+          }}
+        >
+          <p>{toReadableSize(a.DiskUsage)}</p>
+        </Button>
+      {/await}
+    {/if}
+  </div>
+  <div class="actions">
+    {#if !('head' in props)}
+      {#snippet foreground(view: Snippet)}
+        <div class="foreground">
+          {@render view()}
+        </div>
+      {/snippet}
+
       <Button
+        {foreground}
         bind:buttonElement={$menuButton}
         onclick={() => {
           showMenu = true
@@ -83,8 +129,8 @@
       >
         <Icon icon="ellipsis-vertical" thickness="solid" />
       </Button>
-    </div>
-  {/if}
+    {/if}
+  </div>
 </div>
 
 {#if 'head' in props}{:else if showMenu}
@@ -111,16 +157,16 @@
     flex-direction: row;
     align-items: center;
 
+    b {
+      font-weight: bolder;
+    }
+
     div.icon {
       @include force-size(32px, &);
     }
 
     div.name {
       flex-grow: 1;
-
-      > b {
-        font-weight: bolder;
-      }
 
       > p {
         > a {
@@ -131,6 +177,32 @@
         > a:hover {
           text-decoration: underline;
         }
+      }
+
+      > p.username {
+        font-size: 80%;
+        font-weight: lighter;
+      }
+    }
+
+    div.size {
+      @include force-size(96px, &);
+
+      justify-content: center;
+      text-align: center;
+
+      div.foreground {
+        flex-grow: 1;
+        align-items: end;
+        padding: 8px;
+      }
+    }
+
+    div.actions {
+      @include force-size(32px, &);
+
+      div.foreground {
+        padding: 8px;
       }
     }
   }

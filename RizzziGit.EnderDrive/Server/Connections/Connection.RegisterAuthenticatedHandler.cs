@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 
 namespace RizzziGit.EnderDrive.Server.Connections;
 
+using System;
 using Resources;
 
 public sealed partial class Connection
@@ -25,11 +26,31 @@ public sealed partial class Connection
       name,
       async (transaction, request) =>
       {
-        UnlockedUserAuthentication unlockedUserAuthentication =
-          GetContext().CurrentUser ?? throw new ConnectionResponseException("Login required.");
+        var userAuthentication = GetContext().CurrentUser;
+
+        if (userAuthentication == null)
+        {
+          throw new ConnectionResponseException("Login required.");
+        }
+        else if (
+          (userAuthentication.UserAuthentication.Data.LastActiveTime + (1000 * 60 * 60 * 24))
+          < DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+        )
+        {
+          userAuthentication = null;
+          throw new ConnectionResponseException("Session expired.");
+        }
+
+        await userAuthentication.UserAuthentication.Update(
+          (userAuthentication) =>
+          {
+            userAuthentication.LastActiveTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+          },
+          transaction
+        );
 
         Resource<User>? me =
-          await Internal_Me(transaction, unlockedUserAuthentication)
+          await Internal_Me(transaction, userAuthentication)
           ?? throw new ConnectionResponseException("Login required.");
 
         if (
@@ -61,7 +82,7 @@ public sealed partial class Connection
         {
           unlockedAdminAccess =
             adminAccess != null
-              ? UnlockedAdminAccess.Unlock(adminAccess, unlockedUserAuthentication)
+              ? UnlockedAdminAccess.Unlock(adminAccess, userAuthentication)
               : null;
         }
         catch
@@ -69,13 +90,7 @@ public sealed partial class Connection
           unlockedAdminAccess = null;
         }
 
-        return await handler(
-          transaction,
-          request,
-          unlockedUserAuthentication,
-          me,
-          unlockedAdminAccess
-        );
+        return await handler(transaction, request, userAuthentication, me, unlockedAdminAccess);
       }
     );
 }

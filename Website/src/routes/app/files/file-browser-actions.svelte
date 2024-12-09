@@ -9,6 +9,8 @@
   import FileRenameDialog from './file-rename-dialog.svelte'
   import { useClientContext } from '$lib/client/client'
   import { FileAccessLevel, type FileResource } from '$lib/client/resource'
+  import FileBrowserActionShare from './file-browser-action-share.svelte'
+  import { useAppContext } from '$lib/client/contexts/app'
 
   const {
     current,
@@ -19,6 +21,7 @@
   } = $props()
   const { refresh, selectMode, onFileId, stored } = useFileBrowserContext()
   const { executeBackgroundTask } = useDashboardContext()
+  const { isDesktop } = useAppContext()
   const { server } = useClientContext()
 
   const snapshotId = derived(page, ({ url }) => url.searchParams.get('snapshotId'))
@@ -73,6 +76,11 @@
       />
     {/if}
   {/if}
+
+  {#if current.type == 'file' || current.type == 'folder' && $isDesktop}
+    <FileBrowserActionShare file={$state.snapshot(current.file)} />
+  {/if}
+
 
   {#if nonReactiveSelectedFileIds.length === 1 && fileAccessLevel[0] >= FileAccessLevel.ReadWrite}
     <FileBrowserAction

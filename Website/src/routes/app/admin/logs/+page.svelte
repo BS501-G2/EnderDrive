@@ -29,6 +29,7 @@
 
 <div class="logs">
   <LazyLoader
+  style="gap: 8px"
     class="test"
     bind:items={logs}
     load={async (offset) => {

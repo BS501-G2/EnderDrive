@@ -48,6 +48,9 @@ public record class UserAuthentication : ResourceData
   public required long CreateTime;
 
   [JsonIgnore]
+  public required long LastActiveTime;
+
+  [JsonIgnore]
   public required byte[] Extra;
 }
 
@@ -144,7 +147,8 @@ public sealed partial class ResourceManager
         UserPublicRsaKey = rsaPublicKey,
         EncryptedUserPrivateRsaKey = encryptedRsaPrivateKey,
         CreateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-        Extra = extra?? []
+        LastActiveTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+        Extra = extra ?? []
       }
     );
 
@@ -198,6 +202,7 @@ public sealed partial class ResourceManager
         UserPublicRsaKey = sourceUserAuthentication.UserAuthentication.Data.UserPublicRsaKey,
         EncryptedUserPrivateRsaKey = encryptedRsaPrivateKey,
         CreateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+        LastActiveTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
         Extra = extra ?? []
       }
     );
@@ -275,6 +280,7 @@ public sealed partial class ResourceManager
         UserPublicRsaKey = user.Data.RsaPublicKey,
         EncryptedUserPrivateRsaKey = encryptedUserRsaPrivateKey,
         CreateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+        LastActiveTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
         Extra = extra ?? []
       }
     );

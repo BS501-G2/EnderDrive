@@ -21,7 +21,7 @@
   let url: string | null = $state(null)
 
   async function updateSource() {
-    url = `http://localhost:8082/api/files/${await server.GenerateFileToken({
+    url = `http${window.location.protocol === 'https:' ? 's' : ''}://${window.location.host}/api/files/${await server.GenerateFileToken({
       FileId: file.Id,
       FileDataId: fileData.Id
     })}`

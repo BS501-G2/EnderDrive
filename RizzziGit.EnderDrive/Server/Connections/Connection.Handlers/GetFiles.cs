@@ -81,9 +81,16 @@ public sealed partial class Connection
                 (item) =>
                   (
                     request.SearchString == null
-                    || item.Name.Contains(request.SearchString, StringComparison.CurrentCultureIgnoreCase)
+                    || item.Name.Contains(
+                      request.SearchString,
+                      StringComparison.CurrentCultureIgnoreCase
+                    )
                   )
-                  && (parentFolder == null || item.ParentId == parentFolder.Id)
+                  && (
+                    request.TrashOptions == TrashOptions.Exclusive
+                    || parentFolder == null
+                    || item.ParentId == parentFolder.Id
+                  )
                   && (request.FileType == null || item.Type == request.FileType)
                   && (ownerUser == null || item.OwnerUserId == ownerUser.Id)
                   && (
@@ -92,8 +99,13 @@ public sealed partial class Connection
                   )
                   && (request.Id == null || item.Id == request.Id)
                   && (
-                    request.TrashOptions == TrashOptions.Exclusive ? item.TrashTime != null
-                    : request.TrashOptions == TrashOptions.Inclusive || (request.TrashOptions == TrashOptions.NonInclusive && item.TrashTime == null)
+                    request.TrashOptions == TrashOptions.Exclusive
+                      ? item.TrashTime != null
+                      : request.TrashOptions == TrashOptions.Inclusive
+                        || (
+                          request.TrashOptions == TrashOptions.NonInclusive
+                          && item.TrashTime == null
+                        )
                   )
               )
               .OrderByDescending((file) => file.Type)

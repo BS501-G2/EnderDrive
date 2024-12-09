@@ -4,6 +4,7 @@
   import Button from '$lib/client/ui/button.svelte'
   import Icon, { type IconOptions } from '$lib/client/ui/icon.svelte'
   import { Buffer } from 'buffer'
+  import { type Snippet } from 'svelte'
 
   const { server } = useClientContext()
   const { ...props }: { header: true } | { news: NewsResource; onrefresh: () => void } = $props()
@@ -32,7 +33,13 @@
   {#if !('header' in props)}
     <div class="actions">
       {#snippet button(icon: IconOptions, name: string, onclick: () => Promise<void>)}
-        <Button hint={name} {onclick}>
+        {#snippet foreground(view: Snippet)}
+          <div class="foreground">
+            {@render view()}
+          </div>
+        {/snippet}
+
+        <Button {foreground} hint={name} {onclick}>
           <Icon {...icon} />
         </Button>
       {/snippet}
@@ -72,6 +79,12 @@
 
     > div.title {
       flex-grow: 1;
+    }
+
+    > div.actions {
+      div.foreground {
+        padding: 8px;
+      }
     }
   }
 

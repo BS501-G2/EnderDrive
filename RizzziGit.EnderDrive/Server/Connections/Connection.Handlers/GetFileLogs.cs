@@ -90,15 +90,20 @@ public sealed partial class Connection
         .WhereAwait(
           async (fileLog) =>
           {
-            return await Resources.FindFileAccess(
+            Resource<File>? currentFile =
+              file
+              ?? await Internal_GetFirst(
                 transaction,
-                file
-                  ?? await Internal_GetFile(
-                    transaction,
-                    me,
-                    userAuthentication,
-                    fileLog.Data.FileId
-                  ),
+                Resources.Query<File>(
+                  transaction,
+                  (query) => query.Where((file) => file.Id == fileLog.Data.FileId)
+                )
+              );
+
+            return currentFile != null
+              && await Resources.FindFileAccess(
+                transaction,
+                currentFile,
                 me,
                 userAuthentication,
                 FileAccessLevel.Read

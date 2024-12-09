@@ -15,6 +15,12 @@ export default defineConfig({
         changeOrigin: false,
         secure: false,
         ws: true
+      },
+      '/api': {
+        target: 'http://localhost:8082',
+        changeOrigin: false,
+        secure: false,
+        ws: false
       }
     },
     headers: {

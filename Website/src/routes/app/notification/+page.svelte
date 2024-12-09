@@ -16,4 +16,4 @@
   )
 </script>
 
-<NotificationViewer />
+<NotificationViewer ondismiss={() => {}} />

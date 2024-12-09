@@ -26,6 +26,7 @@
   import Agreement from './agreement.svelte'
   import StatsHost from './stats-host.svelte'
   import LoadingSpinner from '$lib/client/ui/loading-spinner.svelte'
+  import Separator from '$lib/client/ui/separator.svelte'
 
   const notificationContext = writable<NotificationContext>(null as never)
 
@@ -164,7 +165,7 @@
     </div>
 
     {#if $clientState[0] !== 'connnected'}
-      <div class="separator"></div>
+      <Separator horizontal />
 
       <div class="disconnection-message">
         {#if $clientState[0] === 'connecting'}
@@ -181,7 +182,7 @@
       </div>
     {/if}
 
-    <div class="separator"></div>
+    <Separator horizontal />
 
     <div class="middle">
       {#if !$isMobile}
@@ -193,7 +194,7 @@
           {/each}
         </div>
 
-        <div class="separator"></div>
+        <Separator vertical />
       {/if}
 
       <div class="main">
@@ -201,7 +202,7 @@
       </div>
     </div>
     {#if $isDesktop && $desktopBottom.length}
-      <div class="separator"></div>
+      <Separator horizontal />
       <div class="desktop-bottom">
         <div class="left section">
           {#each $desktopBottom.filter((e) => e.arrangement === 'left') as { id, snippet } (id)}
@@ -217,7 +218,7 @@
     {/if}
 
     {#if $isMobile}
-      <div class="separator"></div>
+      <Separator horizontal />
       <div class="bottom">
         <NavigationHost {navigationEntries} />
 
