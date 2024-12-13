@@ -85,11 +85,13 @@
   })
 </script>
 
-{#await $didIAgree then result}
-  {#if !result}
-    <Agreement refresh={() => didIAgree.set(server.DidIAgree({}))} />
-  {/if}
-{/await}
+{#if $authentication != null}
+  {#await $didIAgree then result}
+    {#if !result}
+      <Agreement refresh={() => didIAgree.set(server.DidIAgree({}))} />
+    {/if}
+  {/await}
+{/if}
 
 {#if $authentication != null}
   <div class="dashboard">
