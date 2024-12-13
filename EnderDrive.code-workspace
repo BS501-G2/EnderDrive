@@ -2,23 +2,11 @@
   "folders": [
     {
       "name": "Website",
-      "path": "Website"
+      "path": "client"
     },
     {
       "name": "Server",
-      "path": "RizzziGit.EnderDrive"
-    },
-    {
-      "name": "Server Bridge",
-      "path": "RizzziGit.EnderDrive.Proxy"
-    },
-    {
-      "name": "Website (old)",
-      "path": "client/client"
-    },
-    {
-      "name": "Server (old)",
-      "path": "client/lib"
+      "path": "lib"
     },
     {
       "name": "Root",
