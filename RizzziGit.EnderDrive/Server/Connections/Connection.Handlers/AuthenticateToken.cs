@@ -39,10 +39,12 @@ public sealed partial class Connection
 
       UnlockedUserAuthentication? unlockedUserAuthentication = null;
       await foreach (
-        Resource<UserAuthentication> userAuthentication in Resources.Query<UserAuthentication>(
-          transaction,
-          (query) => query.Where((item) => item.UserId == user.Id)
-        )
+        Resource<UserAuthentication> userAuthentication in Resources
+          .Query<UserAuthentication>(
+            transaction,
+            (query) => query.Where((item) => item.UserId == user.Id)
+          )
+          .Where((item) => !item.Data.IsExpired)
       )
       {
         try

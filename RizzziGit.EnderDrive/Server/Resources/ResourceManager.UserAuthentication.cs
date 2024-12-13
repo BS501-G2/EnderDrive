@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using Newtonsoft.Json;
 
 namespace RizzziGit.EnderDrive.Server.Resources;
 
-using System.Text.RegularExpressions;
-using MongoDB.Bson.Serialization.Attributes;
 using Services;
 
 public enum UserAuthenticationType
@@ -52,6 +52,10 @@ public record class UserAuthentication : ResourceData
 
   [JsonIgnore]
   public required byte[] Extra;
+
+  [BsonIgnore]
+  public bool IsExpired =>
+    LastActiveTime + (1000 * 60 * 60 * 24) < DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 }
 
 [Flags]
@@ -78,8 +82,12 @@ public sealed partial class ResourceManager
 
   private static byte[] HashPayload(byte[] salt, int iterations, byte[] payload)
   {
-    using Rfc2898DeriveBytes rfc2898DeriveBytes =
-      new(payload, salt, iterations, HashAlgorithmName.SHA256);
+    using Rfc2898DeriveBytes rfc2898DeriveBytes = new(
+      payload,
+      salt,
+      iterations,
+      HashAlgorithmName.SHA256
+    );
 
     return rfc2898DeriveBytes.GetBytes(32);
   }
@@ -148,7 +156,7 @@ public sealed partial class ResourceManager
         EncryptedUserPrivateRsaKey = encryptedRsaPrivateKey,
         CreateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
         LastActiveTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-        Extra = extra ?? []
+        Extra = extra ?? [],
       }
     );
 
@@ -203,7 +211,7 @@ public sealed partial class ResourceManager
         EncryptedUserPrivateRsaKey = encryptedRsaPrivateKey,
         CreateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
         LastActiveTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-        Extra = extra ?? []
+        Extra = extra ?? [],
       }
     );
 
@@ -281,7 +289,7 @@ public sealed partial class ResourceManager
         EncryptedUserPrivateRsaKey = encryptedUserRsaPrivateKey,
         CreateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
         LastActiveTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-        Extra = extra ?? []
+        Extra = extra ?? [],
       }
     );
 

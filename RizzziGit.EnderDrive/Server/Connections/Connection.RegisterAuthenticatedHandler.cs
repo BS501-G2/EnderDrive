@@ -32,10 +32,7 @@ public sealed partial class Connection
         {
           throw new ConnectionResponseException("Login required.");
         }
-        else if (
-          (userAuthentication.UserAuthentication.Data.LastActiveTime + (1000 * 60 * 60 * 24))
-          < DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-        )
+        else if (userAuthentication.UserAuthentication.Data.IsExpired)
         {
           userAuthentication = null;
           throw new ConnectionResponseException("Session expired.");
@@ -68,7 +65,7 @@ public sealed partial class Connection
             throw new InsufficientRoleException()
             {
               IncludeRoles = includeRole,
-              ExcludeRoles = excludeRole
+              ExcludeRoles = excludeRole,
             };
           }
         }

@@ -40,6 +40,7 @@ public sealed partial class Connection
                   && (!request.ExcludeRead || !notification.Read)
                   && (!request.ExcludeUnread || notification.Read)
               )
+              .OrderByDescending((notification) => notification.Id)
               .ApplyPagination(request.Pagination)
         )
         .ToArrayAsync(transaction);
